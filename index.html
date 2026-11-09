@@ -640,11 +640,12 @@ footer { font-family: var(--mono); font-size: 12px; color: var(--muted); text-al
   else if (/TikTok|musical_ly|Bytedance/i.test(ua)) origen = "tiktok";
   else { try { var h = new URL(document.referrer).hostname.replace(/^www\.|^l\.|^lm\.|^m\./, ""); if (h && h !== location.hostname) origen = h.slice(0, 60); } catch(e) {} }
   var disp = /iPhone|iPod/.test(ua) ? "iphone" : /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "ipad" : /Android/.test(ua) ? (/Mobile/.test(ua) ? "android" : "tablet") : /Macintosh|Mac OS X/.test(ua) ? "mac" : /Windows/.test(ua) ? "windows" : /Linux|CrOS/.test(ua) ? "linux" : "otro";
-  fetch("https://gwissessaumhyyoinhjz.supabase.co/rest/v1/visitas", {
-    method: "POST", keepalive: true,
-    headers: { apikey: "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x", "Content-Type": "application/json", Prefer: "return=minimal" },
-    body: JSON.stringify({ pagina: PAGINA, origen: origen, movil: /Mobi|Android|iPhone/i.test(ua), dispositivo: disp })
-  }).catch(function(){});
+  var datos = JSON.stringify({ pagina: PAGINA, origen: origen, movil: /Mobi|Android|iPhone/i.test(ua), dispositivo: disp });
+  var directo = function(){ fetch("https://gwissessaumhyyoinhjz.supabase.co/rest/v1/visitas", { method: "POST", keepalive: true,
+    headers: { apikey: "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x", "Content-Type": "application/json", Prefer: "return=minimal" }, body: datos }).catch(function(){}); };
+  fetch("https://gwissessaumhyyoinhjz.supabase.co/functions/v1/visita", { method: "POST", keepalive: true,
+    headers: { apikey: "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x", "Content-Type": "application/json" }, body: datos })
+    .then(function(r){ if (!r.ok) directo(); }).catch(directo);
 })();
 </script>
 <script>

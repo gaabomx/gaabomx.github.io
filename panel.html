@@ -4,216 +4,283 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#050505">
+<meta name="theme-color" content="#0a0a0b">
 <title>Panel gaabomx</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-[hidden]{display:none!important}
-html,body{margin:0}
-/* Layout: una sola columna, cada mensaje como una nota bajo la misma luz cálida */
+/* Layout: una columna tipo app; cada sección responde una pregunta, de lo más importante a lo menos */
 :root{
-  --negro:#050505;
-  --nota:#0e0d0b;
-  --luz:255 214 150;
-  --tinta:#d9cdb8;
-  --tenue:#6b6356;
-  --linea:#221f1a;
-  --serif:"Cormorant Garamond","Iowan Old Style",Georgia,serif;
-  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --fondo:#0a0a0b;
+  --tarjeta:#141416;
+  --borde:#232326;
+  --texto:#ecebe8;
+  --suave:#8d8a84;
+  --luz:255 196 120;
+  --verde:#7fd6a4;
+  --serif:"Cormorant Garamond",Georgia,serif;
+  --sans:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   color-scheme:dark;
 }
+[hidden]{display:none!important}
 *{box-sizing:border-box}
-body{
-  background:var(--negro);color:var(--tinta);font-family:var(--mono);font-size:13px;
-  background-image:radial-gradient(ellipse 70% 40% at 50% 0%, rgb(var(--luz)/.08), transparent 70%);
-  background-attachment:fixed;min-height:100vh;
-}
-.envoltura{
-  max-width:560px;margin:0 auto;
-  padding-left:max(16px,env(safe-area-inset-left,0px));
-  padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:40px 64px;
-  display:flex;flex-direction:column;gap:28px;
-}
-header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
-h1{margin:0;font-family:var(--serif);font-style:italic;font-weight:400;font-size:34px;line-height:1}
-.vivo{display:flex;align-items:center;gap:8px;color:var(--tenue);font-size:11px;letter-spacing:.08em}
-.punto{width:7px;height:7px;border-radius:50%;background:#3a342b}
-.vivo.on .punto{background:rgb(var(--luz));box-shadow:0 0 10px rgb(var(--luz)/.7);animation:late 2.4s ease-in-out infinite}
-@keyframes late{50%{opacity:.35}}
-.resumen{display:flex;gap:20px;color:var(--tenue);font-size:11px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
-.resumen b{color:var(--tinta);font-weight:500}
-.lista{display:flex;flex-direction:column;gap:12px;list-style:none;margin:0;padding:0}
-.msg{
-  background:var(--nota);border:1px solid var(--linea);border-radius:3px;
-  padding:16px 18px;display:flex;flex-direction:column;gap:12px;
-  animation:entra .9s ease both;
-}
-.msg.nuevo{border-color:rgb(var(--luz)/.35);box-shadow:0 0 24px rgb(var(--luz)/.06)}
+html,body{margin:0}
+body{background:var(--fondo);color:var(--texto);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(ellipse 80% 35% at 50% 0%, rgb(var(--luz)/.07), transparent 70%);background-attachment:fixed;min-height:100vh}
+.app{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(28px + env(safe-area-inset-top,0px)) calc(64px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:30px}
+h1{margin:0;font-family:var(--serif);font-style:italic;font-weight:500;font-size:36px;line-height:1}
+h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-.005em}
+.ayuda{margin:2px 0 0;color:var(--suave);font-size:13px}
+.cabeza{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.estado{display:flex;align-items:center;gap:8px;color:var(--suave);font-size:12px}
+.punto{width:8px;height:8px;border-radius:50%;background:#3a3a3e}
+.estado.on .punto{background:var(--verde);box-shadow:0 0 10px var(--verde);animation:late 2.4s ease-in-out infinite}
+@keyframes late{50%{opacity:.4}}
+.btn-texto{background:none;border:0;padding:6px 0;color:var(--suave);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.btn-texto:hover{color:var(--texto)}
+button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outline-offset:3px}
+.seccion{display:flex;flex-direction:column;gap:14px}
+.tarjeta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:16px}
+
+/* ahora mismo */
+.ahora{display:flex;align-items:center;gap:16px;padding:18px}
+.ahora .num{font-family:var(--serif);font-style:italic;font-size:56px;line-height:.9;color:rgb(var(--luz));font-variant-numeric:tabular-nums;min-width:1.2ch;text-align:center}
+.ahora p{margin:0;font-size:15px}
+.ahora small{display:block;color:var(--suave);font-size:12.5px;margin-top:2px}
+
+/* totales */
+.totales{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.total{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.total b{font-size:28px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.total span{color:var(--suave);font-size:12.5px}
+
+/* barras por día */
+.dias{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:120px;padding-top:6px}
+.dia{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%;min-width:0}
+.dia em{font-style:normal;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.dia i{display:block;width:100%;max-width:30px;border-radius:5px 5px 2px 2px;background:#2b2b30;min-height:3px;transition:height .6s ease}
+.dia.hoy i{background:rgb(var(--luz))}
+.dia small{color:var(--suave);font-size:11.5px}
+.dia.hoy small{color:var(--texto);font-weight:600}
+
+/* listas con barras */
+.lista{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.fila{display:flex;flex-direction:column;gap:6px}
+.fila .arriba{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.fila .arriba span:first-child{min-width:0;overflow-wrap:anywhere}
+.fila .arriba span:last-child{color:var(--suave);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fila .riel{height:6px;border-radius:3px;background:#222225;overflow:hidden}
+.fila .riel i{display:block;height:100%;border-radius:3px;background:rgb(var(--luz)/.75)}
+.vacia{color:var(--suave);font-size:13.5px;margin:0}
+
+/* mensajes */
+.mensajes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.msg{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;animation:entra .7s ease both}
+.msg.nuevo{border-color:rgb(var(--luz)/.45)}
 @keyframes entra{from{opacity:0;transform:translateY(-6px)}}
-.texto{margin:0;font-size:14.5px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
-.meta{display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--tenue);font-size:11px}
-.acciones{display:flex;gap:14px}
-button{background:none;border:0;padding:4px 0;font:inherit;font-size:11px;color:var(--tenue);cursor:pointer;letter-spacing:.06em}
-button:hover{color:var(--tinta)}
-button.peligro{color:#9a5b45}
-button:focus-visible{outline:1px dashed #4a4236;outline-offset:4px}
-.vacio,.aviso{
-  border:1px dashed var(--linea);border-radius:3px;padding:28px 20px;text-align:center;
-  color:var(--tenue);line-height:1.7;
-}
-.vacio em{font-family:var(--serif);font-size:20px;color:var(--tinta);display:block;margin-bottom:6px}
-.aviso.error{color:#b47a62;border-color:#3a2a22}
-.bloque{display:flex;flex-direction:column;gap:14px}
-.etiqueta{margin:0;color:var(--tenue);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
-.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--linea);border:1px solid var(--linea);border-radius:3px;overflow:hidden}
-.cifra{background:var(--nota);padding:14px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
-.cifra b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
-.cifra span{color:var(--tenue);font-size:10.5px;letter-spacing:.04em}
-.cifra.ahora b{color:rgb(var(--luz))}
-.barras{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end;height:84px}
-.barra{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;min-width:0}
-.barra i{display:block;width:100%;max-width:28px;background:rgb(var(--luz)/.22);border-top:2px solid rgb(var(--luz)/.8);border-radius:2px 2px 0 0;min-height:2px;transition:height .6s ease}
-.barra.hoy i{background:rgb(var(--luz)/.45)}
-.barra small{color:var(--tenue);font-size:10px;font-variant-numeric:tabular-nums}
-.barra em{font-style:normal;font-size:10px;color:var(--tinta);font-variant-numeric:tabular-nums}
-.filas{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
-.filas li{display:flex;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px solid var(--linea);padding-bottom:8px}
-.filas li span:last-child{color:var(--tenue);font-variant-numeric:tabular-nums}
-.dos{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-@media (max-width:440px){.cifras{grid-template-columns:repeat(2,minmax(0,1fr))}.dos{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:reduce){.msg{animation:none}.vivo.on .punto{animation:none}}
-.entrar{display:flex;flex-direction:column;gap:14px;margin-top:8vh}
-.entrar input{width:100%;background:transparent;color:var(--tinta);border:0;border-bottom:1px solid #2a2620;padding:8px 0;font:inherit;font-size:16px;outline:none;caret-color:rgb(var(--luz))}
-.entrar input:focus{border-color:#4a4236}
-.entrar .fila{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.entrar button,.salir{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--tinta)}
-.salir{font-size:10.5px;color:var(--tenue)}
+.msg p{margin:0;font-size:15.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg .pie{display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--suave);font-size:12.5px}
+.etq{display:inline-block;padding:2px 8px;border-radius:999px;background:rgb(var(--luz)/.16);color:rgb(var(--luz));font-size:11.5px;font-weight:600;margin-right:6px}
+.borrar{background:none;border:0;padding:4px 0;font:inherit;font-size:12.5px;color:var(--suave);cursor:pointer}
+.borrar.confirmar{color:#e08a6e;font-weight:600}
+.aviso{border:1px solid #3a2a22;color:#e0a08a;border-radius:12px;padding:12px 14px;font-size:13.5px}
+
+/* entrada */
+.entrar{max-width:380px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(18vh + env(safe-area-inset-top,0px)) 40px;display:flex;flex-direction:column;gap:16px}
+.entrar label{color:var(--suave);font-size:13px}
+.entrar input{width:100%;background:var(--tarjeta);color:var(--texto);border:1px solid var(--borde);border-radius:12px;padding:14px;font:inherit;font-size:16px}
+.entrar button{background:rgb(var(--luz));color:#1a1206;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+.entrar .error{color:#e0a08a;font-size:13.5px;min-height:1.4em;margin:0}
+@media (max-width:400px){.totales{gap:8px}.total b{font-size:24px}}
+@media (prefers-reduced-motion:reduce){.msg{animation:none}.estado.on .punto{animation:none}}
 </style>
 </head>
 <body>
-<form class="envoltura entrar" id="entrar" autocomplete="on">
+
+<form class="entrar" id="entrar" autocomplete="on">
   <h1>Tu panel</h1>
-  <label class="etiqueta" for="clave">Clave</label>
+  <label for="clave">Escribe tu clave para entrar</label>
   <input id="clave" name="password" type="password" autocomplete="current-password" required>
-  <div class="fila"><span class="etiqueta" id="error" role="alert" style="text-transform:none;letter-spacing:.04em"></span><button type="submit">Entrar</button></div>
+  <button type="submit">Entrar</button>
+  <p class="error" id="error" role="alert"></p>
 </form>
-<main class="envoltura" id="panel" hidden>
-  <header>
+
+<main class="app" id="panel" hidden>
+  <div class="cabeza">
     <h1>Tu panel</h1>
-    <div style="display:flex;gap:16px;align-items:center"><button class="salir" id="salir" type="button">salir</button><div class="vivo" id="vivo"><span class="punto"></span><span id="vivoTxt">conectando…</span></div></div>
-  </header>
-  <section class="bloque" aria-labelledby="tVis">
-    <p class="etiqueta" id="tVis">Visitas</p>
-    <div class="cifras">
-      <div class="cifra ahora"><b id="vAhora">0</b><span>viendo ahora</span></div>
-      <div class="cifra"><b id="vHoy">0</b><span>hoy</span></div>
-      <div class="cifra"><b id="vSemana">0</b><span>últimos 7 días</span></div>
-      <div class="cifra"><b id="vTotal">0</b><span>en total</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <div class="estado" id="estado"><span class="punto"></span><span id="estadoTxt">conectando…</span></div>
+      <button class="btn-texto" id="salir" type="button">Cerrar sesión</button>
     </div>
-    <div class="barras" id="barras" aria-label="Visitas por día, últimos 7 días"></div>
-    <div class="dos">
-      <div class="bloque"><p class="etiqueta">De dónde llegan · 7 días</p><ul class="filas" id="origenes"></ul></div>
-      <div class="bloque"><p class="etiqueta">Qué página · 7 días</p><ul class="filas" id="paginas"></ul></div>
+  </div>
+  <div class="aviso" id="aviso" hidden></div>
+
+  <section class="seccion">
+    <div class="tarjeta ahora">
+      <span class="num" id="vAhora">0</span>
+      <div><p id="ahoraTxt">Nadie está viendo tu página en este momento.</p><small>Se actualiza solo cada pocos segundos.</small></div>
     </div>
-    <div class="bloque"><p class="etiqueta">Desde qué dispositivo · 7 días</p><ul class="filas" id="dispositivos"></ul></div>
   </section>
-  <p class="etiqueta">Lo que te dejaron</p>
-  <div class="resumen"><span><b id="nTotal">0</b> mensajes</span><span><b id="nNuevos">0</b> sin leer</span></div>
-  <div id="aviso" hidden></div>
-  <ul class="lista" id="lista"></ul>
-  <div class="vacio" id="vacio"><em>El cuarto sigue en silencio.</em>Cuando alguien te escriba, su mensaje aparece aquí solo, sin recargar.</div>
+
+  <section class="seccion">
+    <div><h2>¿Cuánta gente te visita?</h2><p class="ayuda">Cada visita es una persona que abrió tu portafolio o tu página de opiniones. Si recarga, no se cuenta doble.</p></div>
+    <div class="totales">
+      <div class="total"><b id="vHoy">0</b><span>hoy</span></div>
+      <div class="total"><b id="vSemana">0</b><span>esta semana</span></div>
+      <div class="total"><b id="vTotal">0</b><span>desde el inicio</span></div>
+    </div>
+    <div class="tarjeta">
+      <p class="ayuda" style="margin:0 0 8px">Visitas de cada día de la última semana</p>
+      <div class="dias" id="dias"></div>
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div><h2>¿Por dónde te encontraron?</h2><p class="ayuda">La app desde donde abrieron tu link en los últimos 7 días.</p></div>
+    <div class="tarjeta"><ul class="lista" id="origenes"></ul></div>
+  </section>
+
+  <section class="seccion">
+    <div><h2>¿Desde qué ciudad?</h2><p class="ayuda">Ciudad aproximada, últimos 7 días. Con datos móviles a veces sale la ciudad de la compañía de internet.</p></div>
+    <div class="tarjeta"><ul class="lista" id="ciudades"></ul></div>
+  </section>
+
+  <section class="seccion">
+    <div><h2>¿Desde qué aparato?</h2><p class="ayuda">Últimos 7 días.</p></div>
+    <div class="tarjeta"><ul class="lista" id="dispositivos"></ul></div>
+  </section>
+
+  <section class="seccion">
+    <div><h2>¿Qué página vieron?</h2><p class="ayuda">Últimos 7 días.</p></div>
+    <div class="tarjeta"><ul class="lista" id="paginas"></ul></div>
+  </section>
+
+  <section class="seccion">
+    <div><h2>Opiniones anónimas</h2><p class="ayuda" id="msgResumen">Aquí aparece lo que te escriben, sin nombre ni nada de quien lo manda.</p></div>
+    <ul class="mensajes" id="mensajes"></ul>
+    <p class="vacia" id="sinMensajes">Todavía no te han escrito. Cuando alguien lo haga, aparece aquí solo, sin recargar.</p>
+  </section>
 </main>
+
 <script>
 const SB = "https://gwissessaumhyyoinhjz.supabase.co/rest/v1/rpc/";
 const KEY = "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x";
 const CADA_MS = 6000;
-let clave = "", vistos = new Set(), primera = true, borrar = null, timer = null, ultimas = [];
+let clave = "", borrar = null, timer = null, ultimas = [], ultimaVez = 0, vistos = new Set(), primera = true;
 const $ = id => document.getElementById(id);
-function estadoVivo(on, t){ $("vivo").classList.toggle("on", on); $("vivoTxt").textContent = t; }
-function aviso(t, error){ const a=$("aviso"); a.hidden=!t; a.className="aviso"+(error?" error":""); a.textContent=t||""; }
+
+const NOMBRES = {
+  portafolio: "Tu portafolio", mensaje: "Página de opiniones",
+  directo: "Link directo o copiado", instagram: "Instagram", facebook: "Facebook", whatsapp: "WhatsApp", tiktok: "TikTok",
+  "google.com": "Google", "t.co": "X (Twitter)",
+  iphone: "iPhone", android: "Celular Android", ipad: "iPad", tablet: "Tablet Android", mac: "Computadora Mac",
+  windows: "Computadora Windows", linux: "Chromebook o Linux", otro: "Otro", "cel-sin-dato": "Celular (sin detalle)"
+};
+
+async function rpc(fn, args){
+  const r = await fetch(SB + fn, { method:"POST", headers:{ apikey: KEY, "Content-Type":"application/json" }, body: JSON.stringify(args) });
+  if (!r.ok){ let m=""; try{ m=(await r.json()).message||""; }catch(e){} throw new Error(m); }
+  const t = await r.text(); return t ? JSON.parse(t) : null;
+}
 
 function hace(iso){
   const s = (Date.now() - new Date(iso).getTime())/1000;
   if (s < 60) return "hace un momento";
-  if (s < 3600) return "hace " + Math.floor(s/60) + " min";
-  if (s < 86400) return "hace " + Math.floor(s/3600) + " h";
-  return new Date(iso).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+  if (s < 3600) { const m = Math.floor(s/60); return "hace " + m + (m === 1 ? " minuto" : " minutos"); }
+  if (s < 86400) { const h = Math.floor(s/3600); return "hace " + h + (h === 1 ? " hora" : " horas"); }
+  return new Date(iso).toLocaleString("es-MX",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
 }
 
-
-async function rpc(fn, args){
-  const r = await fetch(SB + fn, { method:"POST", headers:{ apikey: KEY, "Content-Type":"application/json" }, body: JSON.stringify(args) });
-  if (!r.ok){ let m=""; try{ m=(await r.json()).message||""; }catch(e){} const e=new Error(m); e.status=r.status; throw e; }
-  const t = await r.text(); return t ? JSON.parse(t) : null;
-}
-function pintar(filas){
-  const ul = $("lista"); ul.textContent = "";
-  $("vacio").hidden = filas.length > 0;
-  $("nTotal").textContent = filas.length;
-  $("nNuevos").textContent = filas.filter(f=>!f.leido).length;
-  for (const f of filas){
-    const li = document.createElement("li"); li.className = "msg" + (!f.leido ? " nuevo" : "");
-    if (vistos.has(f.id) && !primera) li.style.animation = "none";
-    const p = document.createElement("p"); p.className="texto"; p.textContent = f.texto;
-    const meta = document.createElement("div"); meta.className="meta";
-    const cuando = document.createElement("span"); cuando.textContent = hace(f.creado) + (f.leido ? "" : " · nuevo");
-    const acc = document.createElement("div"); acc.className="acciones";
-    const b = document.createElement("button");
-    if (borrar === f.id){
-      b.textContent="¿borrar para siempre?"; b.className="peligro";
-      b.onclick = () => eliminar(f.id);
-      const no = document.createElement("button"); no.textContent="no"; no.onclick=()=>{borrar=null;cargar();};
-      acc.append(b,no);
-    } else { b.textContent="borrar"; b.onclick=()=>{borrar=f.id;pintar(filas);}; acc.append(b); }
-    meta.append(cuando, acc); li.append(p, meta); ul.append(li);
-  }
-  filas.forEach(f=>vistos.add(f.id)); primera = false;
-}
-
-
-const NOMBRES = { iphone: "iPhone", android: "Celular Android", ipad: "iPad", tablet: "Tablet Android", mac: "Mac", windows: "Computadora Windows", linux: "Computadora Linux o Chromebook", otro: "Otro", "cel-sin-dato": "Celular (antes del cambio)",  portafolio: "Portafolio", mensaje: "Mensajes anónimos", directo: "Directo o link copiado", instagram: "Instagram", facebook: "Facebook", whatsapp: "WhatsApp", tiktok: "TikTok" };
 function lista(el, items){
   el.textContent = "";
-  if (!items.length){ const li=document.createElement("li"); li.innerHTML="<span>Sin visitas todavía</span><span>0</span>"; el.append(li); return; }
+  const total = items.reduce((a,b)=>a+Number(b.n),0);
+  if (!total){ const p=document.createElement("p"); p.className="vacia"; p.textContent="Aún no hay datos de esta semana."; el.append(p); return; }
   for (const it of items){
-    const li=document.createElement("li"), a=document.createElement("span"), b=document.createElement("span");
-    a.textContent = NOMBRES[it.nombre] || it.nombre; b.textContent = it.n; li.append(a,b); el.append(li);
+    const n = Number(it.n), pct = Math.round(n*100/total);
+    const li=document.createElement("li"); li.className="fila";
+    const top=document.createElement("div"); top.className="arriba";
+    const a=document.createElement("span"); a.textContent = NOMBRES[it.nombre] || it.nombre;
+    const b=document.createElement("span"); b.textContent = n + (n===1?" visita":" visitas") + " · " + pct + "%";
+    const riel=document.createElement("div"); riel.className="riel"; const i=document.createElement("i"); i.style.width = Math.max(pct,2)+"%"; riel.append(i);
+    top.append(a,b); li.append(top,riel); el.append(li);
   }
 }
+
 function pintarVisitas(v){
-  $("vAhora").textContent = v.ahora ?? 0; $("vHoy").textContent = v.hoy ?? 0;
-  $("vSemana").textContent = v.semana ?? 0; $("vTotal").textContent = v.total ?? 0;
-  const dias = v.dias || [], max = Math.max(1, ...dias.map(d=>d.n));
-  const cont = $("barras"); cont.textContent = "";
+  const ahora = Number(v.ahora||0);
+  $("vAhora").textContent = ahora;
+  $("ahoraTxt").textContent = ahora === 0 ? "Nadie está viendo tu página en este momento."
+    : ahora === 1 ? "persona está viendo tu página ahora mismo." : "personas están viendo tu página ahora mismo.";
+  $("vHoy").textContent = v.hoy ?? 0; $("vSemana").textContent = v.semana ?? 0; $("vTotal").textContent = v.total ?? 0;
+  const dias = v.dias || [], max = Math.max(1, ...dias.map(d=>Number(d.n)));
+  const cont = $("dias"); cont.textContent = "";
   dias.forEach((d,i)=>{
-    const col=document.createElement("div"); col.className="barra"+(i===dias.length-1?" hoy":"");
+    const hoy = i === dias.length-1;
+    const col=document.createElement("div"); col.className="dia"+(hoy?" hoy":"");
     const num=document.createElement("em"); num.textContent=d.n;
-    const bar=document.createElement("i"); bar.style.height = Math.round((d.n/max)*56) + "px";
+    const bar=document.createElement("i"); bar.style.height = Math.round((Number(d.n)/max)*80) + "px";
     const lab=document.createElement("small");
-    lab.textContent = i===dias.length-1 ? "hoy" : new Date(d.dia+"T12:00:00").toLocaleDateString("es-MX",{weekday:"short"}).replace(".","");
+    lab.textContent = hoy ? "hoy" : new Date(d.dia+"T12:00:00").toLocaleDateString("es-MX",{weekday:"short"}).replace(".","");
     col.append(num,bar,lab); cont.append(col);
   });
-  lista($("origenes"), v.origenes || []); lista($("paginas"), v.paginas || []); lista($("dispositivos"), v.dispositivos || []);
+  lista($("origenes"), v.origenes || []);
+  lista($("ciudades"), v.ciudades || []);
+  lista($("dispositivos"), v.dispositivos || []);
+  lista($("paginas"), v.paginas || []);
 }
 
+function pintarMensajes(filas){
+  const ul = $("mensajes"); ul.textContent = "";
+  $("sinMensajes").hidden = filas.length > 0;
+  const nuevos = filas.filter(f=>!f.leido).length;
+  $("msgResumen").textContent = !filas.length ? "Aquí aparece lo que te escriben, sin nombre ni nada de quien lo manda."
+    : (filas.length === 1 ? "Tienes 1 opinión" : "Tienes " + filas.length + " opiniones") + (nuevos ? (nuevos === 1 ? ", 1 es nueva." : ", " + nuevos + " son nuevas.") : ". Ya las leíste todas.");
+  for (const f of filas){
+    const li=document.createElement("li"); li.className="msg"+(f.leido?"":" nuevo");
+    if (!primera && vistos.has(f.id)) li.style.animation="none";
+    const p=document.createElement("p"); p.textContent=f.texto;
+    const pie=document.createElement("div"); pie.className="pie";
+    const cuando=document.createElement("span");
+    if (!f.leido){ const e=document.createElement("span"); e.className="etq"; e.textContent="Nuevo"; cuando.append(e); }
+    cuando.append(document.createTextNode(hace(f.creado)));
+    const acc=document.createElement("span");
+    const b=document.createElement("button"); b.type="button"; b.className="borrar";
+    if (borrar === f.id){
+      b.textContent="Sí, borrar"; b.classList.add("confirmar"); b.onclick=()=>eliminar(f.id);
+      const no=document.createElement("button"); no.type="button"; no.className="borrar"; no.textContent="Cancelar"; no.style.marginLeft="14px";
+      no.onclick=()=>{ borrar=null; pintarMensajes(ultimas); };
+      acc.append(b,no);
+    } else { b.textContent="Borrar"; b.onclick=()=>{ borrar=f.id; pintarMensajes(ultimas); }; acc.append(b); }
+    pie.append(cuando,acc); li.append(p,pie); ul.append(li);
+  }
+  filas.forEach(f=>vistos.add(f.id)); primera=false;
+}
+
+function estado(on, t){ $("estado").classList.toggle("on", on); $("estadoTxt").textContent = t; }
+setInterval(()=>{ if (ultimaVez && $("estado").classList.contains("on")){ const s=Math.round((Date.now()-ultimaVez)/1000); $("estadoTxt").textContent = s < 5 ? "en vivo" : "actualizado hace " + s + " s"; } }, 1000);
 
 async function cargar(){
   try{
     const d = await rpc("panel_datos", { p_clave: clave });
-    const filas = d.mensajes || [];
-    pintarVisitas(d.visitas || {}); ultimas = filas; pintar(filas); aviso(""); estadoVivo(true, "en vivo");
-    const sinLeer = filas.filter(f=>!f.leido).map(f=>f.id);
-    if (sinLeer.length && document.visibilityState==="visible") setTimeout(()=>rpc("panel_leidos",{p_clave:clave,p_ids:sinLeer}).catch(()=>{}), 4000);
+    ultimas = d.mensajes || [];
+    pintarVisitas(d.visitas || {}); pintarMensajes(ultimas);
+    $("aviso").hidden = true; ultimaVez = Date.now(); estado(true, "en vivo");
+    const sinLeer = ultimas.filter(f=>!f.leido).map(f=>f.id);
+    if (sinLeer.length && document.visibilityState==="visible") setTimeout(()=>rpc("panel_leidos",{p_clave:clave,p_ids:sinLeer}).catch(()=>{}), 5000);
     return true;
   }catch(e){
-    if (/clave incorrecta/.test(e.message)) { cerrar("Esa clave no es correcta."); return false; }
-    if (/Demasiados intentos/.test(e.message)) { cerrar("Demasiados intentos. Espera un minuto."); return false; }
-    estadoVivo(false, "reintentando"); return true;
+    if (/clave incorrecta/.test(e.message)) { cerrar("Esa clave no es correcta. Revísala e intenta de nuevo."); return false; }
+    if (/Demasiados intentos/.test(e.message)) { cerrar("Hubo demasiados intentos. Espera un minuto y vuelve a probar."); return false; }
+    estado(false, "sin conexión, reintentando…"); return true;
   }
 }
 async function eliminar(id){
-  try{ await rpc("panel_borrar",{p_clave:clave,p_id:id}); borrar=null; cargar(); }catch(e){ aviso("No se pudo borrar. Intenta otra vez.", true); }
+  try{ await rpc("panel_borrar",{p_clave:clave,p_id:id}); borrar=null; cargar(); }
+  catch(e){ const a=$("aviso"); a.hidden=false; a.textContent="No se pudo borrar. Revisa tu internet e intenta otra vez."; }
 }
 function cerrar(msg){
   clearInterval(timer); timer=null; clave="";
@@ -222,8 +289,7 @@ function cerrar(msg){
 }
 async function abrir(k){
   clave = k; $("error").textContent = "";
-  const ok = await cargar();
-  if (!ok) return;
+  if (!(await cargar())) return;
   try{ localStorage.setItem("panel_clave", k); }catch(e){}
   $("entrar").hidden = true; $("panel").hidden = false;
   clearInterval(timer); timer = setInterval(()=>{ if(document.visibilityState==="visible") cargar(); }, CADA_MS);
