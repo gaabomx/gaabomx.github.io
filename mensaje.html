@@ -135,6 +135,10 @@ body.enviando .halo,body.enviando .bulbo{animation:apagon 1.4s ease forwards}
   opacity:0;transition:opacity 1.2s;
 }
 .gracias.ver{opacity:1}
+.volver{position:fixed;z-index:4;top:calc(14px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));
+  color:var(--tenue);text-decoration:none;font-size:11px;letter-spacing:.14em;text-transform:lowercase;opacity:0;transition:opacity 1.2s ease 2.6s,color .3s}
+body.encendido .volver{opacity:1}
+.volver:hover,.volver:focus-visible{color:var(--tinta)}
 @media (prefers-reduced-motion:reduce){
   .foco,.grano{animation:none}
   body.parpadeo .bulbo,body.parpadeo .halo,body.tiembla .halo,body.enviando .halo,body.enviando .bulbo{animation:none}
@@ -147,6 +151,7 @@ body.enviando .halo,body.enviando .bulbo{animation:apagon 1.4s ease forwards}
 <div class="grano" aria-hidden="true"></div>
 <div class="foco" aria-hidden="true"><div class="cable"></div><div class="socket"></div><div class="bulbo"></div></div>
 
+<a class="volver" href="./">← volver</a>
 <main class="cuarto">
   <form class="mesa" id="forma" autocomplete="off">
     <div>
