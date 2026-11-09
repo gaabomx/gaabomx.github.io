@@ -231,5 +231,28 @@ function aviso(t, error) { estado.textContent = t; estado.classList.toggle("erro
   }).catch(function(){});
 })();
 </script>
+<script>
+/* Presencia en vivo: avisa que la página está abierta y cuando se cierra. Sin datos personales. */
+(function(){
+  var PAGINA = "mensaje";
+  var URL_RPC = "https://gwissessaumhyyoinhjz.supabase.co/rest/v1/rpc/latido";
+  var KEY = "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x";
+  var sesion = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, function(c){ return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16); }));
+  var timer = null;
+  function latido(activo){
+    try {
+      fetch(URL_RPC, { method: "POST", keepalive: true,
+        headers: { apikey: KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ p_sesion: sesion, p_pagina: PAGINA, p_activo: activo }) }).catch(function(){});
+    } catch(e) {}
+  }
+  function prender(){ if (timer) return; latido(true); timer = setInterval(function(){ latido(true); }, 20000); }
+  function apagar(){ if (!timer) return; clearInterval(timer); timer = null; latido(false); }
+  document.addEventListener("visibilitychange", function(){ document.visibilityState === "visible" ? prender() : apagar(); });
+  addEventListener("pagehide", apagar);
+  addEventListener("pageshow", function(){ if (document.visibilityState === "visible") prender(); });
+  if (document.visibilityState === "visible") prender();
+})();
+</script>
 </body>
 </html>
