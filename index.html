@@ -628,47 +628,110 @@ footer { font-family: var(--mono); font-size: 12px; color: var(--muted); text-al
 })();
 </script>
 
+
+
 <script>
-/* Contador de visitas: guarda solo la página, de dónde llegó y si es celular. Nada personal. */
+/* Visitas y presencia en vivo: página, app de origen, ciudad aproximada y modelo del aparato. Nada personal; la IP no se guarda. */
 (function(){
   var PAGINA = "portafolio";
-  try { if (sessionStorage.getItem("v_" + PAGINA)) return; sessionStorage.setItem("v_" + PAGINA, "1"); } catch(e) {}
-  var ua = navigator.userAgent || "", origen = null;
+  var BASE = "https://gwissessaumhyyoinhjz.supabase.co";
+  var KEY = "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x";
+  var ua = navigator.userAgent || "";
+  var info = { ciudad: null, estado: null };
+
+  var origen = null;
   if (/Instagram/i.test(ua)) origen = "instagram";
   else if (/FBAN|FBAV/i.test(ua)) origen = "facebook";
   else if (/WhatsApp/i.test(ua)) origen = "whatsapp";
   else if (/TikTok|musical_ly|Bytedance/i.test(ua)) origen = "tiktok";
   else { try { var h = new URL(document.referrer).hostname.replace(/^www\.|^l\.|^lm\.|^m\./, ""); if (h && h !== location.hostname) origen = h.slice(0, 60); } catch(e) {} }
+
   var disp = /iPhone|iPod/.test(ua) ? "iphone" : /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "ipad" : /Android/.test(ua) ? (/Mobile/.test(ua) ? "android" : "tablet") : /Macintosh|Mac OS X/.test(ua) ? "mac" : /Windows/.test(ua) ? "windows" : /Linux|CrOS/.test(ua) ? "linux" : "otro";
-  var datos = JSON.stringify({ pagina: PAGINA, origen: origen, movil: /Mobi|Android|iPhone/i.test(ua), dispositivo: disp });
-  var directo = function(){ fetch("https://gwissessaumhyyoinhjz.supabase.co/rest/v1/visitas", { method: "POST", keepalive: true,
-    headers: { apikey: "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x", "Content-Type": "application/json", Prefer: "return=minimal" }, body: datos }).catch(function(){}); };
-  fetch("https://gwissessaumhyyoinhjz.supabase.co/functions/v1/visita", { method: "POST", keepalive: true,
-    headers: { apikey: "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x", "Content-Type": "application/json" }, body: datos })
-    .then(function(r){ if (!r.ok) directo(); }).catch(directo);
-})();
-</script>
-<script>
-/* Presencia en vivo: avisa que la página está abierta y cuando se cierra. Sin datos personales. */
-(function(){
-  var PAGINA = "portafolio";
-  var URL_RPC = "https://gwissessaumhyyoinhjz.supabase.co/rest/v1/rpc/latido";
-  var KEY = "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x";
+
+  var navegador = /Instagram/i.test(ua) ? "Instagram" : /FBAN|FBAV/i.test(ua) ? "Facebook" : /WhatsApp/i.test(ua) ? "WhatsApp" : /TikTok|musical_ly/i.test(ua) ? "TikTok" :
+    /EdgA?\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /OPR\//.test(ua) ? "Opera" : /CriOS|Chrome\//.test(ua) ? "Chrome" : /FxiOS|Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Otro";
+
+  function iPhoneModelo(){
+    var w = Math.min(screen.width, screen.height), hh = Math.max(screen.width, screen.height), r = Math.round(devicePixelRatio || 1), k = w + "x" + hh + "@" + r;
+    var t = { "320x568@2": "iPhone SE (1.ª gen) o 5s", "375x667@2": "iPhone SE, 6, 7 u 8", "414x736@3": "iPhone 6, 7 u 8 Plus",
+      "375x812@3": "iPhone X, XS, 11 Pro o mini", "414x896@2": "iPhone XR u 11", "414x896@3": "iPhone XS Max u 11 Pro Max",
+      "390x844@3": "iPhone 12, 13 o 14", "428x926@3": "iPhone 12/13 Pro Max o 14 Plus", "393x852@3": "iPhone 14 Pro, 15 o 16",
+      "430x932@3": "iPhone 14 Pro Max, 15 Plus, 15 Pro Max o 16 Plus", "402x874@3": "iPhone 16 Pro o 17", "440x956@3": "iPhone 16 Pro Max o 17 Pro Max", "420x912@3": "iPhone Air" };
+    return t[k] || "iPhone";
+  }
+  var SAMSUNG = { "SM-A546":"Galaxy A54","SM-A556":"Galaxy A55","SM-A566":"Galaxy A56","SM-A356":"Galaxy A35","SM-A366":"Galaxy A36","SM-A346":"Galaxy A34","SM-A256":"Galaxy A25","SM-A266":"Galaxy A26",
+    "SM-A155":"Galaxy A15","SM-A156":"Galaxy A15 5G","SM-A165":"Galaxy A16","SM-A166":"Galaxy A16 5G","SM-A145":"Galaxy A14","SM-A146":"Galaxy A14 5G","SM-A055":"Galaxy A05","SM-A057":"Galaxy A05s","SM-A065":"Galaxy A06",
+    "SM-A525":"Galaxy A52","SM-A536":"Galaxy A53","SM-A135":"Galaxy A13","SM-A137":"Galaxy A13","SM-A325":"Galaxy A32","SM-A225":"Galaxy A22","SM-A125":"Galaxy A12","SM-A127":"Galaxy A12","SM-A042":"Galaxy A04e","SM-A045":"Galaxy A04",
+    "SM-A515":"Galaxy A51","SM-A715":"Galaxy A71","SM-A105":"Galaxy A10","SM-A107":"Galaxy A10s","SM-A205":"Galaxy A20","SM-A207":"Galaxy A20s","SM-A305":"Galaxy A30","SM-A307":"Galaxy A30s","SM-A505":"Galaxy A50",
+    "SM-S901":"Galaxy S22","SM-S906":"Galaxy S22+","SM-S908":"Galaxy S22 Ultra","SM-S911":"Galaxy S23","SM-S916":"Galaxy S23+","SM-S918":"Galaxy S23 Ultra","SM-S711":"Galaxy S23 FE",
+    "SM-S921":"Galaxy S24","SM-S926":"Galaxy S24+","SM-S928":"Galaxy S24 Ultra","SM-S721":"Galaxy S24 FE","SM-S931":"Galaxy S25","SM-S936":"Galaxy S25+","SM-S938":"Galaxy S25 Ultra",
+    "SM-G991":"Galaxy S21","SM-G996":"Galaxy S21+","SM-G998":"Galaxy S21 Ultra","SM-G990":"Galaxy S21 FE","SM-G780":"Galaxy S20 FE","SM-G781":"Galaxy S20 FE",
+    "SM-F731":"Galaxy Z Flip5","SM-F741":"Galaxy Z Flip6","SM-F946":"Galaxy Z Fold5","SM-F956":"Galaxy Z Fold6","SM-M146":"Galaxy M14","SM-M346":"Galaxy M34" };
+  function bonito(m){
+    if (!m) return null;
+    var s = SAMSUNG[m.slice(0,7).toUpperCase()]; if (s) return "Samsung " + s;
+    if (/^SM-/i.test(m)) return "Samsung " + m;
+    if (/^moto|^motorola/i.test(m)) return m.replace(/^motorola\s*/i, "Motorola ").replace(/^moto/i, "Motorola moto");
+    if (/^Pixel/i.test(m)) return "Google " + m;
+    if (/^(Redmi|POCO|Mi )/i.test(m)) return "Xiaomi " + m;
+    return m;
+  }
+  function versionIOS(){ var m = ua.match(/OS (\d+)[_.](\d+)/); return m ? "iOS " + m[1] + "." + m[2] : null; }
+
+  var datos = { modelo: null, sistema: null };
+  function detectar(){
+    if (disp === "iphone") { datos.modelo = iPhoneModelo(); datos.sistema = versionIOS(); return Promise.resolve(); }
+    if (disp === "ipad") { datos.modelo = "iPad"; datos.sistema = versionIOS() && versionIOS().replace("iOS","iPadOS"); return Promise.resolve(); }
+    if (disp === "mac") { datos.modelo = "Computadora Mac"; datos.sistema = "macOS"; return Promise.resolve(); }
+    if (disp === "windows") { datos.modelo = "Computadora Windows"; datos.sistema = "Windows"; return Promise.resolve(); }
+    if (disp === "linux") { datos.modelo = /CrOS/.test(ua) ? "Chromebook" : "Computadora Linux"; return Promise.resolve(); }
+    var m = ua.match(/Android\s([\d.]+);\s*([^;)]+?)(?:\sBuild|\))/);
+    if (m) { datos.sistema = "Android " + m[1].split(".")[0]; if (m[2] && m[2] !== "K") datos.modelo = bonito(m[2].trim()); }
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      return Promise.race([
+        navigator.userAgentData.getHighEntropyValues(["model","platformVersion"]).then(function(v){
+          if (v.model) datos.modelo = bonito(v.model);
+          if (v.platformVersion) datos.sistema = "Android " + String(v.platformVersion).split(".")[0];
+        }).catch(function(){}),
+        new Promise(function(r){ setTimeout(r, 800); })
+      ]).then(function(){ if (!datos.modelo) datos.modelo = disp === "tablet" ? "Tablet Android" : "Celular Android"; });
+    }
+    if (!datos.modelo) datos.modelo = disp === "tablet" ? "Tablet Android" : "Celular Android";
+    return Promise.resolve();
+  }
+
   var sesion = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, function(c){ return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16); }));
   var timer = null;
   function latido(activo){
     try {
-      fetch(URL_RPC, { method: "POST", keepalive: true,
+      fetch(BASE + "/rest/v1/rpc/latido", { method: "POST", keepalive: true,
         headers: { apikey: KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
-        body: JSON.stringify({ p_sesion: sesion, p_pagina: PAGINA, p_activo: activo }) }).catch(function(){});
+        body: JSON.stringify(activo ? { p_sesion: sesion, p_pagina: PAGINA, p_activo: true, p_ciudad: info.ciudad, p_estado: info.estado, p_dispositivo: disp, p_modelo: datos.modelo }
+                                    : { p_sesion: sesion, p_pagina: PAGINA, p_activo: false }) }).catch(function(){});
     } catch(e) {}
   }
   function prender(){ if (timer) return; latido(true); timer = setInterval(function(){ latido(true); }, 20000); }
   function apagar(){ if (!timer) return; clearInterval(timer); timer = null; latido(false); }
-  document.addEventListener("visibilitychange", function(){ document.visibilityState === "visible" ? prender() : apagar(); });
-  addEventListener("pagehide", apagar);
-  addEventListener("pageshow", function(){ if (document.visibilityState === "visible") prender(); });
-  if (document.visibilityState === "visible") prender();
+
+  detectar().then(function(){
+    var yaContada = false;
+    try { yaContada = !!sessionStorage.getItem("v_" + PAGINA); sessionStorage.setItem("v_" + PAGINA, "1"); } catch(e) {}
+    try { var g = JSON.parse(sessionStorage.getItem("v_lugar") || "null"); if (g) { info.ciudad = g.ciudad; info.estado = g.estado; } } catch(e) {}
+    if (!yaContada) {
+      var cuerpo = JSON.stringify({ pagina: PAGINA, origen: origen, movil: /Mobi|Android|iPhone/i.test(ua), dispositivo: disp, modelo: datos.modelo, sistema: datos.sistema, navegador: navegador });
+      var directo = function(){ fetch(BASE + "/rest/v1/visitas", { method: "POST", keepalive: true,
+        headers: { apikey: KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ pagina: PAGINA, origen: origen, movil: /Mobi|Android|iPhone/i.test(ua), dispositivo: disp }) }).catch(function(){}); };
+      fetch(BASE + "/functions/v1/visita", { method: "POST", keepalive: true, headers: { apikey: KEY, "Content-Type": "application/json" }, body: cuerpo })
+        .then(function(r){ if (!r.ok) { directo(); return null; } return r.json(); })
+        .then(function(j){ if (j && (j.ciudad || j.estado)) { info.ciudad = j.ciudad; info.estado = j.estado; try { sessionStorage.setItem("v_lugar", JSON.stringify(info)); } catch(e) {} if (timer) latido(true); } })
+        .catch(directo);
+    }
+    document.addEventListener("visibilitychange", function(){ document.visibilityState === "visible" ? prender() : apagar(); });
+    addEventListener("pagehide", apagar);
+    addEventListener("pageshow", function(){ if (document.visibilityState === "visible") prender(); });
+    if (document.visibilityState === "visible") prender();
+  });
 })();
 </script>
 </body></html>

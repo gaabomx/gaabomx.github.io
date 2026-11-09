@@ -95,6 +95,20 @@ button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outli
 .entrar input{width:100%;background:var(--tarjeta);color:var(--texto);border:1px solid var(--borde);border-radius:12px;padding:14px;font:inherit;font-size:16px}
 .entrar button{background:rgb(var(--luz));color:#1a1206;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
 .entrar .error{color:#e0a08a;font-size:13.5px;min-height:1.4em;margin:0}
+.vivos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.vivos li{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--borde)}
+.vivos li:first-child{border-top:0;padding-top:4px}
+.vivos .pulso{flex:none;width:8px;height:8px;margin-top:7px;border-radius:50%;background:var(--verde);box-shadow:0 0 8px var(--verde)}
+.vivos b{font-weight:600;font-size:14.5px}
+.vivos small{display:block;color:var(--suave);font-size:12.5px;margin-top:1px}
+.recientes{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.recientes li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--borde)}
+.recientes li:first-child{border-top:0;padding-top:2px}
+.recientes b{font-weight:600;font-size:14.5px;min-width:0;overflow-wrap:anywhere}
+.recientes .cuando{color:var(--suave);font-size:12px;white-space:nowrap;text-align:right}
+.recientes small{grid-column:1 / -1;color:var(--suave);font-size:12.5px}
+.columnas{display:grid;gap:30px}
+@media (min-width:980px){.app{max-width:1040px}.columnas{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}}
 @media (max-width:400px){.totales{gap:8px}.total b{font-size:24px}}
 @media (prefers-reduced-motion:reduce){.msg{animation:none}.estado.on .punto{animation:none}}
 </style>
@@ -119,12 +133,23 @@ button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outli
   </div>
   <div class="aviso" id="aviso" hidden></div>
 
+  <div class="columnas">
   <section class="seccion">
     <div class="tarjeta ahora">
       <span class="num" id="vAhora">0</span>
       <div><p id="ahoraTxt">Nadie está viendo tu página en este momento.</p><small>Se actualiza solo cada pocos segundos.</small></div>
     </div>
+    <div class="tarjeta" id="vivosCaja" hidden>
+      <p class="ayuda" style="margin:0 0 6px">Quién está conectado ahora</p>
+      <ul class="vivos" id="vivos"></ul>
+    </div>
   </section>
+
+  <section class="seccion">
+    <div><h2>Últimos dispositivos que entraron</h2><p class="ayuda">Las 40 visitas más recientes, con el modelo del aparato y la ciudad aproximada. En iPhone solo se puede saber el tamaño de pantalla, por eso a veces salen varios modelos posibles.</p></div>
+    <div class="tarjeta"><ul class="recientes" id="recientes"></ul><p class="vacia" id="sinRecientes">Todavía no hay visitas.</p></div>
+  </section>
+  </div>
 
   <section class="seccion">
     <div><h2>¿Cuánta gente te visita?</h2><p class="ayuda">Cada visita es una persona que abrió tu portafolio o tu página de opiniones. Si recarga, no se cuenta doble.</p></div>
@@ -150,7 +175,7 @@ button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outli
   </section>
 
   <section class="seccion">
-    <div><h2>¿Desde qué aparato?</h2><p class="ayuda">Últimos 7 días.</p></div>
+    <div><h2>¿Desde qué aparato?</h2><p class="ayuda">Los modelos que más te visitan, últimos 7 días.</p></div>
     <div class="tarjeta"><ul class="lista" id="dispositivos"></ul></div>
   </section>
 
@@ -260,6 +285,31 @@ function pintarMensajes(filas){
   filas.forEach(f=>vistos.add(f.id)); primera=false;
 }
 
+function lugar(o){ return o.ciudad ? o.ciudad + (o.estado && o.estado !== o.ciudad ? ", " + o.estado : "") + (o.pais && o.pais !== "México" ? ", " + o.pais : "") : "Ciudad desconocida"; }
+function aparato(o){ return o.modelo || NOMBRES[o.dispositivo] || "Aparato desconocido"; }
+function cuanto(iso){ const s=Math.max(0,(Date.now()-new Date(iso).getTime())/1000); return s<60 ? "recién entró" : "lleva " + Math.floor(s/60) + " min"; }
+function pintarVivos(lst){
+  $("vivosCaja").hidden = !lst.length;
+  const ul=$("vivos"); ul.textContent="";
+  for (const p of lst){
+    const li=document.createElement("li"); const dot=document.createElement("span"); dot.className="pulso";
+    const d=document.createElement("div"); const b=document.createElement("b"); b.textContent=lugar(p);
+    const sm=document.createElement("small"); sm.textContent = aparato(p) + " · viendo " + (p.pagina==="mensaje" ? "la página de opiniones" : "tu portafolio") + " · " + cuanto(p.desde);
+    d.append(b,sm); li.append(dot,d); ul.append(li);
+  }
+}
+function pintarRecientes(lst){
+  $("sinRecientes").hidden = lst.length > 0;
+  const ul=$("recientes"); ul.textContent="";
+  for (const r of lst){
+    const li=document.createElement("li");
+    const b=document.createElement("b"); b.textContent=aparato(r);
+    const c=document.createElement("span"); c.className="cuando"; c.textContent=hace(r.creado);
+    const sm=document.createElement("small");
+    sm.textContent=[lugar(r), r.sistema, r.navegador && ("desde " + r.navegador), r.pagina==="mensaje" ? "vio la página de opiniones" : "vio tu portafolio"].filter(Boolean).join(" · ");
+    li.append(b,c,sm); ul.append(li);
+  }
+}
 function estado(on, t){ $("estado").classList.toggle("on", on); $("estadoTxt").textContent = t; }
 setInterval(()=>{ if (ultimaVez && $("estado").classList.contains("on")){ const s=Math.round((Date.now()-ultimaVez)/1000); $("estadoTxt").textContent = s < 5 ? "en vivo" : "actualizado hace " + s + " s"; } }, 1000);
 
@@ -267,7 +317,7 @@ async function cargar(){
   try{
     const d = await rpc("panel_datos", { p_clave: clave });
     ultimas = d.mensajes || [];
-    pintarVisitas(d.visitas || {}); pintarMensajes(ultimas);
+    pintarVisitas(d.visitas || {}); pintarVivos(d.en_vivo || []); pintarRecientes(d.recientes || []); pintarMensajes(ultimas);
     $("aviso").hidden = true; ultimaVez = Date.now(); estado(true, "en vivo");
     const sinLeer = ultimas.filter(f=>!f.leido).map(f=>f.id);
     if (sinLeer.length && document.visibilityState==="visible") setTimeout(()=>rpc("panel_leidos",{p_clave:clave,p_ids:sinLeer}).catch(()=>{}), 5000);
