@@ -215,6 +215,10 @@ footer { font-family: var(--mono); font-size: 12px; color: var(--muted); text-al
 .mapsec { display: flex; flex-direction: column; gap: 14px; }
 .map-lede { margin: 0; color: var(--muted); font-size: 14.5px; }
 .mapbox { border-radius: 24px; padding: 10px; overflow: hidden; }
+.mapbox { position: relative; isolation: isolate; background: #0f0716; }
+.mapbox::before { content: ""; position: absolute; inset: -30%; z-index: -2; filter: blur(40px); opacity: .85; pointer-events: none;
+  background: radial-gradient(circle at 20% 20%, #6b1f6e 0, transparent 32%), radial-gradient(circle at 80% 30%, #ff7a1a 0, transparent 28%), radial-gradient(circle at 60% 80%, #b0276f 0, transparent 32%), radial-gradient(circle at 15% 85%, #ff9d4d 0, transparent 26%); }
+.mapbox::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(rgba(15,7,22,.15), rgba(15,7,22,.55) 70%); }
 .map { width: 100%; height: auto; display: block; overflow: visible; }
 .state-fill { fill: rgba(255,255,255,.05); }
 .state-line { fill: none; stroke: url(#mg); stroke-width: 2.4; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; filter: drop-shadow(0 0 6px rgba(255,131,0,.6)); }
@@ -226,7 +230,7 @@ footer { font-family: var(--mono); font-size: 12px; color: var(--muted); text-al
 @keyframes breath { 50% { transform: scale(1.12); opacity: .7; } }
 .mregion { font-family: var(--display); font-weight: 900; font-size: 20px; letter-spacing: .2em; fill: #fff; opacity: .9; }
 .ocean { font-family: var(--mono); font-size: 11px; fill: rgba(255,255,255,.35); letter-spacing: .2em; text-transform: uppercase; }
-.mlab { font-family: var(--body); font-size: 13px; font-weight: 600; fill: #fff; paint-order: stroke; stroke: rgba(22,22,24,.85); stroke-width: 4px; transition: fill .3s; }
+.mlab { font-family: var(--body); font-size: 13px; font-weight: 600; fill: #fff; paint-order: stroke; stroke: rgba(15,7,22,.85); stroke-width: 4px; transition: fill .3s; }
 .home-l { fill: var(--amber); font-size: 12px; }
 .pin { cursor: pointer; }
 .pin .pc { fill: var(--cyan); stroke: #fff; stroke-width: 1.6; transition: transform .3s var(--ease); }
