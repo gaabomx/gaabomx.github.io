@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#050505">
+<title>Panel gaabomx</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+[hidden]{display:none!important}
+html,body{margin:0}
+/* Layout: una sola columna, cada mensaje como una nota bajo la misma luz cálida */
+:root{
+  --negro:#050505;
+  --nota:#0e0d0b;
+  --luz:255 214 150;
+  --tinta:#d9cdb8;
+  --tenue:#6b6356;
+  --linea:#221f1a;
+  --serif:"Cormorant Garamond","Iowan Old Style",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--negro);color:var(--tinta);font-family:var(--mono);font-size:13px;
+  background-image:radial-gradient(ellipse 70% 40% at 50% 0%, rgb(var(--luz)/.08), transparent 70%);
+  background-attachment:fixed;min-height:100vh;
+}
+.envoltura{
+  max-width:560px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:40px 64px;
+  display:flex;flex-direction:column;gap:28px;
+}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+h1{margin:0;font-family:var(--serif);font-style:italic;font-weight:400;font-size:34px;line-height:1}
+.vivo{display:flex;align-items:center;gap:8px;color:var(--tenue);font-size:11px;letter-spacing:.08em}
+.punto{width:7px;height:7px;border-radius:50%;background:#3a342b}
+.vivo.on .punto{background:rgb(var(--luz));box-shadow:0 0 10px rgb(var(--luz)/.7);animation:late 2.4s ease-in-out infinite}
+@keyframes late{50%{opacity:.35}}
+.resumen{display:flex;gap:20px;color:var(--tenue);font-size:11px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.resumen b{color:var(--tinta);font-weight:500}
+.lista{display:flex;flex-direction:column;gap:12px;list-style:none;margin:0;padding:0}
+.msg{
+  background:var(--nota);border:1px solid var(--linea);border-radius:3px;
+  padding:16px 18px;display:flex;flex-direction:column;gap:12px;
+  animation:entra .9s ease both;
+}
+.msg.nuevo{border-color:rgb(var(--luz)/.35);box-shadow:0 0 24px rgb(var(--luz)/.06)}
+@keyframes entra{from{opacity:0;transform:translateY(-6px)}}
+.texto{margin:0;font-size:14.5px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--tenue);font-size:11px}
+.acciones{display:flex;gap:14px}
+button{background:none;border:0;padding:4px 0;font:inherit;font-size:11px;color:var(--tenue);cursor:pointer;letter-spacing:.06em}
+button:hover{color:var(--tinta)}
+button.peligro{color:#9a5b45}
+button:focus-visible{outline:1px dashed #4a4236;outline-offset:4px}
+.vacio,.aviso{
+  border:1px dashed var(--linea);border-radius:3px;padding:28px 20px;text-align:center;
+  color:var(--tenue);line-height:1.7;
+}
+.vacio em{font-family:var(--serif);font-size:20px;color:var(--tinta);display:block;margin-bottom:6px}
+.aviso.error{color:#b47a62;border-color:#3a2a22}
+.bloque{display:flex;flex-direction:column;gap:14px}
+.etiqueta{margin:0;color:var(--tenue);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--linea);border:1px solid var(--linea);border-radius:3px;overflow:hidden}
+.cifra{background:var(--nota);padding:14px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.cifra b{font-family:var(--serif);font-style:italic;font-weight:500;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.cifra span{color:var(--tenue);font-size:10.5px;letter-spacing:.04em}
+.cifra.ahora b{color:rgb(var(--luz))}
+.barras{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end;height:84px}
+.barra{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;min-width:0}
+.barra i{display:block;width:100%;max-width:28px;background:rgb(var(--luz)/.22);border-top:2px solid rgb(var(--luz)/.8);border-radius:2px 2px 0 0;min-height:2px;transition:height .6s ease}
+.barra.hoy i{background:rgb(var(--luz)/.45)}
+.barra small{color:var(--tenue);font-size:10px;font-variant-numeric:tabular-nums}
+.barra em{font-style:normal;font-size:10px;color:var(--tinta);font-variant-numeric:tabular-nums}
+.filas{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.filas li{display:flex;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px solid var(--linea);padding-bottom:8px}
+.filas li span:last-child{color:var(--tenue);font-variant-numeric:tabular-nums}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:440px){.cifras{grid-template-columns:repeat(2,minmax(0,1fr))}.dos{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.msg{animation:none}.vivo.on .punto{animation:none}}
+.entrar{display:flex;flex-direction:column;gap:14px;margin-top:8vh}
+.entrar input{width:100%;background:transparent;color:var(--tinta);border:0;border-bottom:1px solid #2a2620;padding:8px 0;font:inherit;font-size:16px;outline:none;caret-color:rgb(var(--luz))}
+.entrar input:focus{border-color:#4a4236}
+.entrar .fila{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.entrar button,.salir{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--tinta)}
+.salir{font-size:10.5px;color:var(--tenue)}
+</style>
+</head>
+<body>
+<form class="envoltura entrar" id="entrar" autocomplete="on">
+  <h1>Tu panel</h1>
+  <label class="etiqueta" for="clave">Clave</label>
+  <input id="clave" name="password" type="password" autocomplete="current-password" required>
+  <div class="fila"><span class="etiqueta" id="error" role="alert" style="text-transform:none;letter-spacing:.04em"></span><button type="submit">Entrar</button></div>
+</form>
+<main class="envoltura" id="panel" hidden>
+  <header>
+    <h1>Tu panel</h1>
+    <div style="display:flex;gap:16px;align-items:center"><button class="salir" id="salir" type="button">salir</button><div class="vivo" id="vivo"><span class="punto"></span><span id="vivoTxt">conectando…</span></div></div>
+  </header>
+  <section class="bloque" aria-labelledby="tVis">
+    <p class="etiqueta" id="tVis">Visitas</p>
+    <div class="cifras">
+      <div class="cifra ahora"><b id="vAhora">0</b><span>viendo ahora</span></div>
+      <div class="cifra"><b id="vHoy">0</b><span>hoy</span></div>
+      <div class="cifra"><b id="vSemana">0</b><span>últimos 7 días</span></div>
+      <div class="cifra"><b id="vTotal">0</b><span>en total</span></div>
+    </div>
+    <div class="barras" id="barras" aria-label="Visitas por día, últimos 7 días"></div>
+    <div class="dos">
+      <div class="bloque"><p class="etiqueta">De dónde llegan · 7 días</p><ul class="filas" id="origenes"></ul></div>
+      <div class="bloque"><p class="etiqueta">Qué página · 7 días</p><ul class="filas" id="paginas"></ul></div>
+    </div>
+  </section>
+  <p class="etiqueta">Lo que te dejaron</p>
+  <div class="resumen"><span><b id="nTotal">0</b> mensajes</span><span><b id="nNuevos">0</b> sin leer</span></div>
+  <div id="aviso" hidden></div>
+  <ul class="lista" id="lista"></ul>
+  <div class="vacio" id="vacio"><em>El cuarto sigue en silencio.</em>Cuando alguien te escriba, su mensaje aparece aquí solo, sin recargar.</div>
+</main>
+<script>
+const SB = "https://gwissessaumhyyoinhjz.supabase.co/rest/v1/rpc/";
+const KEY = "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x";
+const CADA_MS = 6000;
+let clave = "", vistos = new Set(), primera = true, borrar = null, timer = null, ultimas = [];
+const $ = id => document.getElementById(id);
+function estadoVivo(on, t){ $("vivo").classList.toggle("on", on); $("vivoTxt").textContent = t; }
+function aviso(t, error){ const a=$("aviso"); a.hidden=!t; a.className="aviso"+(error?" error":""); a.textContent=t||""; }
+
+function hace(iso){
+  const s = (Date.now() - new Date(iso).getTime())/1000;
+  if (s < 60) return "hace un momento";
+  if (s < 3600) return "hace " + Math.floor(s/60) + " min";
+  if (s < 86400) return "hace " + Math.floor(s/3600) + " h";
+  return new Date(iso).toLocaleString("es-MX",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+}
+
+
+async function rpc(fn, args){
+  const r = await fetch(SB + fn, { method:"POST", headers:{ apikey: KEY, "Content-Type":"application/json" }, body: JSON.stringify(args) });
+  if (!r.ok){ let m=""; try{ m=(await r.json()).message||""; }catch(e){} const e=new Error(m); e.status=r.status; throw e; }
+  const t = await r.text(); return t ? JSON.parse(t) : null;
+}
+function pintar(filas){
+  const ul = $("lista"); ul.textContent = "";
+  $("vacio").hidden = filas.length > 0;
+  $("nTotal").textContent = filas.length;
+  $("nNuevos").textContent = filas.filter(f=>!f.leido).length;
+  for (const f of filas){
+    const li = document.createElement("li"); li.className = "msg" + (!f.leido ? " nuevo" : "");
+    if (vistos.has(f.id) && !primera) li.style.animation = "none";
+    const p = document.createElement("p"); p.className="texto"; p.textContent = f.texto;
+    const meta = document.createElement("div"); meta.className="meta";
+    const cuando = document.createElement("span"); cuando.textContent = hace(f.creado) + (f.leido ? "" : " · nuevo");
+    const acc = document.createElement("div"); acc.className="acciones";
+    const b = document.createElement("button");
+    if (borrar === f.id){
+      b.textContent="¿borrar para siempre?"; b.className="peligro";
+      b.onclick = () => eliminar(f.id);
+      const no = document.createElement("button"); no.textContent="no"; no.onclick=()=>{borrar=null;cargar();};
+      acc.append(b,no);
+    } else { b.textContent="borrar"; b.onclick=()=>{borrar=f.id;pintar(filas);}; acc.append(b); }
+    meta.append(cuando, acc); li.append(p, meta); ul.append(li);
+  }
+  filas.forEach(f=>vistos.add(f.id)); primera = false;
+}
+
+
+const NOMBRES = { portafolio: "Portafolio", mensaje: "Mensajes anónimos", directo: "Directo o link copiado", instagram: "Instagram", facebook: "Facebook", whatsapp: "WhatsApp", tiktok: "TikTok" };
+function lista(el, items){
+  el.textContent = "";
+  if (!items.length){ const li=document.createElement("li"); li.innerHTML="<span>Sin visitas todavía</span><span>0</span>"; el.append(li); return; }
+  for (const it of items){
+    const li=document.createElement("li"), a=document.createElement("span"), b=document.createElement("span");
+    a.textContent = NOMBRES[it.nombre] || it.nombre; b.textContent = it.n; li.append(a,b); el.append(li);
+  }
+}
+function pintarVisitas(v){
+  $("vAhora").textContent = v.ahora ?? 0; $("vHoy").textContent = v.hoy ?? 0;
+  $("vSemana").textContent = v.semana ?? 0; $("vTotal").textContent = v.total ?? 0;
+  const dias = v.dias || [], max = Math.max(1, ...dias.map(d=>d.n));
+  const cont = $("barras"); cont.textContent = "";
+  dias.forEach((d,i)=>{
+    const col=document.createElement("div"); col.className="barra"+(i===dias.length-1?" hoy":"");
+    const num=document.createElement("em"); num.textContent=d.n;
+    const bar=document.createElement("i"); bar.style.height = Math.round((d.n/max)*56) + "px";
+    const lab=document.createElement("small");
+    lab.textContent = i===dias.length-1 ? "hoy" : new Date(d.dia+"T12:00:00").toLocaleDateString("es-MX",{weekday:"short"}).replace(".","");
+    col.append(num,bar,lab); cont.append(col);
+  });
+  lista($("origenes"), v.origenes || []); lista($("paginas"), v.paginas || []);
+}
+
+
+async function cargar(){
+  try{
+    const d = await rpc("panel_datos", { p_clave: clave });
+    const filas = d.mensajes || [];
+    pintarVisitas(d.visitas || {}); ultimas = filas; pintar(filas); aviso(""); estadoVivo(true, "en vivo");
+    const sinLeer = filas.filter(f=>!f.leido).map(f=>f.id);
+    if (sinLeer.length && document.visibilityState==="visible") setTimeout(()=>rpc("panel_leidos",{p_clave:clave,p_ids:sinLeer}).catch(()=>{}), 4000);
+    return true;
+  }catch(e){
+    if (/clave incorrecta/.test(e.message)) { cerrar("Esa clave no es correcta."); return false; }
+    if (/Demasiados intentos/.test(e.message)) { cerrar("Demasiados intentos. Espera un minuto."); return false; }
+    estadoVivo(false, "reintentando"); return true;
+  }
+}
+async function eliminar(id){
+  try{ await rpc("panel_borrar",{p_clave:clave,p_id:id}); borrar=null; cargar(); }catch(e){ aviso("No se pudo borrar. Intenta otra vez.", true); }
+}
+function cerrar(msg){
+  clearInterval(timer); timer=null; clave="";
+  try{ localStorage.removeItem("panel_clave"); }catch(e){}
+  $("panel").hidden = true; $("entrar").hidden = false; $("error").textContent = msg || ""; $("clave").value="";
+}
+async function abrir(k){
+  clave = k; $("error").textContent = "";
+  const ok = await cargar();
+  if (!ok) return;
+  try{ localStorage.setItem("panel_clave", k); }catch(e){}
+  $("entrar").hidden = true; $("panel").hidden = false;
+  clearInterval(timer); timer = setInterval(()=>{ if(document.visibilityState==="visible") cargar(); }, CADA_MS);
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && timer) cargar(); });
+$("entrar").addEventListener("submit", e=>{ e.preventDefault(); const k=$("clave").value.trim(); if(k) abrir(k); });
+$("salir").addEventListener("click", ()=>cerrar(""));
+try{ const k=localStorage.getItem("panel_clave"); if(k) abrir(k); }catch(e){}
+</script>
+</body>
+</html>
