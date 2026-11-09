@@ -109,6 +109,17 @@ button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outli
 .recientes small{grid-column:1 / -1;color:var(--suave);font-size:12.5px}
 .columnas{display:grid;gap:30px}
 @media (min-width:980px){.app{max-width:1040px}.columnas{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}}
+.modelos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:640px){.modelos{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.modelo{background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0;position:relative}
+.modelo.top{border-color:rgb(var(--luz)/.5);background:linear-gradient(160deg,rgb(var(--luz)/.10),var(--tarjeta) 60%)}
+.modelo .lugar{position:absolute;top:12px;right:14px;color:var(--suave);font-size:12px;font-variant-numeric:tabular-nums}
+.modelo.top .lugar{color:rgb(var(--luz));font-weight:600}
+.modelo b{font-size:14.5px;font-weight:600;line-height:1.3;padding-right:28px;overflow-wrap:anywhere}
+.modelo .cuantas{font-size:26px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.modelo .cuantas span{font-size:12.5px;font-weight:400;color:var(--suave);margin-left:4px}
+.modelo small{color:var(--suave);font-size:12px;line-height:1.4}
+.modelos .vacia{grid-column:1 / -1}
 @media (max-width:400px){.totales{gap:8px}.total b{font-size:24px}}
 @media (prefers-reduced-motion:reduce){.msg{animation:none}.estado.on .punto{animation:none}}
 </style>
@@ -146,7 +157,7 @@ button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outli
   </section>
 
   <section class="seccion">
-    <div><h2>Últimos dispositivos que entraron</h2><p class="ayuda">Las 40 visitas más recientes, con el modelo del aparato y la ciudad aproximada. En iPhone solo se puede saber el tamaño de pantalla, por eso a veces salen varios modelos posibles.</p></div>
+    <div><h2>Últimos dispositivos que entraron</h2></div>
     <div class="tarjeta"><ul class="recientes" id="recientes"></ul><p class="vacia" id="sinRecientes">Todavía no hay visitas.</p></div>
   </section>
   </div>
@@ -175,8 +186,8 @@ button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outli
   </section>
 
   <section class="seccion">
-    <div><h2>¿Desde qué aparato?</h2><p class="ayuda">Los modelos que más te visitan, últimos 7 días.</p></div>
-    <div class="tarjeta"><ul class="lista" id="dispositivos"></ul></div>
+    <div><h2>¿Desde qué aparato?</h2><p class="ayuda">Del modelo que más te ve al que menos, y desde dónde. Últimos 7 días.</p></div>
+    <div class="modelos" id="modelos"></div>
   </section>
 
   <section class="seccion">
@@ -254,7 +265,7 @@ function pintarVisitas(v){
   });
   lista($("origenes"), v.origenes || []);
   lista($("ciudades"), v.ciudades || []);
-  lista($("dispositivos"), v.dispositivos || []);
+  
   lista($("paginas"), v.paginas || []);
 }
 
@@ -298,6 +309,18 @@ function pintarVivos(lst){
     d.append(b,sm); li.append(dot,d); ul.append(li);
   }
 }
+function pintarModelos(lst){
+  const box=$("modelos"); box.textContent="";
+  if (!lst.length){ const p=document.createElement("p"); p.className="vacia"; p.textContent="Aún no hay datos de esta semana."; box.append(p); return; }
+  lst.forEach((m,i)=>{
+    const d=document.createElement("div"); d.className="modelo"+(i===0?" top":"");
+    const pos=document.createElement("span"); pos.className="lugar"; pos.textContent="#"+(i+1);
+    const b=document.createElement("b"); b.textContent=NOMBRES[m.nombre] || m.nombre;
+    const c=document.createElement("div"); c.className="cuantas"; c.textContent=m.n; const u=document.createElement("span"); u.textContent=Number(m.n)===1?"visita":"visitas"; c.append(u);
+    const sm=document.createElement("small"); sm.textContent = (m.ciudades && m.ciudades.length) ? "Desde " + m.ciudades.join(", ") : "Ciudad sin dato";
+    d.append(pos,b,c,sm); box.append(d);
+  });
+}
 function pintarRecientes(lst){
   $("sinRecientes").hidden = lst.length > 0;
   const ul=$("recientes"); ul.textContent="";
@@ -317,7 +340,7 @@ async function cargar(){
   try{
     const d = await rpc("panel_datos", { p_clave: clave });
     ultimas = d.mensajes || [];
-    pintarVisitas(d.visitas || {}); pintarVivos(d.en_vivo || []); pintarRecientes(d.recientes || []); pintarMensajes(ultimas);
+    pintarVisitas(d.visitas || {}); pintarVivos(d.en_vivo || []); pintarRecientes(d.recientes || []); pintarModelos(d.modelos || []); pintarMensajes(ultimas);
     $("aviso").hidden = true; ultimaVez = Date.now(); estado(true, "en vivo");
     const sinLeer = ultimas.filter(f=>!f.leido).map(f=>f.id);
     if (sinLeer.length && document.visibilityState==="visible") setTimeout(()=>rpc("panel_leidos",{p_clave:clave,p_ids:sinLeer}).catch(()=>{}), 5000);
