@@ -116,6 +116,7 @@ button:focus-visible{outline:1px dashed #4a4236;outline-offset:4px}
       <div class="bloque"><p class="etiqueta">De dónde llegan · 7 días</p><ul class="filas" id="origenes"></ul></div>
       <div class="bloque"><p class="etiqueta">Qué página · 7 días</p><ul class="filas" id="paginas"></ul></div>
     </div>
+    <div class="bloque"><p class="etiqueta">Desde qué dispositivo · 7 días</p><ul class="filas" id="dispositivos"></ul></div>
   </section>
   <p class="etiqueta">Lo que te dejaron</p>
   <div class="resumen"><span><b id="nTotal">0</b> mensajes</span><span><b id="nNuevos">0</b> sin leer</span></div>
@@ -171,7 +172,7 @@ function pintar(filas){
 }
 
 
-const NOMBRES = { portafolio: "Portafolio", mensaje: "Mensajes anónimos", directo: "Directo o link copiado", instagram: "Instagram", facebook: "Facebook", whatsapp: "WhatsApp", tiktok: "TikTok" };
+const NOMBRES = { iphone: "iPhone", android: "Celular Android", ipad: "iPad", tablet: "Tablet Android", mac: "Mac", windows: "Computadora Windows", linux: "Computadora Linux o Chromebook", otro: "Otro", "cel-sin-dato": "Celular (antes del cambio)",  portafolio: "Portafolio", mensaje: "Mensajes anónimos", directo: "Directo o link copiado", instagram: "Instagram", facebook: "Facebook", whatsapp: "WhatsApp", tiktok: "TikTok" };
 function lista(el, items){
   el.textContent = "";
   if (!items.length){ const li=document.createElement("li"); li.innerHTML="<span>Sin visitas todavía</span><span>0</span>"; el.append(li); return; }
@@ -193,7 +194,7 @@ function pintarVisitas(v){
     lab.textContent = i===dias.length-1 ? "hoy" : new Date(d.dia+"T12:00:00").toLocaleDateString("es-MX",{weekday:"short"}).replace(".","");
     col.append(num,bar,lab); cont.append(col);
   });
-  lista($("origenes"), v.origenes || []); lista($("paginas"), v.paginas || []);
+  lista($("origenes"), v.origenes || []); lista($("paginas"), v.paginas || []); lista($("dispositivos"), v.dispositivos || []);
 }
 
 
