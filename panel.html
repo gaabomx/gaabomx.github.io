@@ -180,10 +180,6 @@ button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outli
     <div class="tarjeta"><ul class="lista" id="ciudades"></ul></div>
   </section>
 
-  <section class="seccion">
-    <div><h2>¿Desde qué aparato?</h2><p class="ayuda">Del modelo que más te ve al que menos, y desde dónde. Últimos 7 días.</p></div>
-    <div class="modelos" id="modelos"></div>
-  </section>
 
   <section class="seccion">
     <div><h2>¿Qué página vieron?</h2><p class="ayuda">Últimos 7 días.</p></div>
@@ -335,7 +331,7 @@ async function cargar(){
   try{
     const d = await rpc("panel_datos", { p_clave: clave });
     ultimas = d.mensajes || [];
-    pintarVisitas(d.visitas || {}); pintarVivos(d.en_vivo || []); pintarModelos(d.modelos || []); pintarMensajes(ultimas);
+    pintarVisitas(d.visitas || {}); pintarVivos(d.en_vivo || []); pintarMensajes(ultimas);
     $("aviso").hidden = true; ultimaVez = Date.now(); estado(true, "en vivo");
     const sinLeer = ultimas.filter(f=>!f.leido).map(f=>f.id);
     if (sinLeer.length && document.visibilityState==="visible") setTimeout(()=>rpc("panel_leidos",{p_clave:clave,p_ids:sinLeer}).catch(()=>{}), 5000);
