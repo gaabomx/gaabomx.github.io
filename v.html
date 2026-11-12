@@ -108,6 +108,8 @@
   .nope{display:none;width:min(200px,54vw);margin:18px auto 0;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.6);transform:rotate(-3deg) scale(.6);opacity:0}
   .nope.on{display:block;animation:pop .6s cubic-bezier(.2,1.5,.4,1) forwards}
   @keyframes pop{to{transform:rotate(-3deg) scale(1);opacity:1}}
+  .tiny{font-size:11px;letter-spacing:.08em;opacity:.55;font-style:italic;margin-bottom:10px}
+  .btns{flex-wrap:wrap}
   .second{display:none;margin-top:26px}
   .second.on{display:block;animation:fadeIn 1.2s ease forwards;opacity:0}
   h2{font-weight:400;font-size:clamp(24px,7vw,34px);line-height:1.15;text-wrap:balance}
@@ -171,22 +173,14 @@
   </div>
 
   <section class="ask">
-    <h1>¿Jugamos Brawl?</h1>
+    <p class="tiny">te extraño</p>
+    <h1>¿Me vas a hablar o ya no?</h1>
     <div class="btns">
-      <button class="btn yes" id="yes">Sí</button>
-      <button class="btn no" id="no">No</button>
+      <button class="btn no" id="no">No, ya no, por gay</button>
+      <button class="btn yes" id="yes">Depende de quién pregunte</button>
     </div>
     <p class="done" id="done"></p>
     <img class="nope" id="nope" src="no.jpg" alt="">
-    <div class="second" id="second">
-      <h2>¿Quieres ir al concierto de <em>Rels</em>?</h2>
-      <div class="btns2">
-        <button class="btn yes" id="yes2">Sí</button>
-        <button class="btn no" id="no2">No</button>
-      </div>
-      <p class="done2" id="done2"></p>
-      <img class="nope" id="nope2" src="no.jpg" alt="">
-    </div>
   </section>
 </main>
 
@@ -228,40 +222,23 @@
     setTimeout(function(){ body.classList.add("hello"); }, 900);
     setTimeout(function(){ body.classList.add("lit"); }, 2600);
     setTimeout(function(){ bubble.classList.add("on"); }, 3600);
-    setTimeout(function(){ say("aunque tiene una semana que ni hablamos…"); }, 6000);
-    setTimeout(function(){ say("tengo una pregunta"); }, 9000);
-    setTimeout(function(){ body.classList.add("asked"); }, 10400);
+    setTimeout(function(){ say("tengo una pregunta"); }, 6200);
+    setTimeout(function(){ body.classList.add("asked"); }, 7600);
   });
 
   document.getElementById("no").addEventListener("click", function(){
-    ev("brawl_no");
-    done.textContent = "Igual ya te borré por bot, madafaka.";
-    body.classList.add("answered", "off", "fall"); say("ni modo");
+    ev("hablar_no");
+    done.textContent = "Pero yo no te hice nada, madafaka.";
+    body.classList.add("answered", "off", "fall"); say("¿qué?");
     setTimeout(function(){ bubble.classList.remove("on"); }, 1600);
     setTimeout(function(){ document.getElementById("nope").classList.add("on"); }, 900);
   });
 
-  var second = document.getElementById("second"), done2 = document.getElementById("done2");
-
   document.getElementById("yes").addEventListener("click", function(){
-    ev("brawl_si");
-    done.textContent = "Hay días donde sí te extraño, pero luego me acuerdo de las jaladas que veo y mejor me pongo a escuchar esto.";
-    body.classList.add("answered", "flip"); say("♪");
+    ev("hablar_depende");
+    done.textContent = "Ándale, papá, ya déjate de cosas.";
+    body.classList.add("answered", "flip"); say("ajá");
     setTimeout(function(){ bubble.classList.remove("on"); }, 900);
-    setTimeout(function(){ second.classList.add("on"); }, 2600);
-  });
-
-  document.getElementById("no2").addEventListener("click", function(){
-    ev("concierto_no");
-    done2.textContent = "Oído, chaval.";
-    second.classList.add("answered"); say("va");
-    setTimeout(function(){ document.getElementById("nope2").classList.add("on"); }, 500);
-  });
-
-  document.getElementById("yes2").addEventListener("click", function(){
-    ev("concierto_si");
-    done2.textContent = "Pero si ni te gusta, así que anda a fliparte, tía.";
-    second.classList.add("answered"); say("ajá");
   });
 </script>
 </body>
