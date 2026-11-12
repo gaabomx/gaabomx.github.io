@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Panel en vivo · /v</title>
+<meta name="theme-color" content="#0a0a0a">
+<style>
+  :root{--bg:#0a0a0a;--card:#151515;--line:#262626;--ink:#f5f1ee;--mute:#8d8783;--album:#ff5a3c;--ok:#5ad19a;--bad:#ff6b6b}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;padding:22px 16px calc(40px + env(safe-area-inset-bottom))}
+  main{max-width:520px;margin:0 auto}
+  h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px}
+  .sub{color:var(--mute);font-size:13px;margin-top:4px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--mute)}
+  .dot.on{background:var(--ok);box-shadow:0 0 0 0 rgba(90,209,154,.6);animation:pulse 1.6s infinite}
+  @keyframes pulse{70%{box-shadow:0 0 0 10px rgba(90,209,154,0)}100%{box-shadow:0 0 0 0 rgba(90,209,154,0)}}
+
+  form{margin-top:40px;display:grid;gap:12px}
+  label{font-size:14px;color:var(--mute)}
+  input{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:14px;font-size:16px}
+  button{background:var(--ink);color:#111;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer}
+  .error{color:var(--bad);font-size:14px;min-height:18px}
+
+  .live{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .live h2,.hist h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:600}
+  .big{font-size:40px;font-weight:800;margin-top:6px}
+  .who{margin-top:10px;display:grid;gap:8px}
+  .who div{font-size:14px;display:flex;justify-content:space-between;gap:10px}
+  .who b{font-weight:600}
+  .who span{color:var(--mute)}
+
+  .hist{margin-top:26px}
+  .ses{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+  .ses.nueva{border-color:var(--album);animation:flash 1.4s ease 2}
+  @keyframes flash{50%{background:#2a1510}}
+  .top{display:flex;justify-content:space-between;font-size:14px;gap:10px}
+  .top span{color:var(--mute)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{font-size:13px;padding:6px 10px;border-radius:999px;background:#222;color:var(--ink)}
+  .chip.si{background:rgba(90,209,154,.15);color:var(--ok)}
+  .chip.no{background:rgba(255,107,107,.15);color:var(--bad)}
+  .chip.muted{color:var(--mute)}
+  .vacia{color:var(--mute);font-size:14px;margin-top:12px}
+  .foot{margin-top:28px;display:flex;gap:10px}
+  .foot button{flex:1;background:transparent;color:var(--mute);border:1px solid var(--line);font-weight:500;font-size:14px;padding:11px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1><i class="dot" id="dot"></i> Panel en vivo</h1>
+  <p class="sub">gaabomx.github.io/v</p>
+
+  <form id="login">
+    <label for="clave">Contraseña (la misma de tu panel de mensajes)</label>
+    <input id="clave" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit">Entrar</button>
+    <p class="error" id="error" role="alert"></p>
+  </form>
+
+  <div id="app" hidden>
+    <section class="live">
+      <h2>En la página ahora</h2>
+      <div class="big" id="n">0</div>
+      <div class="who" id="who"></div>
+    </section>
+
+    <section class="hist">
+      <h2>Lo que han contestado</h2>
+      <div id="lista"></div>
+    </section>
+
+    <div class="foot">
+      <button id="aviso" type="button">Activar aviso con sonido</button>
+      <button id="salir" type="button">Salir</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const SB = "https://gwissessaumhyyoinhjz.supabase.co/rest/v1/rpc/";
+const KEY = "sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x";
+const CADA_MS = 4000;
+const PASOS = {
+  abrio:        ["Abrió el link", ""],
+  entro:        ["Tocó entrar", ""],
+  brawl_si:     ["Brawl: Sí", "si"],
+  brawl_no:     ["Brawl: No", "no"],
+  concierto_si: ["Concierto: Sí", "si"],
+  concierto_no: ["Concierto: No", "no"],
+  salio:        ["Se salió", "muted"]
+};
+const DISP = {iphone:"iPhone", ipad:"iPad", android:"Android", mac:"Mac", windows:"Windows", otro:"Otro"};
+let clave = "", timer = null, vistos = new Map(), primera = true, sonido = false, ctx = null;
+
+async function rpc(fn, args){
+  const r = await fetch(SB + fn, {method:"POST", headers:{apikey:KEY, "Content-Type":"application/json"}, body:JSON.stringify(args)});
+  if (!r.ok){ let m = ""; try{ m = (await r.json()).message || ""; }catch(e){} throw new Error(m); }
+  return r.json();
+}
+function hora(iso){ return new Date(iso).toLocaleString("es-MX", {weekday:"short", day:"numeric", month:"short", hour:"numeric", minute:"2-digit"}); }
+function hace(iso){
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return Math.floor(s) + " s";
+  if (s < 3600) return Math.floor(s/60) + " min";
+  return Math.floor(s/3600) + " h";
+}
+function aparato(o){ return o.modelo || DISP[o.dispositivo] || "Celular"; }
+
+function ding(){
+  if (!sonido || !ctx) return;
+  const t = ctx.currentTime;
+  [880, 1320].forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = f; g.gain.setValueAtTime(.0001, t + i*.12);
+    g.gain.exponentialRampToValueAtTime(.3, t + i*.12 + .02); g.gain.exponentialRampToValueAtTime(.0001, t + i*.12 + .4);
+    o.connect(g); g.connect(ctx.destination); o.start(t + i*.12); o.stop(t + i*.12 + .45);
+  });
+  if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+}
+
+function pintar(d){
+  const vivos = d.en_vivo || [];
+  document.getElementById("dot").classList.toggle("on", vivos.length > 0);
+  document.getElementById("n").textContent = vivos.length;
+  const ultimo = {};
+  for (const s of d.sesiones || []) ultimo[s.sesion] = s.eventos[s.eventos.length - 1];
+  const who = document.getElementById("who"); who.textContent = "";
+  for (const v of vivos){
+    const row = document.createElement("div");
+    const a = document.createElement("b"); a.textContent = aparato(v);
+    const e = ultimo[v.sesion];
+    const b = document.createElement("span"); b.textContent = (e ? PASOS[e.evento][0] : "Viendo") + " · " + hace(v.desde);
+    row.append(a, b); who.append(row);
+  }
+
+  const lista = document.getElementById("lista"); lista.textContent = "";
+  const ses = d.sesiones || [];
+  if (!ses.length){ const p = document.createElement("p"); p.className = "vacia"; p.textContent = "Nadie ha abierto el link todavía."; lista.append(p); }
+  let hayNuevo = false;
+  for (const s of ses){
+    const n = s.eventos.length, antes = vistos.get(s.sesion) || 0;
+    const card = document.createElement("div"); card.className = "ses";
+    if (!primera && n > antes && s.eventos.slice(antes).some(e => e.evento !== "salio")) { card.classList.add("nueva"); hayNuevo = true; }
+    vistos.set(s.sesion, n);
+    const top = document.createElement("div"); top.className = "top";
+    const a = document.createElement("b"); a.textContent = aparato(s);
+    const b = document.createElement("span"); b.textContent = hora(s.inicio);
+    top.append(a, b);
+    const chips = document.createElement("div"); chips.className = "chips";
+    for (const e of s.eventos){
+      const p = PASOS[e.evento]; if (!p) continue;
+      const c = document.createElement("span"); c.className = "chip " + p[1]; c.textContent = p[0];
+      c.title = hora(e.creado); chips.append(c);
+    }
+    card.append(top, chips); lista.append(card);
+  }
+  if (hayNuevo) ding();
+  primera = false;
+}
+
+async function cargar(){
+  try { pintar(await rpc("panel_v", {p_clave: clave})); }
+  catch(e){ if (/clave/i.test(e.message)) salir("La contraseña ya no es válida."); }
+}
+function iniciar(){
+  document.getElementById("login").hidden = true;
+  document.getElementById("app").hidden = false;
+  cargar(); clearInterval(timer); timer = setInterval(() => { if (!document.hidden) cargar(); }, CADA_MS);
+}
+function salir(msg){
+  clearInterval(timer); clave = ""; try{ sessionStorage.removeItem("vpanel"); }catch(e){}
+  document.getElementById("app").hidden = true; document.getElementById("login").hidden = false;
+  document.getElementById("error").textContent = msg || "";
+}
+
+document.getElementById("login").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const c = document.getElementById("clave").value, err = document.getElementById("error");
+  err.textContent = "";
+  try { await rpc("panel_v", {p_clave: c}); clave = c; try{ sessionStorage.setItem("vpanel", c); }catch(e){} iniciar(); }
+  catch(e){ err.textContent = /clave/i.test(e.message) ? "Contraseña incorrecta." : "No se pudo conectar. Intenta otra vez."; }
+});
+document.getElementById("salir").addEventListener("click", () => salir());
+document.getElementById("aviso").addEventListener("click", ev => {
+  sonido = !sonido;
+  if (sonido && !ctx){ const AC = window.AudioContext || window.webkitAudioContext; if (AC) ctx = new AC(); }
+  if (ctx && ctx.state === "suspended") ctx.resume();
+  ev.target.textContent = sonido ? "Aviso con sonido: activado" : "Activar aviso con sonido";
+  if (sonido) ding();
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden && clave) cargar(); });
+try { const c = sessionStorage.getItem("vpanel"); if (c){ clave = c; iniciar(); } } catch(e){}
+</script>
+</body>
+</html>
