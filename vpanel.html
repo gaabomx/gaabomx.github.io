@@ -51,16 +51,9 @@
 <body>
 <main>
   <h1><i class="dot" id="dot"></i> Panel en vivo</h1>
-  <p class="sub">gaabomx.github.io/v</p>
+  <p class="sub">gaabomx.github.io/v <span id="estado"></span></p>
 
-  <form id="login">
-    <label for="clave">Contraseña (la misma de tu panel de mensajes)</label>
-    <input id="clave" name="password" type="password" autocomplete="current-password" required>
-    <button type="submit">Entrar</button>
-    <p class="error" id="error" role="alert"></p>
-  </form>
-
-  <div id="app" hidden>
+  <div id="app">
     <section class="live">
       <h2>En la página ahora</h2>
       <div class="big" id="n">0</div>
@@ -74,8 +67,7 @@
 
     <div class="foot">
       <button id="aviso" type="button">Activar aviso con sonido</button>
-      <button id="salir" type="button">Salir</button>
-    </div>
+          </div>
   </div>
 </main>
 
@@ -93,7 +85,7 @@ const PASOS = {
   salio:        ["Se salió", "muted"]
 };
 const DISP = {iphone:"iPhone", ipad:"iPad", android:"Android", mac:"Mac", windows:"Windows", otro:"Otro"};
-let clave = "", timer = null, vistos = new Map(), primera = true, sonido = false, ctx = null;
+let vistos = new Map(), primera = true, sonido = false, ctx = null;
 
 async function rpc(fn, args){
   const r = await fetch(SB + fn, {method:"POST", headers:{apikey:KEY, "Content-Type":"application/json"}, body:JSON.stringify(args)});
@@ -162,28 +154,11 @@ function pintar(d){
 }
 
 async function cargar(){
-  try { pintar(await rpc("panel_v", {p_clave: clave})); }
-  catch(e){ if (/clave/i.test(e.message)) salir("La contraseña ya no es válida."); }
+  try { pintar(await rpc("panel_v_publico", {})); document.getElementById("estado").textContent = ""; }
+  catch(e){ document.getElementById("estado").textContent = "Sin conexión, reintentando…"; }
 }
-function iniciar(){
-  document.getElementById("login").hidden = true;
-  document.getElementById("app").hidden = false;
-  cargar(); clearInterval(timer); timer = setInterval(() => { if (!document.hidden) cargar(); }, CADA_MS);
-}
-function salir(msg){
-  clearInterval(timer); clave = ""; try{ sessionStorage.removeItem("vpanel"); }catch(e){}
-  document.getElementById("app").hidden = true; document.getElementById("login").hidden = false;
-  document.getElementById("error").textContent = msg || "";
-}
-
-document.getElementById("login").addEventListener("submit", async ev => {
-  ev.preventDefault();
-  const c = document.getElementById("clave").value, err = document.getElementById("error");
-  err.textContent = "";
-  try { await rpc("panel_v", {p_clave: c}); clave = c; try{ sessionStorage.setItem("vpanel", c); }catch(e){} iniciar(); }
-  catch(e){ err.textContent = /clave/i.test(e.message) ? "Contraseña incorrecta." : "No se pudo conectar. Intenta otra vez."; }
-});
-document.getElementById("salir").addEventListener("click", () => salir());
+cargar();
+setInterval(() => { if (!document.hidden) cargar(); }, CADA_MS);
 document.getElementById("aviso").addEventListener("click", ev => {
   sonido = !sonido;
   if (sonido && !ctx){ const AC = window.AudioContext || window.webkitAudioContext; if (AC) ctx = new AC(); }
@@ -191,8 +166,7 @@ document.getElementById("aviso").addEventListener("click", ev => {
   ev.target.textContent = sonido ? "Aviso con sonido: activado" : "Activar aviso con sonido";
   if (sonido) ding();
 });
-document.addEventListener("visibilitychange", () => { if (!document.hidden && clave) cargar(); });
-try { const c = sessionStorage.getItem("vpanel"); if (c){ clave = c; iniciar(); } } catch(e){}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) cargar(); });
 </script>
 </body>
 </html>
