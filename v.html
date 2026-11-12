@@ -203,7 +203,7 @@
   function ev(e){ post("v_evento", {p_sesion:S, p_evento:e, p_dispositivo:D, p_modelo:M}); }
   function lat(a){ post("latido", a ? {p_sesion:S, p_pagina:"v", p_activo:true, p_dispositivo:D, p_modelo:M} : {p_sesion:S, p_pagina:"v", p_activo:false}); }
   ev("abrio"); lat(true);
-  setInterval(function(){ if (!document.hidden) lat(true); }, 15000);
+  setInterval(function(){ if (!document.hidden) lat(true); }, 10000);
   document.addEventListener("visibilitychange", function(){ lat(!document.hidden); });
   addEventListener("pagehide", function(){ lat(false); ev("salio"); });
 
