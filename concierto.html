@@ -67,6 +67,24 @@
   .leg-b{transform-origin:128px 172px;animation:kick 1.8s ease-in-out infinite alternate-reverse}
   @keyframes kick{from{transform:rotate(-9deg)}to{transform:rotate(9deg)}}
 
+  /* Sí: salta, da una vuelta y se va corriendo */
+  .guy{transform-box:fill-box;transform-origin:50% 50%}
+  body.flip .guy{animation:flip 2.8s cubic-bezier(.45,0,.55,1) forwards}
+  @keyframes flip{
+    0%{transform:none}
+    25%{transform:translate(0,-50px) rotate(-180deg)}
+    48%{transform:translate(12px,70px) rotate(-360deg)}
+    58%{transform:translate(12px,62px) rotate(-360deg)}
+    100%{transform:translate(560px,62px) rotate(-360deg)}
+  }
+  body.flip .leg-a,body.flip .leg-b{animation-duration:.18s}
+  body.flip .wave{animation:none;transform:rotate(-60deg)}
+  /* No: se apaga el foco y el mono se cae */
+  body.fall .guy{animation:drop 1.3s cubic-bezier(.55,0,1,.45) .5s forwards}
+  @keyframes drop{to{transform:translate(-8px,280px) rotate(35deg);opacity:0}}
+  body.lit.off .glass{fill:#1c1c1c;stroke:rgba(255,247,242,.6);filter:none;animation:none}
+  body.lit.off .glow{opacity:.06;animation:none}
+
   .bubble{
     position:absolute;right:58%;top:calc(var(--cord) + 74px);max-width:132px;
     background:var(--ink);color:#1a0d08;border-radius:16px;padding:8px 13px;
@@ -134,6 +152,7 @@
         <rect x="92" y="0" width="16" height="16" rx="3" fill="#8a8580"/>
         <path class="glass" d="M92 16 h16 c0 8 10 12 10 24 a18 18 0 0 1 -36 0 c0 -12 10 -16 10 -24z"/>
         <!-- mono de palitos colgado del foco con una mano -->
+        <g class="guy">
         <path class="stick" d="M133 122 L112 9"/>
         <circle class="stick" cx="137" cy="96" r="15" style="fill:#000"/>
         <path class="stick" d="M134 111 L128 172"/>
@@ -143,6 +162,7 @@
         <circle cx="132" cy="93" r="2.2" fill="#fff7f2"/>
         <circle cx="143" cy="93" r="2.2" fill="#fff7f2"/>
         <path d="M131 101 Q137 107 144 101" stroke="#fff7f2" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        </g>
       </svg>
     </div>
   </div>
@@ -195,15 +215,17 @@
 
   document.getElementById("no").addEventListener("click", function(){
     done.textContent = "Igual ya te borré por bot, madafaka.";
-    body.classList.add("answered"); say("ni modo");
+    body.classList.add("answered", "off", "fall"); say("ni modo");
+    setTimeout(function(){ bubble.classList.remove("on"); }, 1600);
   });
 
   var second = document.getElementById("second"), done2 = document.getElementById("done2");
 
   document.getElementById("yes").addEventListener("click", function(){
     done.textContent = "Hay días donde sí te extraño, pero luego me acuerdo de las jaladas que veo y mejor me pongo a escuchar esto.";
-    body.classList.add("answered"); say("♪");
-    setTimeout(function(){ second.classList.add("on"); say("otra pregunta…"); }, 2600);
+    body.classList.add("answered", "flip"); say("♪");
+    setTimeout(function(){ bubble.classList.remove("on"); }, 900);
+    setTimeout(function(){ second.classList.add("on"); }, 2600);
   });
 
   document.getElementById("no2").addEventListener("click", function(){
