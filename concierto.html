@@ -86,7 +86,7 @@
   body.lit.off .glow{opacity:.06;animation:none}
 
   .bubble{
-    position:absolute;right:58%;top:calc(var(--cord) + 74px);max-width:132px;
+    position:absolute;right:58%;top:calc(var(--cord) + 74px);width:max-content;max-width:158px;text-align:left;
     background:var(--ink);color:#1a0d08;border-radius:16px;padding:8px 13px;
     font-family:system-ui,sans-serif;font-weight:600;font-size:14px;line-height:1.2;
     transform:scale(0);transform-origin:100% 50%;transition:transform .45s cubic-bezier(.2,1.6,.4,1);
@@ -146,7 +146,7 @@
   <div class="drop">
     <div class="lamp">
       <div class="cord"></div>
-      <div class="bubble" id="bubble">¡hola!</div>
+      <div class="bubble" id="bubble">Hola, Valeria de daav</div>
       <svg viewBox="0 0 200 222" aria-hidden="true">
         <!-- foco -->
         <rect x="92" y="0" width="16" height="16" rx="3" fill="#8a8580"/>
@@ -209,8 +209,9 @@
     setTimeout(function(){ body.classList.add("hello"); }, 900);
     setTimeout(function(){ body.classList.add("lit"); }, 2600);
     setTimeout(function(){ bubble.classList.add("on"); }, 3600);
-    setTimeout(function(){ say("tengo una pregunta…"); }, 5600);
-    setTimeout(function(){ body.classList.add("asked"); }, 7200);
+    setTimeout(function(){ say("aunque tiene una semana que ni hablamos…"); }, 6000);
+    setTimeout(function(){ say("tengo una pregunta"); }, 9000);
+    setTimeout(function(){ body.classList.add("asked"); }, 10400);
   });
 
   document.getElementById("no").addEventListener("click", function(){
@@ -234,18 +235,8 @@
   });
 
   document.getElementById("yes2").addEventListener("click", function(){
-    done2.textContent = "Ya quedó. Nos vemos ahí.";
-    second.classList.add("answered"); say("¡eso!");
-    var colors = ["#fff7f2", "#ffc2ad", "#ff5a3c", "#ffd166"];
-    for (var i = 0; i < 60; i++){
-      var c = document.createElement("i"); c.className = "confetti";
-      c.style.left = Math.random()*100 + "vw";
-      c.style.background = colors[i % colors.length];
-      c.style.animationDuration = (2.2 + Math.random()*2.5) + "s";
-      c.style.animationDelay = (Math.random()*1.2) + "s";
-      document.body.appendChild(c);
-      (function(el){ setTimeout(function(){ el.remove(); }, 6500); })(c);
-    }
+    done2.textContent = "Pero si ni te gusta, así que anda a fliparte, tía.";
+    second.classList.add("answered"); say("ajá");
   });
 </script>
 </body>
