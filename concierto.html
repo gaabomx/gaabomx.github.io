@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tengo una pregunta…</title>
+<meta name="theme-color" content="#000000">
+<style>
+  :root{
+    /* Color del álbum: cambia solo esta línea para ajustar el tono */
+    --album:#ff5a3c;
+    --album-soft:#ffb199;
+    --ink:#fff7f2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:#000;color:var(--ink);overflow:hidden;
+    font-family:Georgia,"Times New Roman",serif;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* Luz del álbum que inunda la página */
+  .glow{
+    position:fixed;inset:-20%;pointer-events:none;opacity:0;
+    background:
+      radial-gradient(circle at 50% 62%, var(--album) 0%, transparent 55%),
+      radial-gradient(circle at 15% 10%, var(--album-soft) 0%, transparent 40%),
+      radial-gradient(circle at 88% 90%, var(--album) 0%, transparent 45%);
+    filter:blur(30px);transform:scale(.3);
+    transition:opacity 2.4s ease, transform 3s cubic-bezier(.2,.7,.2,1);
+  }
+  body.lit .glow{opacity:.95;transform:scale(1);animation:breathe 6s ease-in-out 3s infinite}
+  @keyframes breathe{50%{opacity:.75;transform:scale(1.06)}}
+
+  /* Entrada misteriosa */
+  .intro{
+    position:fixed;inset:0;z-index:5;background:#000;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;
+    text-align:center;padding:24px;transition:opacity 1.4s ease, visibility 1.4s;
+  }
+  .intro.gone{opacity:0;visibility:hidden}
+  .whisper{
+    font-style:italic;font-size:clamp(18px,5vw,26px);letter-spacing:.04em;
+    opacity:0;animation:fadeIn 2.2s ease .6s forwards;
+  }
+  .whisper span{display:block;font-size:.72em;opacity:.55;margin-top:10px;letter-spacing:.18em;text-transform:uppercase;font-style:normal;font-family:system-ui,sans-serif}
+  .key{
+    width:96px;height:96px;border-radius:50%;border:1px solid rgba(255,255,255,.35);
+    background:transparent;color:var(--ink);cursor:pointer;position:relative;
+    font-family:system-ui,sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    opacity:0;animation:fadeIn 1.6s ease 2.4s forwards;
+  }
+  .key::before,.key::after{
+    content:"";position:absolute;inset:-1px;border-radius:50%;border:1px solid rgba(255,255,255,.5);
+    animation:ring 2.8s ease-out infinite;
+  }
+  .key::after{animation-delay:1.4s}
+  @keyframes ring{from{transform:scale(1);opacity:.7}to{transform:scale(2.1);opacity:0}}
+  @keyframes fadeIn{to{opacity:1}}
+
+  /* Escena */
+  .stage{position:relative;z-index:2;width:100%;max-width:460px;padding:24px 22px 150px;text-align:center}
+
+  .monito{
+    width:170px;margin:0 auto;position:relative;
+    transform:translateY(120vh);transition:transform 1.3s cubic-bezier(.2,1.4,.4,1);
+  }
+  body.hello .monito{transform:translateY(0)}
+  .monito svg{width:100%;display:block;overflow:visible;animation:bob 2.6s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(-7px)}}
+  .arm{transform-origin:118px 96px;animation:wave .7s ease-in-out infinite alternate}
+  @keyframes wave{from{transform:rotate(-8deg)}to{transform:rotate(28deg)}}
+  .eye{transform-origin:center;transform-box:fill-box;animation:blink 4s infinite}
+  @keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+
+  .bubble{
+    position:absolute;left:50%;top:-58px;transform:translateX(-50%) scale(0);
+    background:var(--ink);color:#1a0d08;border-radius:18px;padding:9px 16px;white-space:nowrap;
+    font-family:system-ui,sans-serif;font-weight:600;font-size:15px;
+    transition:transform .45s cubic-bezier(.2,1.6,.4,1);
+  }
+  .bubble::after{content:"";position:absolute;left:50%;bottom:-7px;width:14px;height:14px;background:inherit;transform:translateX(-50%) rotate(45deg)}
+  .bubble.on{transform:translateX(-50%) scale(1)}
+
+  .ask{margin-top:30px;opacity:0;transform:translateY(18px);transition:opacity 1.2s ease, transform 1.2s ease}
+  body.asked .ask{opacity:1;transform:none}
+  h1{font-weight:400;font-size:clamp(30px,9vw,44px);line-height:1.12;text-wrap:balance;text-shadow:0 2px 30px rgba(0,0,0,.35)}
+  h1 em{font-style:italic}
+  .btns{margin-top:28px;display:flex;gap:14px;justify-content:center;position:relative;min-height:54px}
+  .btn{
+    font-family:system-ui,sans-serif;font-weight:700;font-size:16px;border:0;cursor:pointer;
+    padding:15px 30px;border-radius:999px;transition:transform .2s ease;
+  }
+  .yes{background:var(--ink);color:#1a0d08}
+  .yes:active{transform:scale(.95)}
+  .no{background:rgba(0,0,0,.28);color:var(--ink);transition:transform .25s ease}
+
+  .done{display:none;margin-top:26px;font-size:clamp(20px,6vw,26px);font-style:italic;line-height:1.35}
+  body.yes .btns{display:none}
+  body.yes .done{display:block;animation:fadeIn 1s ease forwards}
+
+  /* Reproductor */
+  .player{
+    position:fixed;z-index:4;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    width:200px;height:113px;border-radius:14px;overflow:hidden;
+    opacity:0;transition:opacity 1.5s ease;box-shadow:0 10px 40px rgba(0,0,0,.45);
+  }
+  body.hello .player{opacity:.9}
+  .player iframe{width:100%;height:100%;border:0;display:block}
+
+  .confetti{position:fixed;top:-12px;width:9px;height:14px;z-index:6;pointer-events:none;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+  @media (prefers-reduced-motion:reduce){
+    .monito svg,.arm,.key::before,.key::after,body.lit .glow{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+
+<div class="intro" id="intro">
+  <p class="whisper">alguien dejó algo aquí para ti…<span>sube el volumen</span></p>
+  <button class="key" id="enter" aria-label="Entrar">entrar</button>
+</div>
+
+<main class="stage">
+  <div class="monito">
+    <div class="bubble" id="bubble">¡hola!</div>
+    <svg viewBox="0 0 170 190" aria-hidden="true">
+      <ellipse cx="85" cy="182" rx="46" ry="6" fill="rgba(0,0,0,.25)"/>
+      <!-- brazo que saluda -->
+      <g class="arm">
+        <path d="M118 98 Q146 78 150 46" stroke="#fff7f2" stroke-width="13" stroke-linecap="round" fill="none"/>
+        <circle cx="150" cy="42" r="11" fill="#fff7f2"/>
+      </g>
+      <!-- otro brazo -->
+      <path d="M52 104 Q34 122 36 142" stroke="#fff7f2" stroke-width="13" stroke-linecap="round" fill="none"/>
+      <!-- piernas -->
+      <rect x="62" y="150" width="14" height="30" rx="7" fill="#fff7f2"/>
+      <rect x="94" y="150" width="14" height="30" rx="7" fill="#fff7f2"/>
+      <!-- cuerpo -->
+      <rect x="40" y="38" width="90" height="124" rx="45" fill="#fff7f2"/>
+      <!-- antenita -->
+      <path d="M85 38 Q85 20 96 14" stroke="#fff7f2" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <circle cx="98" cy="12" r="6" fill="var(--album)"/>
+      <!-- cara -->
+      <ellipse class="eye" cx="68" cy="84" rx="6" ry="8" fill="#1a0d08"/>
+      <ellipse class="eye" cx="102" cy="84" rx="6" ry="8" fill="#1a0d08"/>
+      <path d="M72 104 Q85 118 98 104" stroke="#1a0d08" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="100" r="7" fill="var(--album)" opacity=".45"/>
+      <circle cx="114" cy="100" r="7" fill="var(--album)" opacity=".45"/>
+    </svg>
+  </div>
+
+  <section class="ask">
+    <h1>¿Quieres ir conmigo al concierto de <em>Rels&nbsp;B</em>?</h1>
+    <div class="btns">
+      <button class="btn yes" id="yes">Sí, vamos</button>
+      <button class="btn no" id="no">No</button>
+    </div>
+    <p class="done">Ya quedó.<br>Nos vemos en el concierto.</p>
+  </section>
+</main>
+
+<div class="player"><div id="yt"></div></div>
+
+<script>
+  // Canción: "Mejor No Nos Vemos" — se reproduce desde YouTube
+  var VIDEO_ID = "Ghywp7i032A";
+  var player, ready = false, wantPlay = false;
+
+  var s = document.createElement("script");
+  s.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(s);
+
+  function onYouTubeIframeAPIReady(){
+    player = new YT.Player("yt", {
+      videoId: VIDEO_ID,
+      playerVars: {playsinline:1, rel:0, modestbranding:1, loop:1, playlist:VIDEO_ID},
+      events: {onReady:function(){ ready = true; if (wantPlay) play(); }}
+    });
+  }
+  function play(){ try{ player.setVolume(100); player.playVideo(); }catch(e){} }
+
+  var body = document.body, bubble = document.getElementById("bubble");
+  function say(t){ bubble.classList.remove("on"); setTimeout(function(){ bubble.textContent = t; bubble.classList.add("on"); }, 300); }
+
+  document.getElementById("enter").addEventListener("click", function(){
+    wantPlay = true; if (ready) play();
+    document.getElementById("intro").classList.add("gone");
+    setTimeout(function(){ body.classList.add("hello"); }, 900);
+    setTimeout(function(){ bubble.classList.add("on"); }, 2300);
+    setTimeout(function(){ body.classList.add("lit"); document.querySelector('meta[name=theme-color]').content = getComputedStyle(document.documentElement).getPropertyValue("--album").trim(); }, 4200);
+    setTimeout(function(){ say("tengo una pregunta…"); }, 5200);
+    setTimeout(function(){ body.classList.add("asked"); }, 7000);
+  });
+
+  // El "No" se escapa
+  var no = document.getElementById("no"), dodges = 0;
+  function dodge(e){
+    e.preventDefault(); dodges++;
+    var x = (Math.random()*2-1) * Math.min(120, innerWidth*0.28);
+    var y = (Math.random()*2-1) * 90;
+    no.style.transform = "translate(" + x + "px," + y + "px) scale(" + Math.max(.55, 1 - dodges*.08) + ")";
+    say(["¿de verdad?", "piénsalo bien", "ese botón no sirve", "ándale, di que sí"][dodges % 4]);
+  }
+  no.addEventListener("pointerdown", dodge);
+  no.addEventListener("click", function(e){ e.preventDefault(); });
+
+  document.getElementById("yes").addEventListener("click", function(){
+    body.classList.add("yes"); say("¡siiií!");
+    var colors = ["#fff7f2", "#ffb199", "#ff5a3c", "#ffd166"];
+    for (var i = 0; i < 70; i++){
+      var c = document.createElement("i"); c.className = "confetti";
+      c.style.left = Math.random()*100 + "vw";
+      c.style.background = colors[i % colors.length];
+      c.style.animationDuration = (2.2 + Math.random()*2.5) + "s";
+      c.style.animationDelay = (Math.random()*1.2) + "s";
+      document.body.appendChild(c);
+      (function(el){ setTimeout(function(){ el.remove(); }, 6500); })(c);
+    }
+  });
+</script>
+</body>
+</html>
