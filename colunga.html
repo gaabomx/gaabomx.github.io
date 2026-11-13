@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>para ti</title>
+<meta name="description" content="Tengo algo que preguntarte.">
+<meta property="og:title" content="para ti">
+<meta property="og:description" content="Tengo algo que preguntarte.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#050505">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,500&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Mismo cuarto oscuro del buzón: un foco colgando y la pregunta en el charco de luz */
+:root{
+  --negro:#050505;
+  --luz:255 214 150;
+  --tinta:#d9cdb8;
+  --tenue:#6b6356;
+  --linea:#2a2620;
+  --serif:"Cormorant Garamond","Iowan Old Style",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  background:var(--negro);color:var(--tinta);
+  font-family:var(--mono);font-size:13px;
+  overflow:hidden;-webkit-font-smoothing:antialiased;
+  transition:--luz 2s;
+}
+body.si{--luz:255 150 170}
+.cuarto{
+  position:relative;height:100%;
+  display:grid;place-items:center;
+  padding:env(safe-area-inset-top,0px) max(24px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(24px,env(safe-area-inset-left,0px));
+}
+.halo{
+  position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 18%, rgb(var(--luz)/.16), transparent 70%),
+    radial-gradient(ellipse 120% 80% at 50% 0%, rgb(var(--luz)/.05), transparent 70%);
+  opacity:0;
+}
+body.si .halo{
+  background:
+    radial-gradient(ellipse 85% 75% at 50% 22%, rgb(var(--luz)/.26), transparent 72%),
+    radial-gradient(ellipse 140% 100% at 50% 0%, rgb(var(--luz)/.10), transparent 75%);
+}
+.grano{
+  position:fixed;inset:-50%;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grano 1.2s steps(4) infinite;
+}
+@keyframes grano{
+  0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}
+  50%{transform:translate(2%,-3%)}75%{transform:translate(-2%,-1%)}
+}
+.foco{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;
+  transform-origin:50% 0;animation:vaiven 7s ease-in-out infinite;
+}
+.cable{width:1px;height:16vh;background:linear-gradient(var(--linea),#3a342b)}
+.socket{width:10px;height:12px;background:#1d1a16;border-radius:2px 2px 1px 1px}
+.bulbo{
+  width:22px;height:28px;margin-top:-1px;
+  border-radius:50% 50% 46% 46% / 40% 40% 60% 60%;
+  background:#1a1814;box-shadow:inset 0 -4px 8px rgba(0,0,0,.6);
+}
+@keyframes vaiven{
+  0%,100%{transform:translateX(-50%) rotate(1.2deg)}
+  50%{transform:translateX(-50%) rotate(-1.2deg)}
+}
+body.encendido .bulbo{
+  background:radial-gradient(circle at 50% 60%, #fff6e2, rgb(var(--luz)) 45%, #b9792e 100%);
+  box-shadow:0 0 18px 6px rgb(var(--luz)/.55),0 0 80px 30px rgb(var(--luz)/.18);
+}
+body.si .bulbo{
+  background:radial-gradient(circle at 50% 60%, #fff0f2, rgb(var(--luz)) 45%, #c2476a 100%);
+  box-shadow:0 0 22px 8px rgb(var(--luz)/.6),0 0 110px 44px rgb(var(--luz)/.24);
+}
+body.encendido .halo{opacity:1}
+body.parpadeo .bulbo,body.parpadeo .halo{animation:parpadeo 2.2s steps(1,end) forwards}
+@keyframes parpadeo{
+  0%{opacity:0}6%{opacity:1}9%{opacity:0}18%{opacity:.7}21%{opacity:0}
+  40%{opacity:1}43%{opacity:.15}47%{opacity:1}70%{opacity:.6}72%{opacity:1}100%{opacity:1}
+}
+body.tiembla .halo{animation:tiembla 9s steps(1,end) infinite}
+@keyframes tiembla{0%,93%,100%{opacity:1}94%{opacity:.35}95%{opacity:1}96%{opacity:.6}}
+body.apagon .halo,body.apagon .bulbo{animation:apagon 1.6s ease forwards}
+@keyframes apagon{0%{opacity:1}30%{opacity:0}60%{opacity:0}100%{opacity:1}}
+
+.mesa{
+  position:relative;z-index:2;width:min(100%,420px);margin-top:12vh;
+  text-align:center;
+  opacity:0;transform:translateY(8px);
+  transition:opacity 1.6s ease 2.1s,transform 1.6s ease 2.1s;
+}
+body.encendido .mesa{opacity:1;transform:none}
+.mesa.fuera{opacity:0 !important;transition:opacity .5s ease !important}
+.nombre{
+  margin:0 0 14px;color:var(--tenue);font-size:11px;letter-spacing:.42em;text-transform:uppercase;
+  padding-left:.42em;
+}
+h1{
+  margin:0;font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:clamp(38px,11vw,54px);line-height:1.02;letter-spacing:-.01em;
+  color:var(--tinta);text-wrap:balance;
+}
+.botones{margin-top:44px;display:flex;justify-content:center;align-items:center;gap:56px;min-height:48px}
+button{
+  background:none;border:0;cursor:pointer;color:var(--tinta);
+  font:inherit;font-size:12px;letter-spacing:.3em;text-transform:uppercase;
+  padding:14px 6px 12px;padding-left:calc(6px + .3em);
+  border-bottom:1px solid transparent;
+  transition:opacity .3s,letter-spacing .4s,border-color .4s,color .4s;
+}
+#si{border-bottom-color:rgb(var(--luz)/.55);color:#f3e7d0}
+#si:hover,#si:focus-visible{letter-spacing:.4em;border-bottom-color:rgb(var(--luz))}
+#no{color:var(--tenue)}
+#no.huye{position:fixed;z-index:6;margin:0;transition:left .28s cubic-bezier(.2,.8,.2,1),top .28s cubic-bezier(.2,.8,.2,1),opacity .6s}
+button:focus-visible{outline:1px dashed #4a4236;outline-offset:6px}
+.pista{min-height:1.5em;margin:26px 0 0;color:var(--tenue);font-size:11px;letter-spacing:.08em;text-transform:lowercase}
+
+.respuesta{
+  position:fixed;inset:0;z-index:3;display:grid;place-items:center;text-align:center;
+  padding:0 28px;pointer-events:none;opacity:0;transition:opacity 1.8s ease .9s;
+}
+.respuesta.ver{opacity:1}
+.respuesta p{margin:0}
+.respuesta .grande{
+  font-family:var(--serif);font-style:italic;font-size:clamp(34px,10vw,48px);line-height:1.05;
+  color:#f6e3e0;text-wrap:balance;
+}
+.respuesta .chica{margin-top:18px;color:#a98a8c;font-size:11px;letter-spacing:.3em;text-transform:uppercase}
+.corazones{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.corazones span{
+  position:absolute;bottom:-40px;color:rgb(255 150 170);
+  animation:sube linear forwards;will-change:transform,opacity;
+}
+@keyframes sube{
+  0%{transform:translate(0,0) scale(.6);opacity:0}
+  12%{opacity:.85}
+  100%{transform:translate(var(--dx),-112vh) scale(1.15) rotate(var(--giro));opacity:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .foco,.grano{animation:none}
+  body.parpadeo .bulbo,body.parpadeo .halo,body.tiembla .halo,body.apagon .halo,body.apagon .bulbo{animation:none}
+  .mesa{transition:opacity .4s}
+}
+</style>
+</head>
+<body>
+<div class="halo" aria-hidden="true"></div>
+<div class="grano" aria-hidden="true"></div>
+<div class="corazones" id="corazones" aria-hidden="true"></div>
+<div class="foco" aria-hidden="true"><div class="cable"></div><div class="socket"></div><div class="bulbo"></div></div>
+
+<main class="cuarto">
+  <section class="mesa" id="mesa">
+    <p class="nombre">Colunga</p>
+    <h1>¿quieres ser mi novia?</h1>
+    <div class="botones">
+      <button type="button" id="si">Sí</button>
+      <button type="button" id="no">No</button>
+    </div>
+    <p class="pista" id="pista" role="status" aria-live="polite"></p>
+  </section>
+</main>
+
+<div class="respuesta" id="respuesta" role="status" aria-live="polite">
+  <div>
+    <p class="grande">Acabas de prender todo.</p>
+    <p class="chica">te quiero, Colunga</p>
+  </div>
+</div>
+
+<script>
+const b = document.body, mesa = document.getElementById("mesa"),
+      si = document.getElementById("si"), no = document.getElementById("no"),
+      pista = document.getElementById("pista"), respuesta = document.getElementById("respuesta"),
+      corazones = document.getElementById("corazones");
+const calma = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// la luz se prende al entrar
+setTimeout(() => {
+  b.classList.add("encendido");
+  if (!calma) { b.classList.add("parpadeo"); setTimeout(() => { b.classList.remove("parpadeo"); b.classList.add("tiembla"); }, 2300); }
+}, calma ? 0 : 700);
+
+// el "no" se escapa
+const frases = ["ese botón no sirve", "¿segura?", "piénsalo tantito", "anda, mira el otro", "no se deja atrapar", "el de la izquierda sí funciona"];
+let intentos = 0;
+function huir(e) {
+  if (e) e.preventDefault();
+  const r = no.getBoundingClientRect();
+  if (!no.classList.contains("huye")) {
+    no.style.left = r.left + "px"; no.style.top = r.top + "px";
+    no.classList.add("huye");
+    no.getBoundingClientRect();
+  }
+  const m = 18, w = innerWidth - r.width - m * 2, h = innerHeight - r.height - m * 2;
+  const s = si.getBoundingClientRect();
+  let x, y, n = 0;
+  do {
+    x = m + Math.random() * w; y = m + Math.random() * h; n++;
+  } while (n < 30 && (
+    Math.hypot(x - r.left, y - r.top) < 140 ||
+    (x < s.right + 30 && x + r.width > s.left - 30 && y < s.bottom + 30 && y + r.height > s.top - 30)
+  ));
+  no.style.left = x + "px"; no.style.top = y + "px";
+  pista.textContent = frases[intentos % frases.length];
+  intentos++;
+  if (intentos >= 8) no.style.opacity = ".35";
+}
+no.addEventListener("pointerenter", huir);
+no.addEventListener("pointerdown", huir);
+no.addEventListener("click", huir);
+no.addEventListener("focus", () => { if (intentos) si.focus(); });
+
+// el "sí"
+function corazon() {
+  const c = document.createElement("span");
+  c.textContent = "♥";
+  c.style.left = Math.random() * 100 + "%";
+  c.style.fontSize = 12 + Math.random() * 22 + "px";
+  c.style.setProperty("--dx", (Math.random() * 120 - 60) + "px");
+  c.style.setProperty("--giro", (Math.random() * 60 - 30) + "deg");
+  c.style.animationDuration = 5 + Math.random() * 5 + "s";
+  corazones.appendChild(c);
+  c.addEventListener("animationend", () => c.remove());
+}
+si.addEventListener("click", () => {
+  si.disabled = true; no.style.display = "none"; pista.textContent = "";
+  mesa.classList.add("fuera");
+  b.classList.remove("tiembla"); b.classList.add("apagon");
+  setTimeout(() => { b.classList.add("si"); }, 600);
+  setTimeout(() => { b.classList.remove("apagon"); }, 1700);
+  respuesta.classList.add("ver");
+  if (!calma) setTimeout(() => {
+    for (let i = 0; i < 14; i++) setTimeout(corazon, i * 140);
+    setInterval(corazon, 420);
+  }, 1300);
+});
+</script>
+</body>
+</html>
