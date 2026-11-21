@@ -38,11 +38,12 @@ html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;ba
 <div class="panel">
   <div id="next">Buscando tu ubicación…</div>
   <div id="dist"></div>
+  <div id="live" style="font-size:12px;color:#8a93a8;margin-top:3px">○ Esperando GPS…</div>
   <div id="msg"></div>
   <div id="instr"><div class="big"><span class="ic" id="iic">↑</span><span id="itxt"></span></div><div class="sub" id="isub"></div><div class="more" id="imore">Ver todas las indicaciones ▾</div><div id="steps"></div></div>
   <div class="bar"><div id="prog"></div></div>
   <div class="btns">
-    <button id="follow">Centrarme</button>
+    <button id="follow" class="on">Siguiéndome</button>
     <button id="north">Norte arriba</button>
     <button id="skip">Saltar punto</button>
     <button id="reset">Reiniciar</button>
@@ -58,7 +59,7 @@ const map=new maplibregl.Map({container:'map',center:R.colonias.cps[1][1],zoom:1
  dragRotate:true,touchZoomRotate:true,touchPitch:false,pitchWithRotate:false,attributionControl:{compact:true},
  style:{version:8,sources:{osm:{type:'raster',tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png','https://b.tile.openstreetmap.org/{z}/{x}/{y}.png','https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19,attribution:'© OpenStreetMap'}},layers:[{id:'osm',type:'raster',source:'osm'}]}});
 map.addControl(new maplibregl.NavigationControl({showZoom:false,visualizePitch:false}),'top-right');
-let markers=[],idx=0,me=null,follow=false,lastFix=null;
+let markers=[],idx=0,me=null,follow=true,lastFix=null,fixT=0,firstFix=true;
 const trail={type:'Feature',geometry:{type:'LineString',coordinates:[]}};
 const line=c=>({type:'Feature',geometry:{type:'LineString',coordinates:c}});
 const dist=(a,b)=>{const R0=6371000,t=Math.PI/180,dl=(b[1]-a[1])*t,dn=(b[0]-a[0])*t;const x=Math.sin(dl/2)**2+Math.cos(a[1]*t)*Math.cos(b[1]*t)*Math.sin(dn/2)**2;return 2*R0*Math.asin(Math.sqrt(x))};
@@ -72,7 +73,7 @@ function draw(){
   markers.push(new maplibregl.Marker({element:el('arr'),rotation:brg(a,b),rotationAlignment:'map'}).setLngLat([(a[0]+b[0])/2,(a[1]+b[1])/2]).addTo(map));}
  const seen={};
  D.cps.forEach(c=>{if(seen[c[0]]||c[0]==='FIN')return;seen[c[0]]=1;
-  const e=el('num'+(c[0]==='S'?' s':''),c[0]);e.id='n'+c[0];markers.push(new maplibregl.Marker({element:e}).setLngLat(c[1]).addTo(map));});
+  const e=el('num'+(c[0]==='S'?' s':''),c[0]);e.id='n'+c[0];e.style.cursor='pointer';e.addEventListener('click',ev=>{ev.stopPropagation();const L=R[route].cps;let j=L.findIndex((x,k)=>k>=idx&&x[0]===c[0]);if(j<0)j=L.findIndex(x=>x[0]===c[0]);idx=j;store.set('ruta_idx_'+route,idx);paint();document.getElementById('msg').textContent='Ahora vas al punto '+c[0];});markers.push(new maplibregl.Marker({element:e}).setLngLat(c[1]).addTo(map));});
  idx=+store.get('ruta_idx_'+route,0);
  document.getElementById('tCol').classList.toggle('on',route==='colonias');
  document.getElementById('tCon').classList.toggle('on',route==='contorno');
@@ -88,10 +89,10 @@ function paint(){const D=R[route];NAV.target=null;if(lastFix)setTimeout(()=>navT
  else{document.getElementById('next').textContent='Siguiente: punto '+(c[0]==='FIN'?'1 (fin)':c[0]);if(lastFix)showDist(lastFix)}
 }
 function showDist(p){const D=R[route];if(idx<D.cps.length)document.getElementById('dist').textContent=`A ${Math.round(dist(p.ll,D.cps[idx][1]))} m · precisión ±${Math.round(p.acc)} m`}
-function onPos(p){const ll=[p.coords.longitude,p.coords.latitude];lastFix={ll,acc:p.coords.accuracy};
+function onPos(p){const ll=[p.coords.longitude,p.coords.latitude];lastFix={ll,acc:p.coords.accuracy};fixT=Date.now();
  if(!me){me=new maplibregl.Marker({element:el('me')}).setLngLat(ll).addTo(map)}else me.setLngLat(ll);
  const tc=trail.geometry.coordinates,l=tc[tc.length-1];if(!l||dist(l,ll)>5){tc.push(ll);map.getSource('trail')&&map.getSource('trail').setData(trail)}
- if(follow)map.easeTo({center:ll,duration:500});
+ if(firstFix){firstFix=false;map.easeTo({center:ll,zoom:17.5,duration:800})}else if(follow)map.easeTo({center:ll,duration:500});
  const D=R[route];if(idx<D.cps.length&&dist(ll,D.cps[idx][1])<30){idx++;store.set('ruta_idx_'+route,idx);paint();if(navigator.vibrate)navigator.vibrate(200)}
  showDist(lastFix);navTick(ll);document.getElementById('msg').textContent='';}
 let started=false;function init(){if(started)return;started=true;
@@ -107,7 +108,7 @@ let started=false;function init(){if(started)return;started=true;
  const b=new maplibregl.LngLatBounds();R[route].loop.concat(R[route].approach).forEach(p=>b.extend(p));
  map.fitBounds(b,{padding:{top:80,bottom:200,left:30,right:30},bearing:BEARING,duration:0});
  if(!navigator.geolocation)document.getElementById('msg').textContent='Tu navegador no tiene GPS disponible.';
- else navigator.geolocation.watchPosition(onPos,()=>{document.getElementById('msg').textContent='Activa la ubicación para este sitio.'},{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+ else navigator.geolocation.watchPosition(onPos,()=>{document.getElementById('msg').textContent='No tengo permiso de ubicación. iPhone: Ajustes › Privacidad › Localización › Safari: «Al usar la app» y «Ubicación exacta» activada. Luego recarga.'},{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
 }
 map.on('style.load',init);map.on('load',init);
 const fb=document.getElementById('follow');
@@ -160,6 +161,10 @@ function navTick(pos){const D=R[route];if(idx>=D.cps.length){clearNav();return}
  const tgt=D.cps[idx][1].join();
  if(NAV.target!==tgt)navigate(pos,true);else if(offRoute(pos))navigate(pos,false);else showStep(pos);}
 document.getElementById('imore').onclick=()=>{const s=document.getElementById('steps'),o=s.style.display!=='block';s.style.display=o?'block':'none';document.getElementById('imore').textContent=o?'Ocultar indicaciones ▴':'Ver todas las indicaciones ▾'};
+setInterval(()=>{const e=document.getElementById('live');if(!fixT){e.textContent='○ Esperando GPS…';e.style.color='#8a93a8';return}
+ const sec=Math.round((Date.now()-fixT)/1000);
+ if(sec<20){e.textContent='● En vivo · actualizado hace '+sec+' s';e.style.color='#3ddc84'}
+ else{e.textContent='● GPS sin señal hace '+sec+' s — deja la pantalla prendida y esta página abierta';e.style.color='#ffb300'}},1000);
 let wl=null;async function lock(){try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
 document.addEventListener('click',lock,{once:true});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')lock()});
 </script></body></html>
