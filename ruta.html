@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Ruta de recorrido</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;background:#111}
+#map{position:absolute;inset:0}
+.panel{position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:1000;background:rgba(15,18,28,.94);color:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.row{display:flex;align-items:center;gap:10px}
+#next{font-size:20px;font-weight:700}
+#dist{font-size:15px;color:#9fe9ff;margin-top:2px}
+#msg{font-size:13px;color:#ffd84d;margin-top:4px}
+.bar{height:6px;background:#2a3142;border-radius:3px;margin-top:8px;overflow:hidden}
+.bar>div{height:100%;background:#00e6ff;width:0}
+.btns{display:flex;gap:8px;margin-top:10px}
+.btns button{flex:1;border:0;border-radius:10px;padding:10px 6px;font-size:14px;font-weight:600;background:#263049;color:#fff}
+.btns button.on{background:#00b8d4;color:#001}
+.num{background:#e6283c;color:#fff;border:3px solid #fff;border-radius:50%;width:26px;height:26px;line-height:26px;text-align:center;font-weight:800;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.num.done{background:#2fbf5a}
+.num.cur{background:#ffb300;color:#000;transform:scale(1.25)}
+.me{width:18px;height:18px;background:#1a73e8;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 6px rgba(26,115,232,.25)}
+</style></head><body>
+<div id="map"></div>
+<div class="panel">
+  <div id="next">Buscando tu ubicación…</div>
+  <div id="dist"></div>
+  <div id="msg"></div>
+  <div class="bar"><div id="prog"></div></div>
+  <div class="btns">
+    <button id="follow" class="on">Seguirme</button>
+    <button id="skip">Saltar punto</button>
+    <button id="reset">Reiniciar</button>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const D={"approach": [[17.084165, -96.744075], [17.083276, -96.743779], [17.082191, -96.743365], [17.08122, -96.742757], [17.080344, -96.741846], [17.080166, -96.741472]], "loop": [[17.080166, -96.741472], [17.08017, -96.740956], [17.080664, -96.740063], [17.081054, -96.73926], [17.08018, -96.73867], [17.079822, -96.739348], [17.079494, -96.740045], [17.079158, -96.739629], [17.078396, -96.738878], [17.077459, -96.740368], [17.076877, -96.740045], [17.077893, -96.738321], [17.077594, -96.737912], [17.077435, -96.737619], [17.077103, -96.737899], [17.076519, -96.738777], [17.076343, -96.738836], [17.075886, -96.739796], [17.075231, -96.739313], [17.074674, -96.740356], [17.075709, -96.741109], [17.075922, -96.741523], [17.076893, -96.742132], [17.07717, -96.741704], [17.077806, -96.740626], [17.078276, -96.740843], [17.077596, -96.741996], [17.078755, -96.742709], [17.079517, -96.741444], [17.080036, -96.741692], [17.080085, -96.742285], [17.080199, -96.743501], [17.078676, -96.746931], [17.075563, -96.744994], [17.076893, -96.742132], [17.078037, -96.742799], [17.0799, -96.743939], [17.080199, -96.743501], [17.080085, -96.742285], [17.080166, -96.741472]], "marks": {"1": [17.080166, -96.741472], "2": [17.081054, -96.73926], "3": [17.079494, -96.740045], "4": [17.078396, -96.738878], "5": [17.077459, -96.740368], "6": [17.076877, -96.740045], "7": [17.077893, -96.738321], "8": [17.077435, -96.737619], "9": [17.075231, -96.739313], "10": [17.076893, -96.742132], "11": [17.077806, -96.740626], "12": [17.078276, -96.740843], "13": [17.077596, -96.741996], "14": [17.078755, -96.742709], "15": [17.079517, -96.741444], "16": [17.078676, -96.746931], "17": [17.075563, -96.744994], "18": [17.0799, -96.743939]}, "S": [17.084165, -96.744075], "cps": [["S", [17.084165, -96.744075]], ["1", [17.080166, -96.741472]], ["2", [17.081054, -96.73926]], ["3", [17.079494, -96.740045]], ["4", [17.078396, -96.738878]], ["5", [17.077459, -96.740368]], ["6", [17.076877, -96.740045]], ["7", [17.077893, -96.738321]], ["8", [17.077435, -96.737619]], ["9", [17.075231, -96.739313]], ["10", [17.076893, -96.742132]], ["11", [17.077806, -96.740626]], ["12", [17.078276, -96.740843]], ["13", [17.077596, -96.741996]], ["14", [17.078755, -96.742709]], ["15", [17.079517, -96.741444]], ["16", [17.078676, -96.746931]], ["17", [17.075563, -96.744994]], ["10", [17.076893, -96.742132]], ["18", [17.0799, -96.743939]], ["FIN", [17.080166, -96.741472]]]};
+const map=L.map('map',{zoomControl:false}).setView(D.S,16);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+const out=(pts,c,w,dash)=>{L.polyline(pts,{color:'#000',weight:w+4,opacity:.55}).addTo(map);return L.polyline(pts,{color:c,weight:w,dashArray:dash}).addTo(map)};
+out(D.approach,'#ffd600',6,'8 8');out(D.loop,'#00e6ff',6);
+// flechas de dirección
+const all=D.approach.concat(D.loop.slice(1));
+for(let i=0;i<all.length-1;i++){const a=all[i],b=all[i+1];const dl=map.distance(a,b);if(dl<70)continue;
+ const mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];const ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;
+ L.marker(mid,{interactive:false,icon:L.divIcon({className:'',iconSize:[16,16],html:`<div style="transform:rotate(${90-ang}deg);color:#fff;font-size:16px;line-height:16px;text-shadow:0 0 3px #000">▲</div>`})}).addTo(map);}
+// marcadores
+const mk={};
+D.cps.forEach((c,i)=>{const k=c[0]+'@'+i;if(mk[c[0]]||c[0]==='FIN')return;mk[c[0]]=L.marker(c[1],{icon:L.divIcon({className:'',iconSize:[32,32],html:`<div class="num" id="n${c[0]}">${c[0]==='FIN'?'1':c[0]}</div>`})}).addTo(map);});
+map.fitBounds(L.polyline(all).getBounds(),{padding:[20,20]});
+let idx=0;try{idx=+localStorage.getItem('ruta_idx')||0}catch(e){}
+const trail=L.polyline([],{color:'#2fbf5a',weight:4,opacity:.8}).addTo(map);
+let me=null,acc=null,follow=true,last=null;
+function save(){try{localStorage.setItem('ruta_idx',idx)}catch(e){}}
+function paint(){document.querySelectorAll('.num').forEach(e=>e.classList.remove('cur','done'));
+ for(let i=0;i<idx;i++){const e=document.getElementById('n'+D.cps[i][0]);if(e)e.classList.add('done')}
+ const c=D.cps[idx];if(c){const e=document.getElementById('n'+(c[0]==='FIN'?'1':c[0]));if(e){e.classList.remove('done');e.classList.add('cur')}}
+ document.getElementById('prog').style.width=(100*idx/D.cps.length)+'%';
+ if(idx>=D.cps.length){document.getElementById('next').textContent='¡Recorrido terminado! 🎉';document.getElementById('dist').textContent='';}
+ else document.getElementById('next').textContent='Siguiente: punto '+(D.cps[idx][0]==='FIN'?'1 (fin)':D.cps[idx][0]);}
+function update(p){const ll=[p.coords.latitude,p.coords.longitude];
+ if(!me){me=L.marker(ll,{icon:L.divIcon({className:'',iconSize:[24,24],html:'<div class="me"></div>'}),zIndexOffset:1000}).addTo(map);acc=L.circle(ll,{radius:p.coords.accuracy,color:'#1a73e8',weight:1,fillOpacity:.1}).addTo(map);map.setView(ll,18);}
+ else{me.setLatLng(ll);acc.setLatLng(ll).setRadius(p.coords.accuracy)}
+ if(!last||map.distance(last,ll)>5){trail.addLatLng(ll);last=ll}
+ if(follow)map.panTo(ll,{animate:true});
+ if(idx<D.cps.length){const d=map.distance(ll,D.cps[idx][1]);
+  if(d<30){idx++;save();paint();if(navigator.vibrate)navigator.vibrate(200);}
+  if(idx<D.cps.length){const d2=map.distance(ll,D.cps[idx][1]);document.getElementById('dist').textContent=`A ${Math.round(d2)} m · precisión ±${Math.round(p.coords.accuracy)} m`;}}
+ document.getElementById('msg').textContent='';}
+paint();
+if(!navigator.geolocation){document.getElementById('msg').textContent='Tu navegador no tiene GPS disponible.'}
+else navigator.geolocation.watchPosition(update,e=>{document.getElementById('msg').textContent='Activa la ubicación para este sitio (Ajustes › Safari/Chrome › Ubicación).'},{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+const fb=document.getElementById('follow');
+fb.onclick=()=>{follow=!follow;fb.classList.toggle('on',follow);if(follow&&me)map.panTo(me.getLatLng());};
+map.on('dragstart',()=>{follow=false;fb.classList.remove('on')});
+document.getElementById('skip').onclick=()=>{if(idx<D.cps.length){idx++;save();paint();}};
+document.getElementById('reset').onclick=()=>{idx=0;save();trail.setLatLngs([]);paint();};
+// mantener pantalla encendida
+let wl=null;async function lock(){try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
+document.addEventListener('click',lock,{once:true});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')lock()});
+</script></body></html>
