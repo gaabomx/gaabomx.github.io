@@ -25,6 +25,13 @@ html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;ba
 .arr{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid #fff;filter:drop-shadow(0 0 2px #000)}
 .me{width:18px;height:18px;background:#1a73e8;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 7px rgba(26,115,232,.25)}
 .maplibregl-ctrl-top-right{top:calc(64px + env(safe-area-inset-top))}
+#instr{display:none;margin-top:8px;background:#1f2a40;border-radius:12px;padding:9px 11px}
+#instr .big{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+#instr .ic{font-size:28px;line-height:1;color:#ffb300;min-width:30px;text-align:center}
+#instr .sub{font-size:13px;color:#b9c3d8;margin-top:3px}
+#steps{display:none;max-height:30vh;overflow:auto;margin-top:6px;font-size:14px}
+#steps div{padding:6px 0;border-top:1px solid #2a3142}
+#instr .more{font-size:12px;color:#00e6ff;margin-top:5px}
 </style></head><body>
 <div id="map"></div>
 <div class="top"><button id="tCol">Colonias (zigzag)</button><button id="tCon">Solo contorno</button></div>
@@ -32,6 +39,7 @@ html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;ba
   <div id="next">Buscando tu ubicación…</div>
   <div id="dist"></div>
   <div id="msg"></div>
+  <div id="instr"><div class="big"><span class="ic" id="iic">↑</span><span id="itxt"></span></div><div class="sub" id="isub"></div><div class="more" id="imore">Ver todas las indicaciones ▾</div><div id="steps"></div></div>
   <div class="bar"><div id="prog"></div></div>
   <div class="btns">
     <button id="follow">Centrarme</button>
@@ -70,7 +78,7 @@ function draw(){
  document.getElementById('tCon').classList.toggle('on',route==='contorno');
  paint();
 }
-function paint(){const D=R[route];
+function paint(){const D=R[route];NAV.target=null;if(lastFix)setTimeout(()=>navTick(lastFix.ll),0);
  document.querySelectorAll('.num').forEach(e=>e.classList.remove('cur','done'));
  for(let i=0;i<idx;i++){const e=document.getElementById('n'+D.cps[i][0]);if(e&&D.cps[i][0]!=='S')e.classList.add('done')}
  const c=D.cps[idx];
@@ -85,12 +93,15 @@ function onPos(p){const ll=[p.coords.longitude,p.coords.latitude];lastFix={ll,ac
  const tc=trail.geometry.coordinates,l=tc[tc.length-1];if(!l||dist(l,ll)>5){tc.push(ll);map.getSource('trail')&&map.getSource('trail').setData(trail)}
  if(follow)map.easeTo({center:ll,duration:500});
  const D=R[route];if(idx<D.cps.length&&dist(ll,D.cps[idx][1])<30){idx++;store.set('ruta_idx_'+route,idx);paint();if(navigator.vibrate)navigator.vibrate(200)}
- showDist(lastFix);document.getElementById('msg').textContent='';}
+ showDist(lastFix);navTick(ll);document.getElementById('msg').textContent='';}
 let started=false;function init(){if(started)return;started=true;
  map.addSource('app',{type:'geojson',data:line([])});map.addSource('loop',{type:'geojson',data:line([])});map.addSource('trail',{type:'geojson',data:trail});
  map.addLayer({id:'loop-c',type:'line',source:'loop',paint:{'line-color':'#000','line-width':10,'line-opacity':.5},layout:{'line-join':'round','line-cap':'round'}});
  map.addLayer({id:'loop',type:'line',source:'loop',paint:{'line-color':'#00e6ff','line-width':6},layout:{'line-join':'round','line-cap':'round'}});
  map.addLayer({id:'app',type:'line',source:'app',paint:{'line-color':'#ffd600','line-width':5,'line-dasharray':[2,1.5]}});
+ map.addSource('nav',{type:'geojson',data:line([])});
+ map.addLayer({id:'nav-c',type:'line',source:'nav',paint:{'line-color':'#000','line-width':9,'line-opacity':.45},layout:{'line-join':'round','line-cap':'round'}});
+ map.addLayer({id:'nav',type:'line',source:'nav',paint:{'line-color':'#ff8a00','line-width':5},layout:{'line-join':'round','line-cap':'round'}});
  map.addLayer({id:'trail',type:'line',source:'trail',paint:{'line-color':'#2fbf5a','line-width':4,'line-opacity':.85}});
  draw();
  const b=new maplibregl.LngLatBounds();R[route].loop.concat(R[route].approach).forEach(p=>b.extend(p));
@@ -108,6 +119,47 @@ document.getElementById('skip').onclick=()=>{if(idx<R[route].cps.length){idx++;s
 document.getElementById('reset').onclick=()=>{idx=0;store.set('ruta_idx_'+route,0);trail.geometry.coordinates=[];map.getSource('trail').setData(trail);paint()};
 document.getElementById('tCol').onclick=()=>{route='colonias';store.set('ruta_sel',route);draw()};
 document.getElementById('tCon').onclick=()=>{route='contorno';store.set('ruta_sel',route);draw()};
+
+// ===== Indicaciones paso a paso al siguiente punto =====
+const NAV={steps:[],si:0,target:null,line:null,busy:false,lastReq:0};
+const MOD={'right':'a la derecha','slight right':'ligeramente a la derecha','sharp right':'fuerte a la derecha','left':'a la izquierda','slight left':'ligeramente a la izquierda','sharp left':'fuerte a la izquierda','straight':'derecho','uturn':'en U'};
+const ICO={'right':'↱','slight right':'↗','sharp right':'↱','left':'↰','slight left':'↖','sharp left':'↰','straight':'↑','uturn':'↶'};
+function txtStep(st,last){const m=st.maneuver,mod=m.modifier||'straight',nm=st.name?(' en '+st.name):'';
+ if(m.type==='depart')return {ic:'●',t:'Sal'+(st.name?' por '+st.name:'')+' '+(MOD[mod]&&mod!=='straight'?'hacia '+MOD[mod]:'')};
+ if(m.type==='arrive'||last)return {ic:'⚑',t:'Llegas al punto '+(R[route].cps[idx]||['?'])[0]};
+ if(mod==='straight'||m.type==='continue'||m.type==='new name')return {ic:'↑',t:'Sigue derecho'+nm};
+ if(mod==='uturn')return {ic:'↶',t:'Da vuelta en U'+nm};
+ return {ic:ICO[mod]||'↑',t:'Gira '+(MOD[mod]||'')+nm};}
+const fmt=m=>m>=1000?(m/1000).toFixed(1)+' km':Math.max(5,Math.round(m/5)*5)+' m';
+async function fetchRoute(a,b){
+ const q=`${a[0]},${a[1]};${b[0]},${b[1]}?overview=full&geometries=geojson&steps=true`;
+ const urls=['https://routing.openstreetmap.de/routed-foot/route/v1/foot/'+q,'https://router.project-osrm.org/route/v1/foot/'+q];
+ for(const u of urls){try{const r=await fetch(u);if(!r.ok)continue;const j=await r.json();if(j.routes&&j.routes[0])return j.routes[0]}catch(e){}}
+ return null;}
+async function navigate(from,force){
+ const D=R[route];if(idx>=D.cps.length){clearNav();return}
+ const tgt=D.cps[idx][1],now=Date.now();
+ if(NAV.busy||(!force&&now-NAV.lastReq<12000))return;
+ NAV.busy=true;NAV.lastReq=now;
+ const rt=await fetchRoute(from,tgt);NAV.busy=false;
+ if(!rt){document.getElementById('instr').style.display='block';document.getElementById('iic').textContent='!';document.getElementById('itxt').textContent='No pude calcular indicaciones';document.getElementById('isub').textContent='Sigue la línea azul y la flecha';return}
+ NAV.target=tgt.join();NAV.line=rt.geometry.coordinates;NAV.steps=rt.legs[0].steps.filter(s=>s.maneuver.type!=='depart'||rt.legs[0].steps.length<2);NAV.si=0;
+ const src=map.getSource('nav');if(src)src.setData(line(NAV.line));
+ const sl=document.getElementById('steps');sl.innerHTML='';
+ NAV.steps.forEach((st,i)=>{const t=txtStep(st,i===NAV.steps.length-1);const d=document.createElement('div');d.textContent=t.ic+'  '+t.t+(st.distance>0&&i<NAV.steps.length-1?' · luego '+fmt(st.distance):'');sl.appendChild(d)});
+ showStep(from);}
+function clearNav(){NAV.steps=[];NAV.target=null;const src=map.getSource('nav');if(src)src.setData(line([]));document.getElementById('instr').style.display='none'}
+function showStep(pos){if(!NAV.steps.length)return;
+ while(NAV.si<NAV.steps.length-1&&dist(pos,NAV.steps[NAV.si].maneuver.location)<15)NAV.si++;
+ const st=NAV.steps[NAV.si],t=txtStep(st,NAV.si===NAV.steps.length-1),d=dist(pos,st.maneuver.location);
+ document.getElementById('instr').style.display='block';document.getElementById('iic').textContent=t.ic;
+ document.getElementById('itxt').textContent=(d>15?'En '+fmt(d)+', ':'')+t.t.charAt(0).toLowerCase()+t.t.slice(1);
+ const nx=NAV.steps[NAV.si+1];document.getElementById('isub').textContent=nx?'Después: '+txtStep(nx,NAV.si+1===NAV.steps.length-1).t:'';}
+function offRoute(pos){if(!NAV.line)return true;let m=1e9;for(const c of NAV.line){const x=dist(pos,c);if(x<m)m=x}return m>40}
+function navTick(pos){const D=R[route];if(idx>=D.cps.length){clearNav();return}
+ const tgt=D.cps[idx][1].join();
+ if(NAV.target!==tgt)navigate(pos,true);else if(offRoute(pos))navigate(pos,false);else showStep(pos);}
+document.getElementById('imore').onclick=()=>{const s=document.getElementById('steps'),o=s.style.display!=='block';s.style.display=o?'block':'none';document.getElementById('imore').textContent=o?'Ocultar indicaciones ▴':'Ver todas las indicaciones ▾'};
 let wl=null;async function lock(){try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
 document.addEventListener('click',lock,{once:true});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')lock()});
 </script></body></html>
