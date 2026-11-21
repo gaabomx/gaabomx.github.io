@@ -23,7 +23,7 @@ html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;ba
 .num.s{background:#2fbf5a}.num.done{background:#2fbf5a}
 .num.cur{background:#ffb300;color:#000;transform:scale(1.25)}
 .arr{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid #fff;filter:drop-shadow(0 0 2px #000)}
-.me{width:18px;height:18px;background:#1a73e8;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 7px rgba(26,115,232,.25)}
+.mewrap{width:56px;height:56px;position:relative}.cone{position:absolute;left:50%;top:0;width:0;height:0;margin-left:-14px;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:28px solid rgba(26,115,232,.55);display:none}.me{position:absolute;left:16px;top:16px;width:18px;height:18px;background:#1a73e8;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 7px rgba(26,115,232,.25)}
 .maplibregl-ctrl-top-right{top:calc(64px + env(safe-area-inset-top))}
 </style></head><body>
 <div id="map"></div>
@@ -51,7 +51,7 @@ const map=new maplibregl.Map({container:'map',center:R.colonias.cps[1][1],zoom:1
  style:{version:8,sources:{osm:{type:'raster',tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png','https://b.tile.openstreetmap.org/{z}/{x}/{y}.png','https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19,attribution:'© OpenStreetMap'}},layers:[{id:'osm',type:'raster',source:'osm'}]}});
 map.addControl(new maplibregl.NavigationControl({showZoom:false,visualizePitch:false}),'top-right');
 let markers=[],idx=0,me=null,follow=false,lastFix=null;
-const trail={type:'Feature',geometry:{type:'LineString',coordinates:[]}};
+const trail={type:'Feature',geometry:{type:'LineString',coordinates:(()=>{try{return JSON.parse(localStorage.getItem('ruta_trail'))||[]}catch(e){return[]}})()}};
 const line=c=>({type:'Feature',geometry:{type:'LineString',coordinates:c}});
 const dist=(a,b)=>{const R0=6371000,t=Math.PI/180,dl=(b[1]-a[1])*t,dn=(b[0]-a[0])*t;const x=Math.sin(dl/2)**2+Math.cos(a[1]*t)*Math.cos(b[1]*t)*Math.sin(dn/2)**2;return 2*R0*Math.asin(Math.sqrt(x))};
 const brg=(a,b)=>{const t=Math.PI/180,y=Math.sin((b[0]-a[0])*t)*Math.cos(b[1]*t),x=Math.cos(a[1]*t)*Math.sin(b[1]*t)-Math.sin(a[1]*t)*Math.cos(b[1]*t)*Math.cos((b[0]-a[0])*t);return Math.atan2(y,x)/t};
@@ -79,19 +79,23 @@ function paint(){const D=R[route];
  if(idx>=D.cps.length){document.getElementById('next').textContent='¡Recorrido terminado! 🎉';document.getElementById('dist').textContent=''}
  else{document.getElementById('next').textContent='Siguiente: punto '+(c[0]==='FIN'?'1 (fin)':c[0]);if(lastFix)showDist(lastFix)}
 }
-function showDist(p){const D=R[route];if(idx<D.cps.length)document.getElementById('dist').textContent=`A ${Math.round(dist(p.ll,D.cps[idx][1]))} m · precisión ±${Math.round(p.acc)} m`}
+function showDist(p){const D=R[route];const g=map.getSource('go');if(g)g.setData(line(idx<D.cps.length?[p.ll,D.cps[idx][1]]:[]));if(idx<D.cps.length)document.getElementById('dist').textContent=`A ${Math.round(dist(p.ll,D.cps[idx][1]))} m · precisión ±${Math.round(p.acc)} m`}
 function onPos(p){const ll=[p.coords.longitude,p.coords.latitude];lastFix={ll,acc:p.coords.accuracy};
- if(!me){me=new maplibregl.Marker({element:el('me')}).setLngLat(ll).addTo(map)}else me.setLngLat(ll);
- const tc=trail.geometry.coordinates,l=tc[tc.length-1];if(!l||dist(l,ll)>5){tc.push(ll);map.getSource('trail')&&map.getSource('trail').setData(trail)}
+ if(!me){const w=el('mewrap');w.appendChild(el('cone'));w.appendChild(el('me'));me=new maplibregl.Marker({element:w,rotationAlignment:'map'}).setLngLat(ll).addTo(map)}else me.setLngLat(ll);
+ let hd=(p.coords.heading!=null&&!isNaN(p.coords.heading)&&p.coords.speed>0.3)?p.coords.heading:null;
+ const tl=trail.geometry.coordinates[trail.geometry.coordinates.length-1];if(hd===null&&tl&&dist(tl,ll)>4)hd=brg(tl,ll);
+ if(hd!==null){me.setRotation(hd);me.getElement().querySelector('.cone').style.display='block'}
+ const tc=trail.geometry.coordinates,l=tc[tc.length-1];if(!l||dist(l,ll)>5){tc.push(ll);map.getSource('trail')&&map.getSource('trail').setData(trail);store.set('ruta_trail',JSON.stringify(tc.slice(-3000)))}
  if(follow)map.easeTo({center:ll,duration:500});
- const D=R[route];if(idx<D.cps.length&&dist(ll,D.cps[idx][1])<30){idx++;store.set('ruta_idx_'+route,idx);paint();if(navigator.vibrate)navigator.vibrate(200)}
+ const D=R[route];for(let j=idx;j<Math.min(idx+4,D.cps.length);j++){if(dist(ll,D.cps[j][1])<30){idx=j+1;store.set('ruta_idx_'+route,idx);paint();if(navigator.vibrate)navigator.vibrate(200);break}}
  showDist(lastFix);document.getElementById('msg').textContent='';}
 let started=false;function init(){if(started)return;started=true;
- map.addSource('app',{type:'geojson',data:line([])});map.addSource('loop',{type:'geojson',data:line([])});map.addSource('trail',{type:'geojson',data:trail});
+ map.addSource('app',{type:'geojson',data:line([])});map.addSource('loop',{type:'geojson',data:line([])});map.addSource('trail',{type:'geojson',data:trail});map.addSource('go',{type:'geojson',data:line([])});
+ map.addLayer({id:'go',type:'line',source:'go',paint:{'line-color':'#ffb300','line-width':3,'line-dasharray':[1,1.5]}});
  map.addLayer({id:'loop-c',type:'line',source:'loop',paint:{'line-color':'#000','line-width':10,'line-opacity':.5},layout:{'line-join':'round','line-cap':'round'}});
  map.addLayer({id:'loop',type:'line',source:'loop',paint:{'line-color':'#00e6ff','line-width':6},layout:{'line-join':'round','line-cap':'round'}});
  map.addLayer({id:'app',type:'line',source:'app',paint:{'line-color':'#ffd600','line-width':5,'line-dasharray':[2,1.5]}});
- map.addLayer({id:'trail',type:'line',source:'trail',paint:{'line-color':'#2fbf5a','line-width':4,'line-opacity':.85}});
+ map.addLayer({id:'trail',type:'line',source:'trail',paint:{'line-color':'#ff2d95','line-width':7,'line-opacity':.9},layout:{'line-join':'round','line-cap':'round'}});
  draw();
  const b=new maplibregl.LngLatBounds();R[route].loop.concat(R[route].approach).forEach(p=>b.extend(p));
  map.fitBounds(b,{padding:{top:80,bottom:200,left:30,right:30},bearing:BEARING,duration:0});
@@ -105,7 +109,7 @@ map.on('dragstart',()=>{if(follow){follow=false;fb.classList.remove('on');fb.tex
 let northUp=false;const nb=document.getElementById('north');
 nb.onclick=()=>{northUp=!northUp;map.easeTo({bearing:northUp?0:BEARING});nb.textContent=northUp?'Vista Google':'Norte arriba'};
 document.getElementById('skip').onclick=()=>{if(idx<R[route].cps.length){idx++;store.set('ruta_idx_'+route,idx);paint()}};
-document.getElementById('reset').onclick=()=>{idx=0;store.set('ruta_idx_'+route,0);trail.geometry.coordinates=[];map.getSource('trail').setData(trail);paint()};
+document.getElementById('reset').onclick=()=>{idx=0;store.set('ruta_idx_'+route,0);trail.geometry.coordinates=[];store.set('ruta_trail','[]');map.getSource('trail').setData(trail);paint()};
 document.getElementById('tCol').onclick=()=>{route='colonias';store.set('ruta_sel',route);draw()};
 document.getElementById('tCon').onclick=()=>{route='contorno';store.set('ruta_sel',route);draw()};
 let wl=null;async function lock(){try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
