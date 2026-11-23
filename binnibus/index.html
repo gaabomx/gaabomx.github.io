@@ -120,6 +120,14 @@ body.hasdest .clear2{display:block}
 @keyframes core{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 .sonar .hd{position:absolute;left:50%;top:50%;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:14px solid rgba(37,99,235,.85);transform-origin:50% 100%;margin:-26px 0 0 -7px;opacity:0;transition:opacity .3s}
 .sonar.dir .hd{opacity:1}
+.flow{animation:flow 1.1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-19}}
+.walkline{animation:wl 1.6s linear infinite}
+@keyframes wl{to{stroke-dashoffset:-20}}
+.popin{animation:popin .35s cubic-bezier(.3,1.6,.5,1) both;transform-box:fill-box;transform-origin:center}
+@keyframes popin{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.opt[data-i]{transition:border-color .2s,box-shadow .2s,transform .15s}
+.opt[data-i].on{box-shadow:0 0 0 3px rgba(29,26,22,.12)}
 </style>
 </head>
 <body>
@@ -354,7 +362,7 @@ function renderPlans(){
     <ul class="steps">
       <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
       ${p.legs.map((l,j)=>`<li class="b">Toma la <b>${l.c}</b> con letrero <b>${l.dk}</b> · ${l.a.k-l.b.k} paradas (${fmt(l.rm)}, ~${Math.round(l.rm/BUS)} min)</li>
-        <li class="${j<p.legs.length-1?"t":"o"}">Bájate en <b>${l.a.s.name}</b>${j<p.legs.length-1?` y camina ${fmt(p.tw*1.25)} a <b>${p.legs[j+1].b.s.name}</b>`:""}</li>`).join("")}
+        <li class="${j<p.legs.length-1?"t":"o"}">Bájate en <b>${l.a.s.name}</b>${j<p.legs.length-1?(p.tw<25?` y ahí mismo cambia de camión`:` y camina ${fmt(p.tw*1.25)} a <b>${p.legs[j+1].b.s.name}</b>`):""}</li>`).join("")}
       <li class="w">Camina <span data-w="${i}-1">${fmt(p.walk[1]*1.25)}</span> a tu destino</li>
     </ul>${i===0?`<button class="go" data-go="${i}">Iniciar viaje · te aviso dónde bajar</button>`:""}</div>`;
   });
@@ -365,7 +373,7 @@ function renderPlans(){
   bindGo();
   walkRoute(origin,dest).then(w=>{const e=$("wd");if(w&&e)e.textContent=fmt(w.m)+" · "+Math.round(w.m/WALK)+" min"});
   plans.forEach((p,i)=>{if(i===0)return;walkRoute(origin,p.legs[0].b.s.ll).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-0"]`).forEach(e=>e.textContent=fmt(w.m))});walkRoute(p.legs[p.legs.length-1].a.s.ll,dest).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-1"]`).forEach(e=>e.textContent=fmt(w.m))})});
-  if(plans[0])showPlan(plans[0]);else{tripLayer.clearLayers();drawEnds();walkLine(origin,dest);map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
+  if(plans[0])showPlan(plans[0]);else{drawId++;tripLayer.clearLayers();showNetwork();drawEnds();walkLine(origin,dest);map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
 }
 function bindGo(){document.querySelectorAll(".go[data-go]").forEach(b=>b.onclick=e=>{e.stopPropagation();trip?cancelTrip():startTrip(plans[b.dataset.go])})}
 function drawEnds(){
@@ -378,28 +386,48 @@ async function walkRoute(a,b){
     const j=await r.json();if(!j.routes||!j.routes[0])return null;
     return WC[k]={m:j.routes[0].distance,line:j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]])};}catch(e){return null}
 }
-function walkLine(a,b,tag){
-  const pl=L.polyline([a,b],{color:"#fff",weight:4,dashArray:"2 8"}).addTo(tripLayer);
+const SVGR=L.svg({padding:.6});let netHidden=false,drawId=0;
+function hideNetwork(){if(netHidden)return;netHidden=true;Object.values(layers).forEach(l=>map.removeLayer(l));if(map.hasLayer(stopLayer))map.removeLayer(stopLayer)}
+function showNetwork(){if(!netHidden)return;netHidden=false;Object.entries(layers).forEach(([c,l])=>{const b=document.querySelector(`#chips button[data-c="${c}"]`);if(!b||!b.classList.contains("off"))l.addTo(map)});stopsByZoom()}
+function drawIn(pl,ms,delay){ // anima la línea como si se fuera dibujando
+  const el=pl.getElement&&pl.getElement();if(!el||!el.getTotalLength)return;
+  const len=el.getTotalLength();el.style.transition="none";el.style.strokeDasharray=len+" "+len;el.style.strokeDashoffset=len;
+  el.getBoundingClientRect();
+  setTimeout(()=>{el.style.transition=`stroke-dashoffset ${ms}ms cubic-bezier(.45,0,.2,1)`;el.style.strokeDashoffset=0;
+    setTimeout(()=>{el.style.transition="";el.style.strokeDasharray="";el.style.strokeDashoffset=""},ms+60)},delay||0);
+}
+function walkLine(a,b,tag,delay){
+  const pl=L.polyline([a,b],{color:"#fff",weight:4,dashArray:"2 8",renderer:SVGR,className:"walkline"}).addTo(tripLayer);
   walkRoute(a,b).then(w=>{if(!w)return;pl.setLatLngs(w.line);if(tag){document.querySelectorAll(`[data-w="${tag}"]`).forEach(e=>e.textContent=fmt(w.m))}});
 }
 function showPlan(p){
-  tripLayer.clearLayers();drawEnds();
-  const pts=[origin];
+  const my=++drawId;
+  tripLayer.clearLayers();hideNetwork();drawEnds();
+  const pts=[origin];let delay=350;
   p.legs.forEach((l,j)=>{
-    const from=l.b.s,to=l.a.s;
+    const from=l.b.s,to=l.a.s,col=COL[l.c]||"#0f766e";
     if(j===0) walkLine(origin,from.ll,plans.indexOf(p)+"-0");
     const seg=l.dir.line.slice(Math.min(from.i,to.i),Math.max(from.i,to.i)+1);
-    L.polyline(seg,{color:"#000",weight:10,opacity:.35}).addTo(tripLayer);
-    L.polyline(seg,{color:COL[l.c]||"#0f766e",weight:7}).addTo(tripLayer);
-    L.circleMarker(from.ll,{radius:8,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1}).addTo(tripLayer).bindTooltip("Sube: "+from.name+" ("+l.c+")",{permanent:true,direction:"right",className:"lbl"});
-    L.circleMarker(to.ll,{radius:8,color:"#fff",weight:3,fillColor:"#dc2626",fillOpacity:1}).addTo(tripLayer).bindTooltip("Bájate: "+to.name,{permanent:true,direction:"right",className:"lbl"});
+    const sh=L.polyline(seg,{color:"#000",weight:12,opacity:.35,renderer:SVGR,interactive:false}).addTo(tripLayer);
+    const ln=L.polyline(seg,{color:col,weight:7,renderer:SVGR,lineCap:"round",lineJoin:"round",interactive:false}).addTo(tripLayer);
+    const dur=Math.min(1800,600+seg.length*4);
+    drawIn(sh,dur,delay);drawIn(ln,dur,delay);
+    // flechas que fluyen en el sentido del camión
+    setTimeout(()=>{if(my!==drawId)return;L.polyline(seg,{color:"#fff",weight:3,opacity:.9,dashArray:"1 18",lineCap:"round",renderer:SVGR,className:"flow",interactive:false}).addTo(tripLayer)},delay+dur);
+    // paradas intermedias de este tramo
+    l.dir.stops.forEach(st=>{if(!st.ll||st.bad||st.i==null||st.i<=from.i||st.i>=to.i)return;
+      const k=(st.i-from.i)/Math.max(1,to.i-from.i);
+      setTimeout(()=>{if(my!==drawId)return;L.circleMarker(st.ll,{radius:4,color:"#fff",weight:2,fillColor:col,fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(tripLayer).bindPopup(`<b>${esc(st.name)}</b><br>${l.c} → ${esc(l.dk)}`)},delay+dur*k)});
+    L.circleMarker(from.ll,{radius:9,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(tripLayer).bindTooltip("Sube: "+from.name+" ("+l.c+")",{permanent:true,direction:"right",className:"lbl"});
+    setTimeout(()=>{if(my!==drawId)return;L.circleMarker(to.ll,{radius:9,color:"#fff",weight:3,fillColor:"#dc2626",fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(tripLayer).bindTooltip("Bájate: "+to.name,{permanent:true,direction:"right",className:"lbl"})},delay+dur);
     if(j<p.legs.length-1) walkLine(to.ll,p.legs[j+1].b.s.ll);
+    delay+=dur+150;
     pts.push(from.ll,to.ll);
   });
   const last=p.legs[p.legs.length-1].a.s.ll;
   walkLine(last,dest,plans.indexOf(p)+"-1");
   pts.push(dest);
-  map.fitBounds(L.latLngBounds(pts),{padding:[40,40],paddingBottomRight:[0,window.innerHeight*.5]});
+  map.flyToBounds(L.latLngBounds(pts),{padding:[40,40],paddingBottomRight:[0,window.innerHeight*.5],duration:.7});
 }
 
 /* ---------- 4. Ubicación en vivo y aviso de bajada ---------- */
@@ -751,7 +779,7 @@ setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("
 /* ---------- Limpiar todo ---------- */
 function clearAll(){
   if(trip)cancelTrip();
-  dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();
+  dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
   $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p>`;
   if(me)map.setView(me.getLatLng(),15);setTop(true);setSheet(false);
@@ -805,8 +833,8 @@ try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");s
   const pb=$("pb");if(pb)pb.style.width="100%";
   stopsByZoom();renderAll();ready=true;const s=$("st");if(s)s.textContent=`Listo: ${Object.keys(GEO).length} rutas en el mapa.`;
   
-  Object.keys(GEO).sort().forEach(c=>{const b=document.createElement("button");b.textContent=c;b.style.background=COL[c];b.onclick=()=>{if(map.hasLayer(layers[c])){map.removeLayer(layers[c]);b.classList.add("off")}else{layers[c].addTo(map);b.classList.remove("off")}};$("chips").appendChild(b)});
-  $("allon").onclick=()=>{Object.values(layers).forEach(l=>l.addTo(map));document.querySelectorAll("#chips button").forEach(b=>b.classList.remove("off"))};
+  Object.keys(GEO).sort().forEach(c=>{const b=document.createElement("button");b.textContent=c;b.dataset.c=c;b.style.background=COL[c];b.onclick=()=>{if(b.classList.contains("off")){b.classList.remove("off");if(!netHidden)layers[c].addTo(map)}else{b.classList.add("off");map.removeLayer(layers[c])}};$("chips").appendChild(b)});
+  $("allon").onclick=()=>{if(!netHidden)Object.values(layers).forEach(l=>l.addTo(map));document.querySelectorAll("#chips button").forEach(b=>b.classList.remove("off"))};
   $("alloff").onclick=()=>{Object.values(layers).forEach(l=>map.removeLayer(l));document.querySelectorAll("#chips button").forEach(b=>b.classList.add("off"))};
   const U=new URLSearchParams(location.search);
   if(U.get("desde")){const c=U.get("desde").split(",").map(Number);originIsMe=false;setOrigin(c,"punto del enlace")}
