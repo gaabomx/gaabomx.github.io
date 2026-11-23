@@ -408,6 +408,19 @@ const UA=navigator.userAgent,DISP=/iPhone/.test(UA)?"iphone":/iPad/.test(UA)?"ip
 let lastLogged="";
 function logSearch(){if(!destName||destName===lastLogged||destName==="Punto en el mapa")return;lastLogged=destName;sb("bb_busqueda",{p_destino:destName,p_con_ruta:plans.length>0})}
 
+
+function debugReport(){
+  const out=[];
+  for(const c of Object.keys(GEO).sort()) GEO[c].forEach(d=>{
+    let gap=0,gi=-1;for(let i=1;i<d.line.length;i++){const g=D(d.line[i-1],d.line[i]);if(g>gap){gap=g;gi=i}}
+    let off=0,offN="",back=0,lastI=-1,noll=0;
+    d.stops.forEach(s=>{if(!s.ll){noll++;return}let bi=0,bd=1e9;d.line.forEach((p,i)=>{const x=D(s.ll,p);if(x<bd){bd=x;bi=i}});if(bd>off){off=bd;offN=s.name}if(bi<lastI)back++;lastI=Math.max(lastI,bi)});
+    const len=d.line.reduce((a,p,i)=>i?a+D(d.line[i-1],p):0,0);
+    const st=d.stops.filter(s=>s.ll);const sd=st.length>1?D(st[0].ll,d.line[0])+D(st[st.length-1].ll,d.line[d.line.length-1]):0;
+    out.push(`${c}→${d.to}|stops ${d.stops.length} sin_coord ${noll}|len ${(len/1000).toFixed(1)}km|maxgap ${Math.round(gap)}m@${gi}/${d.line.length}|maxoff ${Math.round(off)}m ${offN}|retro ${back}|ends ${Math.round(sd)}m`);
+  });
+  $("panel").innerHTML="<pre style='white-space:pre-wrap;font-size:11px'>"+out.join("\n")+"</pre>";
+}
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
 $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Escribe un lugar, toca uno de los botones o toca el mapa. Te digo qué BinniBus tomar, dónde subir y dónde bajarte.</p><div class="muted" id="st">Trazando rutas…</div><div class="prog"><i id="pb"></i></div>`;
@@ -432,6 +445,7 @@ $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Escribe un lugar,
   if(U.get("desde")){const c=U.get("desde").split(",").map(Number);originIsMe=false;setOrigin(c,"punto del enlace")}
   if(U.get("a")==="estadio")setDest([17.0700,-96.7130],"Estadio Yu'va");
   if(pending&&dest)plan();
+  if(U.get("debug"))debugReport();
 })();
 function renderAll(){$("all").innerHTML=R.map(r=>`<div class="rl"><b>${r[0]}</b> ${r[1]} · ${r[3]}${GEO[r[0]]?" · <b style='color:#0f766e'>en el mapa</b>":" · <i>sin trazo</i>"}<br><a href="${IMG+r[4]}">Mapa oficial</a></div>`).join("")}
 </script>
