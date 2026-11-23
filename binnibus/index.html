@@ -255,7 +255,7 @@ function renderPlans(){
       <li class="w">Camina ${fmt(p.walk[1])} a tu destino</li>
     </ul>${i===0?`<button class="go" data-go="${i}">Iniciar viaje · te aviso dónde bajar</button>`:""}</div>`;
   });
-  P.innerHTML=h;setSheet(false);
+  P.innerHTML=h;setSheet(false);logSearch();
   P.querySelectorAll(".opt").forEach(o=>o.onclick=e=>{if(e.target.dataset.go)return;P.querySelectorAll(".opt").forEach(x=>x.classList.remove("on"));o.classList.add("on");
     const old=P.querySelector(".go");if(old)old.remove();o.insertAdjacentHTML("beforeend",`<button class="go" data-go="${o.dataset.i}">Iniciar viaje · te aviso dónde bajar</button>`);bindGo();showPlan(plans[o.dataset.i])});
   bindGo();
@@ -389,6 +389,24 @@ topEl.addEventListener("touchstart",e=>{if(e.target.closest("input,button,.sugg"
 topEl.addEventListener("touchmove",e=>{if(tY===null)return;const dy=e.touches[0].clientY-tY;if(dy<0){e.preventDefault();topEl.style.transition="none";topEl.style.transform=`translateY(${dy}px)`}},{passive:false});
 topEl.addEventListener("touchend",e=>{if(tY===null)return;const dy=(e.changedTouches[0]||{}).clientY-tY;topEl.style.transition="";topEl.style.transform="";tY=null;if(dy<-30)setTop(false)});
 $("quick").addEventListener("touchmove",e=>{tY=null;topEl.style.transform=""},{passive:true});
+
+
+/* ---------- Estadísticas (visitas y búsquedas) ---------- */
+const SBR="https://gwissessaumhyyoinhjz.supabase.co/rest/v1/rpc/",SBK="sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x";
+function sb(fn,body){try{fetch(SBR+fn,{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(body)}).catch(()=>{})}catch(e){}}
+const SES=(()=>{let s=null;try{s=localStorage.getItem("bb-ses")}catch(e){}if(!s){s=(crypto.randomUUID?crypto.randomUUID():"10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(c^Math.random()*16>>c/4).toString(16)));try{localStorage.setItem("bb-ses",s)}catch(e){}}return s})();
+const UA=navigator.userAgent,DISP=/iPhone/.test(UA)?"iphone":/iPad/.test(UA)?"ipad":/Android/.test(UA)?(/Mobi/.test(UA)?"android":"tablet"):/Mac/.test(UA)?"mac":/Windows/.test(UA)?"windows":/Linux/.test(UA)?"linux":"otro";
+(()=>{let ya=false;try{ya=!!sessionStorage.getItem("bb-v");sessionStorage.setItem("bb-v","1")}catch(e){}
+  let org=null;try{const r=document.referrer&&new URL(document.referrer).hostname;if(r&&r!==location.hostname)org=r.replace(/^www\./,"").replace(/^(l\.|lm\.)/,"")}catch(e){}
+  const u=new URLSearchParams(location.search).get("utm_source");if(u)org=u;
+  if(!ya&&!/build\.html/.test(location.pathname))sb("bb_visita",{p_sesion:SES,p_dispositivo:DISP,p_origen:org});
+  let t=null;const on=()=>{if(t)return;sb("bb_latido",{p_sesion:SES,p_activo:true,p_dispositivo:DISP});t=setInterval(()=>sb("bb_latido",{p_sesion:SES,p_activo:true,p_dispositivo:DISP}),20000)};
+  const off=()=>{if(!t)return;clearInterval(t);t=null;sb("bb_latido",{p_sesion:SES,p_activo:false})};
+  document.addEventListener("visibilitychange",()=>document.visibilityState==="visible"?on():off());
+  addEventListener("pagehide",off);if(document.visibilityState==="visible")on();
+})();
+let lastLogged="";
+function logSearch(){if(!destName||destName===lastLogged||destName==="Punto en el mapa")return;lastLogged=destName;sb("bb_busqueda",{p_destino:destName,p_con_ruta:plans.length>0})}
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Panel BinniBus</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f2ea;--card:#fffdf8;--ink:#1d1a16;--muted:#6b6358;--line:#e4dccf;--ok:#0f766e;--live:#16a34a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:18px 14px 60px}
+h1{font:900 26px Archivo;margin:0}
+h2{font:700 17px Archivo;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.estado{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.punto{width:8px;height:8px;border-radius:50%;background:#bbb}
+.estado.on .punto{background:var(--live);animation:p 1.6s infinite}
+@keyframes p{50%{opacity:.3}}
+.vivo{display:flex;align-items:center;gap:14px}
+.vivo b{font:900 52px/1 Archivo;color:var(--live)}
+.tot{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tot div{background:#f3ede2;border-radius:12px;padding:10px}
+.tot b{display:block;font:900 28px Archivo}
+.tot span{font-size:12px;color:var(--muted)}
+.bars{display:flex;align-items:flex-end;gap:4px;height:120px;margin-top:6px}
+.bars div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:10px;color:var(--muted)}
+.bars i{display:block;width:100%;background:var(--ok);border-radius:4px 4px 0 0;min-height:2px}
+.bars em{font-style:normal;font-weight:700;color:var(--ink);font-size:10px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.row:last-child{border:0}
+.row .bar{flex:1;height:6px;background:#efe8dc;border-radius:3px;align-self:center;max-width:120px}
+.row .bar i{display:block;height:100%;background:var(--ok);border-radius:3px}
+.muted{color:var(--muted);font-size:13px}
+form{max-width:340px;margin:18vh auto 0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+input{width:100%;font:600 16px Inter;padding:12px;border:1px solid var(--line);border-radius:10px;margin:10px 0}
+button{font:700 15px Inter;border:0;border-radius:10px;padding:12px;background:var(--ink);color:#fff;width:100%}
+.link{background:none;color:var(--muted);width:auto;padding:0;font-size:12px;text-decoration:underline}
+.err{color:#b91c1c;font-size:13px;min-height:18px}
+.tag{font-size:11px;border-radius:6px;padding:1px 6px;background:#fde2e2;color:#b91c1c;margin-left:6px}
+</style>
+</head>
+<body>
+<form id="login">
+  <h1>Panel BinniBus</h1>
+  <p class="muted">Usa la misma clave de tu panel.</p>
+  <input id="clave" type="password" autocomplete="current-password" placeholder="Clave" required>
+  <button>Entrar</button>
+  <p class="err" id="err"></p>
+</form>
+
+<main class="wrap" id="app" hidden>
+  <div class="head">
+    <h1>Panel BinniBus</h1>
+    <div style="text-align:right"><div class="estado" id="estado"><span class="punto"></span><span id="estadoTxt">conectando…</span></div><button class="link" id="salir">Cerrar sesión</button></div>
+  </div>
+
+  <div class="card">
+    <div class="vivo"><b id="ahora">0</b><div><h2 style="margin:0">Viéndola ahorita</h2><div class="muted" id="vivosTxt"></div></div></div>
+  </div>
+
+  <div class="card tot">
+    <div><b id="hoy">0</b><span>visitas hoy</span></div>
+    <div><b id="phoy">0</b><span>personas distintas hoy</span></div>
+    <div><b id="semana">0</b><span>visitas en 7 días</span></div>
+    <div><b id="total">0</b><span>visitas en total · <span id="ptotal">0</span> personas</span></div>
+  </div>
+
+  <div class="card"><h2>Visitas por día</h2><div class="bars" id="dias"></div></div>
+  <div class="card"><h2>¿A qué hora entran?</h2><p class="muted" style="margin:-6px 0 0">Últimos 7 días</p><div class="bars" id="horas" style="height:90px"></div></div>
+
+  <div class="card"><h2>¿A dónde quieren ir?</h2><p class="muted" style="margin:-6px 0 6px" id="bTxt"></p><div id="destinos"></div></div>
+  <div class="card"><h2>Buscados sin BinniBus cerca</h2><p class="muted" style="margin:-6px 0 6px">Lugares donde la gente quiere ir y no hay ruta: ideas para propuestas.</p><div id="sinruta"></div></div>
+
+  <div class="card"><h2>¿De dónde llegan?</h2><div id="origenes"></div></div>
+  <div class="card"><h2>Dispositivos</h2><div id="disp"></div></div>
+  <p class="muted" style="text-align:center;margin-top:16px">Se actualiza solo cada 15 segundos. Una persona = un celular o compu.</p>
+</main>
+
+<script>
+const SB="https://gwissessaumhyyoinhjz.supabase.co/rest/v1/rpc/",KEY="sb_publishable_WllAMZGS7m9_jx-SGCyr_Q_H5riVU2x";
+const $=id=>document.getElementById(id);
+let clave="",timer=null;
+const DISP={iphone:"iPhone",android:"Android",ipad:"iPad",tablet:"Tablet",mac:"Mac",windows:"Windows",linux:"Linux",otro:"Otro"};
+const ORG={"instagram.com":"Instagram","facebook.com":"Facebook","t.co":"X (Twitter)","google.com":"Google","whatsapp":"WhatsApp","directo":"Directo / WhatsApp"};
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function rpc(fn,args){const r=await fetch(SB+fn,{method:"POST",headers:{apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify(args)});if(!r.ok){const e=new Error(r.status);e.status=r.status;throw e}return r.json()}
+function bars(el,data,lab){const m=Math.max(1,...data.map(d=>d.n));el.innerHTML=data.map(d=>`<div><em>${d.n||""}</em><i style="height:${d.n/m*80}%"></i>${lab(d)}</div>`).join("")}
+function list(el,data,name,extra){if(!data.length){el.innerHTML='<p class="muted">Todavía no hay datos.</p>';return}const m=Math.max(...data.map(d=>d.n));el.innerHTML=data.map(d=>`<div class="row"><span>${esc(name(d))}${extra?extra(d):""}</span><span class="bar"><i style="width:${d.n/m*100}%"></i></span><b>${d.n}</b></div>`).join("")}
+function hace(t){const s=(Date.now()-new Date(t))/1000;return s<60?"hace un momento":s<3600?`hace ${Math.round(s/60)} min`:`hace ${Math.round(s/3600)} h`}
+function pintar(d){
+  $("ahora").textContent=d.ahora;
+  $("vivosTxt").textContent=d.vivos.length?d.vivos.map(v=>`${DISP[v.dispositivo]||"Otro"} (${hace(v.desde)})`).join(" · "):"Nadie en este momento";
+  $("hoy").textContent=d.hoy;$("phoy").textContent=d.personas_hoy;$("semana").textContent=d.semana;$("total").textContent=d.total;$("ptotal").textContent=d.personas_total;
+  const dd=["D","L","M","M","J","V","S"];
+  bars($("dias"),d.dias,x=>{const f=new Date(x.dia+"T12:00");return dd[f.getDay()]+"<br>"+f.getDate()});
+  bars($("horas"),d.horas,x=>x.h%3===0?x.h:"");
+  $("bTxt").textContent=`${d.busquedas_total} búsquedas en los últimos 30 días`;
+  list($("destinos"),d.destinos,x=>x.nombre,x=>x.con_ruta===false?'<span class="tag">sin ruta</span>':"");
+  list($("sinruta"),d.sin_ruta,x=>x.nombre);
+  list($("origenes"),d.origenes,x=>ORG[x.nombre]||x.nombre);
+  list($("disp"),d.dispositivos,x=>DISP[x.nombre]||x.nombre);
+}
+async function cargar(){
+  try{pintar(await rpc("panel_binnibus",{p_clave:clave}));$("estado").className="estado on";$("estadoTxt").textContent="en vivo"}
+  catch(e){if(e.status===400||e.status===401||e.status===403){salir("Clave incorrecta.");return}$("estado").className="estado";$("estadoTxt").textContent="sin conexión, reintentando…"}
+}
+async function abrir(k){clave=k;try{await rpc("panel_binnibus",{p_clave:k})}catch(e){salir(e.status?"Clave incorrecta.":"No hay conexión.");return}
+  try{localStorage.setItem("panel_clave",k)}catch(e){}
+  $("login").hidden=true;$("app").hidden=false;cargar();clearInterval(timer);timer=setInterval(()=>{if(document.visibilityState==="visible")cargar()},15000)}
+function salir(msg){clearInterval(timer);clave="";try{localStorage.removeItem("panel_clave")}catch(e){}$("app").hidden=true;$("login").hidden=false;$("err").textContent=msg||""}
+$("login").onsubmit=e=>{e.preventDefault();$("err").textContent="Entrando…";abrir($("clave").value)};
+$("salir").onclick=()=>salir();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&clave)cargar()});
+try{const k=localStorage.getItem("panel_clave");if(k)abrir(k)}catch(e){}
+</script>
+</body>
+</html>
