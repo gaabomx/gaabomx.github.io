@@ -216,6 +216,7 @@ const WALK=75,BUS=280,WAIT=8; // m/min caminando, m/min camión (~17 km/h), min 
 const wmin=m=>m*1.25/WALK; // la calle real es ~25% más larga que la línea recta
 function rideM(dir,b,a){return Math.max(0,dir.cum[a.s.i]-dir.cum[b.s.i])}
 function plan(W0=1000,W1=900){
+  if(trip&&W0===1000)cancelTrip();
   plans=[];
   const codes=Object.keys(GEO);
   for(const c of codes) for(const [dk,dir] of legsFor(c)){
@@ -282,7 +283,7 @@ function renderPlans(){
   plans.forEach((p,i)=>{if(i===0)return;walkRoute(origin,p.legs[0].b.s.ll).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-0"]`).forEach(e=>e.textContent=fmt(w.m))});walkRoute(p.legs[p.legs.length-1].a.s.ll,dest).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-1"]`).forEach(e=>e.textContent=fmt(w.m))})});
   if(plans[0])showPlan(plans[0]);else{tripLayer.clearLayers();drawEnds();walkLine(origin,dest);map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
 }
-function bindGo(){document.querySelectorAll(".go").forEach(b=>b.onclick=()=>startTrip(plans[b.dataset.go]))}
+function bindGo(){document.querySelectorAll(".go").forEach(b=>b.onclick=e=>{e.stopPropagation();trip?cancelTrip():startTrip(plans[b.dataset.go])})}
 function drawEnds(){
   L.circleMarker(dest,{radius:9,color:"#fff",weight:3,fillColor:"#111",fillOpacity:1}).addTo(tripLayer).bindTooltip("🏁 "+destName,{permanent:true,direction:"top",className:"lbl"});
 }
@@ -331,12 +332,36 @@ navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
 },()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
 let originIsMe=true;
 $("me").onclick=()=>{if(me)map.setView(me.getLatLng(),16)};
-function startTrip(p){trip=p;warned={};const om=$("tripmsg");if(om)om.remove();$("panel").insertAdjacentHTML("afterbegin",`<p class="muted" id="tripmsg">🟢 Viaje activo: te aviso cuando estés cerca de tu parada. Deja esta página abierta.</p>`);if(me)map.setView(me.getLatLng(),16);setSheet(true)}
+function tripBar(){
+  let bar=$("tripbar");
+  if(!trip){if(bar)bar.remove();return}
+  const p=trip,last=p.legs[p.legs.length-1];
+  const html=`<div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><b>🟢 Viaje en curso</b><div class="muted">${p.legs.map(l=>l.c).join(" → ")} · Bájate en <b>${last.a.s.name}</b></div></div><button id="cancelTrip" style="border:0;border-radius:10px;padding:10px 12px;background:#b91c1c;color:#fff;font:700 13px Inter">Cancelar viaje</button></div>`;
+  if(!bar){bar=document.createElement("div");bar.id="tripbar";bar.className="opt";bar.style.cssText="border:2px solid #16a34a;cursor:default;margin-top:0";$("panel").prepend(bar)}
+  bar.innerHTML=html;$("cancelTrip").onclick=cancelTrip;
+}
+function startTrip(p){
+  trip=p;warned={};
+  tripBar();
+  document.querySelectorAll(".go").forEach(b=>{b.textContent="✓ Viaje iniciado · Cancelar";b.style.background="#b91c1c";b.onclick=e=>{e.stopPropagation();cancelTrip()}});
+  if(me)map.setView(me.getLatLng(),16);else $("from").textContent="📍 Activa tu ubicación para que te avise dónde bajar";
+  setSheet(true);
+  $("peek").textContent=`🟢 Viaje en curso · Bájate en ${p.legs[p.legs.length-1].a.s.name} ⌃`;
+}
+function cancelTrip(){
+  trip=null;warned={};$("alert").style.display="none";tripBar();
+  document.querySelectorAll(".go").forEach(b=>{b.textContent="Iniciar viaje · te aviso dónde bajar";b.style.background="";bindGo()});
+  setSheet(false);
+}
+function arrived(){
+  const a=$("alert");a.innerHTML=`🏁 ¡Llegaste!<br><small style="font:600 14px Inter">Viaje terminado</small>`;a.style.display="block";setTimeout(()=>a.style.display="none",6000);cancelTrip();
+}
 function checkTrip(c){
   trip.legs.forEach((l,j)=>{const s=l.a.s;const d=D(c,s.ll);
     if(d<450&&!warned[j]){warned[j]=1;const a=$("alert");a.innerHTML=`🔔 ¡Prepárate!<br>Bájate en <u>${s.name}</u><br><small style="font:600 14px Inter">${j<trip.legs.length-1?"ahí cambias a la "+trip.legs[j+1].c:"ya casi llegas"}</small>`;a.style.display="block";
       try{navigator.vibrate&&navigator.vibrate([400,150,400,150,600])}catch(e){}
       setTimeout(()=>a.style.display="none",9000)}});
+  if(trip&&D(c,dest)<60)arrived();
 }
 $("alert").onclick=()=>$("alert").style.display="none";
 
@@ -387,7 +412,7 @@ function setSheet(min){
   sheet.classList.toggle("min",min);sheet.style.transform="";
   fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";
   if(min)sheet.scrollTop=0;
-  $("peek").textContent=plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
+  $("peek").textContent=trip?`🟢 Viaje en curso · Bájate en ${trip.legs[trip.legs.length-1].a.s.name} ⌃`:plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
 }
 let dragY=null,dragDY=0,dragStart=0;
 function dStart(y){dragY=y;dragDY=0;dragStart=Date.now();sheet.style.transition="none"}
