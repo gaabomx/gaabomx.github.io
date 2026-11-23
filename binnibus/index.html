@@ -21,8 +21,13 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1
 .sugg div small{display:block;color:var(--muted);font-size:12px}
 .quick{display:flex;gap:6px;overflow-x:auto;margin-top:6px;scrollbar-width:none}
 .quick button{flex:none;border:0;background:var(--card);border-radius:999px;padding:7px 12px;font:600 13px Inter;box-shadow:0 1px 6px rgba(0,0,0,.2)}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--card);border-radius:18px 18px 0 0;box-shadow:0 -4px 18px rgba(0,0,0,.25);max-height:58vh;overflow-y:auto;padding:8px 14px calc(14px + env(safe-area-inset-bottom))}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000;transition:transform .28s cubic-bezier(.2,.8,.2,1);will-change:transform;background:var(--card);border-radius:18px 18px 0 0;box-shadow:0 -4px 18px rgba(0,0,0,.25);max-height:58vh;overflow-y:auto;padding:8px 14px calc(14px + env(safe-area-inset-bottom))}
 .grab{width:42px;height:5px;border-radius:3px;background:#d6cdbf;margin:2px auto 8px}
+.handle{position:sticky;top:-8px;margin:-8px -14px 0;padding:8px 14px 4px;background:var(--card);z-index:2;touch-action:none;cursor:grab}
+.peek{display:none;font:800 15px Archivo;text-align:center;padding-bottom:6px}
+.sheet.min{transform:translateY(calc(100% - 54px - env(safe-area-inset-bottom)));overflow:hidden}
+.sheet.min .peek{display:block}
+.fab{transition:bottom .28s}
 .sheet h2{font:900 19px Archivo;margin:2px 0 4px}
 .muted{color:var(--muted);font-size:13px}
 .opt{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:8px 0;cursor:pointer;background:#fff}
@@ -66,7 +71,7 @@ summary{font-weight:700;cursor:pointer}
 <div class="alert" id="alert"></div>
 
 <div class="sheet" id="sheet">
-  <div class="grab"></div>
+  <div class="handle" id="handle"><div class="grab"></div><div class="peek" id="peek">Desliza hacia arriba para ver opciones ⌃</div></div>
   <div id="panel"></div>
   <details>
     <summary>Rutas en el mapa</summary>
@@ -199,7 +204,7 @@ function renderPlans(){
       <li class="w">Camina ${fmt(p.walk[1])} a tu destino</li>
     </ul>${i===0?`<button class="go" data-go="${i}">Iniciar viaje · te aviso dónde bajar</button>`:""}</div>`;
   });
-  P.innerHTML=h;
+  P.innerHTML=h;setSheet(false);
   P.querySelectorAll(".opt").forEach(o=>o.onclick=e=>{if(e.target.dataset.go)return;P.querySelectorAll(".opt").forEach(x=>x.classList.remove("on"));o.classList.add("on");
     const old=P.querySelector(".go");if(old)old.remove();o.insertAdjacentHTML("beforeend",`<button class="go" data-go="${o.dataset.i}">Iniciar viaje · te aviso dónde bajar</button>`);bindGo();showPlan(plans[o.dataset.i])});
   bindGo();
@@ -243,7 +248,7 @@ navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
 },()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
 let originIsMe=true;
 $("me").onclick=()=>{if(me)map.setView(me.getLatLng(),16)};
-function startTrip(p){trip=p;warned={};$("panel").insertAdjacentHTML("afterbegin",`<p class="muted" id="tripmsg">🟢 Viaje activo: te aviso cuando estés cerca de tu parada. Deja esta página abierta.</p>`);if(me)map.setView(me.getLatLng(),16)}
+function startTrip(p){trip=p;warned={};const om=$("tripmsg");if(om)om.remove();$("panel").insertAdjacentHTML("afterbegin",`<p class="muted" id="tripmsg">🟢 Viaje activo: te aviso cuando estés cerca de tu parada. Deja esta página abierta.</p>`);if(me)map.setView(me.getLatLng(),16);setSheet(true)}
 function checkTrip(c){
   trip.legs.forEach((l,j)=>{const s=l.a.s;const d=D(c,s.ll);
     if(d<450&&!warned[j]){warned[j]=1;const a=$("alert");a.innerHTML=`🔔 ¡Prepárate!<br>Bájate en <u>${s.name}</u><br><small style="font:600 14px Inter">${j<trip.legs.length-1?"ahí cambias a la "+trip.legs[j+1].c:"ya casi llegas"}</small>`;a.style.display="block";
@@ -273,6 +278,38 @@ map.on("click",e=>{const c=[e.latlng.lat,e.latlng.lng];
   L.popup().setLatLng(c).setContent(`<button id="pd" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#111;color:#fff">🏁 Ir aquí</button><br><button id="po" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#16a34a;color:#fff">📍 Salir de aquí</button>`).openOn(map);
   setTimeout(()=>{$("pd").onclick=()=>{map.closePopup();setDest(c,"Punto en el mapa")};$("po").onclick=()=>{map.closePopup();originIsMe=false;setOrigin(c,"punto elegido en el mapa")}},0);
 });
+
+/* ---------- Panel deslizable ---------- */
+const sheet=$("sheet"),fab=$("me");
+function setSheet(min){
+  sheet.classList.toggle("min",min);sheet.style.transform="";
+  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";
+  if(min)sheet.scrollTop=0;
+  $("peek").textContent=plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
+}
+let dragY=null,dragDY=0,dragStart=0;
+function dStart(y){dragY=y;dragDY=0;dragStart=Date.now();sheet.style.transition="none"}
+function dMove(y){if(dragY===null)return;dragDY=y-dragY;const min=sheet.classList.contains("min");
+  if(!min&&dragDY>0)sheet.style.transform=`translateY(${dragDY}px)`;
+  if(min&&dragDY<0)sheet.style.transform=`translateY(calc(100% - 54px + ${dragDY}px))`;}
+function dEnd(){if(dragY===null)return;sheet.style.transition="";const min=sheet.classList.contains("min");const quick=Date.now()-dragStart<250;
+  if(Math.abs(dragDY)<6)setSheet(!min); // toque = alternar
+  else if(!min&&(dragDY>70||(quick&&dragDY>25)))setSheet(true);
+  else if(min&&(dragDY<-40||(quick&&dragDY<-15)))setSheet(false);
+  else setSheet(min);
+  dragY=null;}
+const h=$("handle");
+h.addEventListener("touchstart",e=>dStart(e.touches[0].clientY),{passive:true});
+h.addEventListener("touchmove",e=>{e.preventDefault();dMove(e.touches[0].clientY)},{passive:false});
+h.addEventListener("touchend",dEnd);
+h.addEventListener("mousedown",e=>{dStart(e.clientY);const mm=ev=>dMove(ev.clientY),mu=()=>{dEnd();removeEventListener("mousemove",mm);removeEventListener("mouseup",mu)};addEventListener("mousemove",mm);addEventListener("mouseup",mu)});
+// deslizar hacia abajo desde cualquier parte del panel cuando ya está arriba del todo
+let sY=null;
+sheet.addEventListener("touchstart",e=>{if(e.target.closest("#handle"))return;sY=sheet.scrollTop<=0&&!sheet.classList.contains("min")?e.touches[0].clientY:null;if(sY!==null)dStart(sY)},{passive:true});
+sheet.addEventListener("touchmove",e=>{if(sY===null||e.target.closest("#handle"))return;const dy=e.touches[0].clientY-sY;if(dy>0&&sheet.scrollTop<=0){e.preventDefault();dMove(e.touches[0].clientY)}else{sY=null;dragY=null;sheet.style.transform="";sheet.style.transition=""}},{passive:false});
+sheet.addEventListener("touchend",e=>{if(sY!==null&&!e.target.closest("#handle")){sY=null;if(dragDY>6)dEnd();else{dragY=null;sheet.style.transition=""}}});
+// al mover el mapa, bajar el panel
+map.on("dragstart",()=>{if(!sheet.classList.contains("min"))setSheet(true)});
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
