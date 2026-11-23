@@ -9,7 +9,7 @@ window.STOPS = {
   },
   "RA-16": {
     name: "Ri'nin (Huipil)", from: "Colonia Guelaguetza", to: "Plaza del Valle",
-    seed: null, seedQ: "Colonia Guelaguetza, Oaxaca de Juárez",
+    seed: [17.07495, -96.74606],
     ida: ["Villa Alta","Canadá","Priv. de la Cañada","Pochutla","Candelaria Loxicha","Av. Libertad","Samaria","Niños Héroes","Miahuatlán","Ixtepec","Plaza Bella Cinemex","Plaza Bella","Agencia Montoya","Tierra y Libertad","Esmeralda","Del Panteón","Macedonio Alcalá","Itandehui","Plutarco Elías Calles","Mixcóatl","Monte Albán","Av. Mexicapam","Sierra Juárez","Valerio Trujano","De Mercaderes","Central de Abasto","Yubez María Sabina","Periférico","Lázaro Cárdenas","Presidente General Eulalio Gutiérrez","Puerto Ensenada","Mártires de Tacubaya","Plaza Oaxaca","Plaza del Valle","La Campiña"],
     vuelta: ["Plaza del Valle","Plaza Oaxaca","La Luz","Puerto Cortés","Puerto Márquez","Puerto Cd. del Carmen","Periférico","Miguel Cabrera","Nuño del Mercado","Díaz Ordaz","Mina","Guadalupe Victoria","Central de Abasto","Puente Valerio Trujano","Sierra Juárez","Av. Mexicapam","Monte Albán","Bernardo Balbuena","Juventino Rosas","Itandehui","Adolfo López Mateos","Artículo 100","21 de Marzo","Camino Real","Plaza Bella","Antonio de León","Valerio Trujano","Niños Héroes","Samaria","Oyamel","Juchitán","Pochutla","Priv. de la Cañada","Canadá","Huajuapam","7 Regiones"]
   },

@@ -77,7 +77,7 @@ summary{font-weight:700;cursor:pointer}
     <summary>Las 35 rutas</summary>
     <div id="all"></div>
   </details>
-  <p class="muted" style="margin-top:12px">Tarifa $8 con tarjeta · $10 efectivo · $4 estudiantes y adultos mayores. Horario 6:00–22:00. Las paradas se ubicaron automáticamente con OpenStreetMap a partir de los mapas oficiales: confirma con el chofer si algo no cuadra.</p>
+  <p class="muted" style="margin-top:12px">Tarifa $8 con tarjeta · $10 efectivo · $4 estudiantes y adultos mayores. Horario 6:00–22:00. Paradas oficiales ubicadas con las paradas registradas en OpenStreetMap; el trazo entre paradas sigue las calles. Confirma con el chofer si algo no cuadra.</p>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -86,7 +86,7 @@ summary{font-weight:700;cursor:pointer}
 <script>
 const COL={"RA-06":"#7c3aed","RA-16":"#dc2626","RA-05":"#f97316"};
 const BBOX="16.95,-96.85,17.16,-96.60"; // s,w,n,e
-const CACHE="bb-geo-v1";
+const CACHE="bb-lines-v2";
 const $=id=>document.getElementById(id);
 const map=L.map("map",{zoomControl:false}).setView([17.065,-96.72],13);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imágenes © Esri · Calles © OpenStreetMap"}).addTo(map);
@@ -96,96 +96,36 @@ const D=(a,b)=>map.distance(a,b);
 const fmt=m=>m>=1000?(m/1000).toFixed(1)+" km":Math.round(m/10)*10+" m";
 const mins=m=>Math.max(1,Math.round(m/75)); // caminando ~4.5 km/h
 
-/* ---------- 1. Ubicar paradas con OpenStreetMap ---------- */
-const SPECIAL={
- "Central de Abasto":"Abasto","Central del Abasto":"Abasto","Yubez María Sabina":"María Sabina","Yubez Flores Magón":"Flores Mag","Yubez Lázaro Cárdenas":"Lázaro Cárdenas",
- "CFE Periférico":"Periférico","Chedraui Periférico":"Chedraui","Esc. Sec. Téc. N°6":null,"GYM Universitario":null,"Campo de Béisbol Vinicio Castilla":"Vinicio Castilla",
- "Facultad de Enfermería CU":"Enfermer","Facultad de Enfermería":"Enfermer","Facultad de Arquitectura":"Arquitectura","Rectoría CU":"Rector",
- "Plaza Bella Cinemex":"Plaza Bella","Base Símbolos Patrios":"Símbolos Patrios","Crucero de la Experimental":"Experimental","Puente del CONALEP":"CONALEP",
- "Crucero al Tequio":"Tequio","Bosque El Tequio":"Tequio","Entrada Principal Bosque El Tequio":"Tequio","Carretera al Tequio":"Tequio","Base Anáhuac":"Anáhuac",
- "1° de Mayo":"de Mayo","Monte Albán":"Monte Alb","Av. Mexicapam":"Mexicapa","Sierra de Juárez":"Sierra (de )?Juárez","Sierra Juárez":"Sierra (de )?Juárez",
- "Puente Valerio Trujano":"Valerio Trujano","Huajuapam":"Huajuapa","Mixcóatl":"Mixcoatl","Prolongación Calzada de la República":"de la República","Prol. Calzada de la República":"de la República",
- "La República":"República","Panteón General":"Panteón","Prepa 2":"Preparatoria","Preparatoria 2":"Preparatoria","Mercado Flores Magón":"Flores Mag","Agencia Montoya":"Montoya",
- "Plaza del Valle":"Plaza del Valle","Plaza Oaxaca":"Plaza Oaxaca","Yuroo Xoxocotlán":"Xoxocotl","Rotonda Xoxocotlán Lateral":"Rotonda","Arboledas Xoxo":"Arboledas","Puerto Cd. del Carmen":"Carmen",
- "Real Antequera 1":"Antequera","Quinta Privada de Pinos":"Pinos","Privada de Jazmines":"Jazmines","Priv. Alianza":"Alianza","Circuito P":null,"Universidad":"Universidad"
-};
-const accent=t=>t.replace(/[aá]/gi,"[aá]").replace(/[eé]/gi,"[eé]").replace(/[ií]/gi,"[ií]").replace(/[oó]/gi,"[oó]").replace(/[uú]/gi,"[uú]");
-function term(n){
-  if(n in SPECIAL) return SPECIAL[n];
-  return n.replace(/^(Av\.|Avenida|Priv\.|Privada|Prol\.|Calz\.|Base|Del|De la|De los|De) /i,"").replace(/\./g,"");
-}
-async function overpass(terms){
-  const re=terms.map(t=>accent(t)).join("|");
-  const q=`[out:json][timeout:90];(way["highway"]["name"~"${re}",i](${BBOX});nwr["name"~"${re}",i]["highway"!~"."](${BBOX}););out geom;`;
-  const r=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q)});
-  if(!r.ok) throw new Error("overpass "+r.status);
-  return (await r.json()).elements;
-}
-async function nominatim(q){
-  const u=`https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=mx&viewbox=-96.85,17.16,-96.60,16.95&bounded=1&q=${encodeURIComponent(q)}`;
-  const r=await fetch(u,{headers:{"Accept-Language":"es"}});return r.ok?await r.json():[];
-}
+/* ---------- 1. Paradas (ubicadas en OpenStreetMap) y trazo por calles ---------- */
 async function osrm(pts){
-  // max 90 puntos por consulta
   let out=[];
-  for(let i=0;i<pts.length-1;i+=85){
-    const chunk=pts.slice(i,i+86);
-    const q=chunk.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";");
-    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${q}?overview=full&geometries=geojson&continue_straight=true`);
-    const j=await r.json();
-    if(!j.routes) throw new Error("osrm");
-    out=out.concat(j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]));
+  for(let i=0;i<pts.length-1;i+=80){
+    const ch=pts.slice(i,i+81);
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${ch.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";")}?overview=full&geometries=geojson`);
+    const j=await r.json();if(!j.routes)throw new Error("osrm");
+    const c=j.routes[0].geometry.coordinates.map(x=>[+x[1].toFixed(5),+x[0].toFixed(5)]);
+    out=out.concat(i?c.slice(1):c);
   }
   return out;
 }
-function locate(names,elements,seed){
-  // cada parada: el punto de una calle/lugar con ese nombre más cercano a la parada anterior
-  const cands={};
-  for(const n of names){
-    const t=term(n);cands[n]=[];
-    if(!t) continue;
-    const rx=new RegExp(accent(t),"i");
-    for(const e of elements){
-      if(!e.tags||!e.tags.name||!rx.test(e.tags.name)) continue;
-      if(e.geometry) e.geometry.forEach(g=>cands[n].push([g.lat,g.lon]));
-      else if(e.lat) cands[n].push([e.lat,e.lon]);
-      else if(e.bounds) cands[n].push([(e.bounds.minlat+e.bounds.maxlat)/2,(e.bounds.minlon+e.bounds.maxlon)/2]);
-    }
-  }
-  let prev=seed;const res=[];
-  for(const n of names){
-    let best=null,bd=1e9;
-    for(const c of cands[n]){const d=D(prev,c);if(d<bd){bd=d;best=c}}
-    if(best&&bd<1800){res.push({name:n,ll:best});prev=best}
-    else res.push({name:n,ll:null});
-  }
-  return res;
+async function nominatim(q){
+  const u=`https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=mx&viewbox=-96.86,17.17,-96.58,16.94&bounded=1&q=${encodeURIComponent(q)}`;
+  try{const r=await fetch(u,{headers:{"Accept-Language":"es"}});return r.ok?await r.json():[]}catch(e){return []}
 }
-let GEO={};try{GEO=JSON.parse(localStorage.getItem(CACHE)||"{}")}catch(e){}
-function save(){try{localStorage.setItem(CACHE,JSON.stringify(GEO))}catch(e){}}
-async function buildRoute(code,onStep){
-  if(GEO[code]&&GEO[code].ida&&GEO[code].vuelta) return GEO[code];
-  const S=STOPS[code];
-  let seed=S.seed;
-  if(!seed){const r=await nominatim(S.seedQ);seed=r[0]?[+r[0].lat,+r[0].lon]:[17.065,-96.72]}
-  const all=[...new Set([...S.ida,...S.vuelta].map(term).filter(Boolean))];
-  onStep&&onStep(code+": buscando calles");
-  const els=await overpass(all);
+let GEO={},LINES={};try{LINES=JSON.parse(localStorage.getItem(CACHE)||"{}")}catch(e){}
+function save(){try{localStorage.setItem(CACHE,JSON.stringify(LINES))}catch(e){}}
+async function buildRoute(code,raw,onStep){
   const out={};
-  const ida=locate(S.ida,els,seed);
-  const end=[...ida].reverse().find(s=>s.ll);
-  const vuelta=locate(S.vuelta,els,end?end.ll:seed);
-  for(const [k,st] of [["ida",ida],["vuelta",vuelta]]){
-    onStep&&onStep(code+": trazando "+k);
-    const pts=st.filter(s=>s.ll).map(s=>s.ll);
-    let line=pts;try{line=await osrm(pts)}catch(e){}
-    // posición de cada parada sobre la línea
-    st.forEach(s=>{if(!s.ll)return;let bi=0,bd=1e9;line.forEach((p,i)=>{const d=D(s.ll,p);if(d<bd){bd=d;bi=i}});s.i=bi});
-    out[k]={stops:st,line:line.map(p=>[+p[0].toFixed(5),+p[1].toFixed(5)])};
+  for(const k of ["ida","vuelta"]){
+    const stops=raw[k].map(x=>({name:x[0],ll:x.length>1?[x[1],x[2]]:null}));
+    const key=code+k+stops.length;
+    let line=LINES[key];
+    if(!line){onStep&&onStep(code+" "+k);const pts=stops.filter(s=>s.ll).map(s=>s.ll);try{line=await osrm(pts);LINES[key]=line;save()}catch(e){line=pts}}
+    stops.forEach(s=>{if(!s.ll)return;let bi=0,bd=1e9;line.forEach((p,i)=>{const d=D(s.ll,p);if(d<bd){bd=d;bi=i}});s.i=bi});
+    out[k]={stops:stops,line};
   }
-  GEO[code]=out;save();return out;
+  GEO[code]=out;return out;
 }
-
 /* ---------- 2. Dibujar ---------- */
 const layers={};
 function draw(code){
@@ -335,9 +275,10 @@ map.on("click",e=>{const c=[e.latlng.lat,e.latlng.lng];
 let ready=false,pending=false;
 $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Escribe un lugar, toca uno de los botones o toca el mapa. Te digo qué BinniBus tomar, dónde subir y dónde bajarte.</p><div class="muted" id="st">Trazando rutas…</div><div class="prog"><i id="pb"></i></div>`;
 (async()=>{
-  const codes=Object.keys(STOPS);let n=0;
+  let RAW={};try{RAW=await (await fetch("geo.json?v=1")).json()}catch(e){}
+  const codes=Object.keys(RAW);let n=0;
   for(const c of codes){
-    try{await buildRoute(c,t=>{const s=$("st");if(s)s.textContent="Trazando rutas: "+t+"…"});draw(c)}catch(e){console.warn(c,e)}
+    try{await buildRoute(c,RAW[c],t=>{const s=$("st");if(s)s.textContent="Trazando rutas: "+t+"…"});draw(c)}catch(e){console.warn(c,e)}
     n++;const pb=$("pb");if(pb)pb.style.width=(n/codes.length*100)+"%";
   }
   ready=true;const s=$("st");if(s)s.textContent="Listo: "+Object.keys(GEO).join(", ")+" trazadas.";

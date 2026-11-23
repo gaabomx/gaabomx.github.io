@@ -28,7 +28,7 @@ async function locateStop(n,prev){
   const qs=[clean(n)];const pick=(res,onlyStops)=>{let best=null,bd=1e9;
     for(const x of res){const c=[+x.lat,+x.lon];const isStop=x.type==="bus_stop"||x.type==="platform";if(onlyStops&&!isStop)continue;
       const d=D(prev,c)-(isStop?250:0);if(d<bd){bd=d;best={ll:c,src:isStop?"stop":x.class+"/"+x.type,name:x.name}}}
-    return best&&bd<2000?best:null};
+    return best&&bd<1300?best:null};
   const res=await nom(qs[0]);
   return pick(res,true)||pick(res,false);
 }
