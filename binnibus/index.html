@@ -284,6 +284,9 @@ $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Escribe un lugar,
   ready=true;const s=$("st");if(s)s.textContent="Listo: "+Object.keys(GEO).join(", ")+" trazadas.";
   $("donelist").textContent=Object.keys(GEO).join(", ");
   Object.keys(GEO).forEach(c=>{const b=document.createElement("button");b.textContent=c;b.style.background=COL[c];b.onclick=()=>{if(map.hasLayer(layers[c])){map.removeLayer(layers[c]);b.classList.add("off")}else{layers[c].addTo(map);b.classList.remove("off")}};$("chips").appendChild(b)});
+  const U=new URLSearchParams(location.search);
+  if(U.get("desde")){const c=U.get("desde").split(",").map(Number);originIsMe=false;setOrigin(c,"punto del enlace")}
+  if(U.get("a")==="estadio")setDest([17.0700,-96.7130],"Estadio Yu'va");
   if(pending&&dest)plan();
 })();
 $("all").innerHTML=R.map(r=>`<div class="rl"><b>${r[0]}</b> ${r[1]} · ${r[3]}${STOPS[r[0]]?" · <b style='color:#0f766e'>trazada</b>":""}<br><a href="${IMG+r[4]}">Mapa oficial</a></div>`).join("");
