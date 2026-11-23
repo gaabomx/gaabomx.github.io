@@ -1,68 +1,38 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8"><title>Constructor de rutas BinniBus</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>body{font:13px monospace;margin:10px}#log{white-space:pre-wrap;color:#555}#out{white-space:pre-wrap;word-break:break-all}</style></head>
-<body>
-<b>Constructor de rutas (uso interno)</b>
-<div id="log"></div>
-<div id="out"></div>
-<script src="stops.js"></script>
+<html lang="es"><head><meta charset="utf-8"><title>Buscador de rutas BinniBus en OpenStreetMap</title>
+<style>body{font:13px monospace;margin:10px}#log{white-space:pre-wrap;color:#666;max-height:200px;overflow:auto}#out{white-space:pre-wrap}</style></head>
+<body><b>Rutas BinniBus en OpenStreetMap (uso interno)</b><div id="log"></div><div id="out"></div>
 <script>
-const VIEW="-96.86,17.17,-96.58,16.94";
-const log=t=>{document.getElementById("log").textContent+=t+"\n"};
+const API="https://api.openstreetmap.org/api/0.6/";
+const log=t=>{const l=document.getElementById("log");l.textContent+=t+"\n";l.scrollTop=1e9};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const R=6371000,rad=x=>x*Math.PI/180;
-const D=(a,b)=>{const dl=rad(b[0]-a[0]),dn=rad(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
-const ALIAS={"Esc. Sec. Téc. N°6":"Escuela Secundaria Técnica 6","Prepa 2":"Preparatoria 2","GYM Universitario":"Gimnasio Universitario","Central del Abasto":"Central de Abasto","Monte Albám":"Monte Albán","Huajuapam":"Huajuapan","Av. Mexicapam":"Mexicapan"};
-const cache={};
-async function nom(q){
-  if(cache[q])return cache[q];
-  await sleep(1100);
-  try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=15&viewbox=${VIEW}&bounded=1&q=${encodeURIComponent(q)}`);
-    const j=r.ok?await r.json():[];cache[q]=j;return j;
-  }catch(e){cache[q]=[];return []}
-}
-function clean(n){return (ALIAS[n]||n).replace(/^(Yubez|Base|Crucero (de la|al|de)|Puente( del)?|Entrada Principal) /i,"").replace(/ \(.*\)$/,"")}
-async function locateStop(n,prev){
-  const qs=[clean(n)];const pick=(res,onlyStops)=>{let best=null,bd=1e9;
-    for(const x of res){const c=[+x.lat,+x.lon];const isStop=x.type==="bus_stop"||x.type==="platform";if(onlyStops&&!isStop)continue;
-      const d=D(prev,c)-(isStop?250:0);if(d<bd){bd=d;best={ll:c,src:isStop?"stop":x.class+"/"+x.type,name:x.name}}}
-    return best&&bd<1300?best:null};
-  const res=await nom(qs[0]);
-  return pick(res,true)||pick(res,false);
-}
-async function osrm(pts){
-  let out=[];
-  for(let i=0;i<pts.length-1;i+=80){
-    const ch=pts.slice(i,i+81);
-    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${ch.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";")}?overview=full&geometries=geojson`);
-    const j=await r.json();if(!j.routes)throw new Error("osrm "+j.code);
-    const c=j.routes[0].geometry.coordinates.map(x=>[+x[1].toFixed(5),+x[0].toFixed(5)]);
-    out=out.concat(i?c.slice(1):c);
-  }
-  return out;
+async function get(p){for(let i=0;i<3;i++){try{const r=await fetch(API+p);if(r.ok)return await r.json()}catch(e){}await sleep(1500)}return {elements:[]}}
+const routes={},masters={},seenNodes=new Set(),queue=[];
+function addRel(e){
+  if(e.type!=="relation"||!e.tags)return;
+  const t=e.tags;
+  if(t.type==="route_master"){if(!masters[e.id]&&((t.network||"")+(t.name||"")).match(/binni|citybus/i)){masters[e.id]=1;e.members.forEach(m=>{if(m.type==="relation")queue.push({rel:m.ref})})}return}
+  if(t.type!=="route"||!((t.network||"")+" "+(t.name||"")+" "+(t.operator||"")).match(/binni|citybus/i))return;
+  if(routes[e.id])return;
+  routes[e.id]={ref:t.ref,name:t.name};
+  const plats=e.members.filter(m=>m.type==="node"&&/platform|stop/.test(m.role)).map(m=>m.ref);
+  plats.forEach((n,i)=>{if(i%3===0&&!seenNodes.has(n)){seenNodes.add(n);queue.push({node:n})}});
+  queue.push({master:e.id});
+  log(`ruta ${e.id} ${t.ref} ${t.name} (${plats.length} paradas)`);
 }
 (async()=>{
-  const only=(location.hash||"").slice(1);
-  const OUT={};
-  for(const code of Object.keys(STOPS)){
-    if(only&&only!==code)continue;
-    const S=STOPS[code];let seed=S.seed;
-    if(!seed){const r=await nom(S.seedQ);seed=r[0]?[+r[0].lat,+r[0].lon]:[17.065,-96.72]}
-    OUT[code]={};
-    let prev=seed;
-    for(const k of ["ida","vuelta"]){
-      const st=[];
-      for(const n of S[k]){
-        const f=await locateStop(n,prev);
-        if(f){prev=f.ll;st.push({n,ll:f.ll,src:f.src})}else st.push({n,ll:null});
-        log(`${code} ${k} ${n}: ${f?f.src+" "+f.ll.join(","):"—"}`);
-      }
-      OUT[code][k]=st.map(x=>x.ll?[x.n,+x.ll[0].toFixed(5),+x.ll[1].toFixed(5),x.src==='stop'?1:0]:[x.n]);
-    }
+  const seeds=[19736821,19851160,20781030,21031480];
+  const s=await get("relations.json?relations="+seeds.join(","));s.elements.forEach(addRel);
+  let n=0;
+  while(queue.length){
+    const q=queue.shift();n++;
+    if(q.node){const j=await get(`node/${q.node}/relations.json`);j.elements.forEach(addRel)}
+    else if(q.master){const j=await get(`relation/${q.master}/relations.json`);j.elements.forEach(addRel)}
+    else if(q.rel){if(!routes[q.rel]){const j=await get(`relation/${q.rel}.json`);j.elements.forEach(addRel)}}
+    if(n%20===0)log(`… ${n} consultas, ${Object.keys(routes).length} rutas, cola ${queue.length}`);
   }
-  document.getElementById("out").textContent="BEGIN"+JSON.stringify(OUT)+"END";
-  log("LISTO");
+  const ids=Object.keys(routes).sort((a,b)=>(routes[a].ref||"").localeCompare(routes[b].ref||""));
+  document.getElementById("out").textContent="BEGIN\n"+ids.map(i=>`${i}|${routes[i].ref}|${routes[i].name}`).join("\n")+"\nEND";
+  log("LISTO "+ids.length+" rutas");
 })();
 </script></body></html>
