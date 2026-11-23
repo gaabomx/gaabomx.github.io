@@ -114,7 +114,7 @@ body.mopen .msec{opacity:1;transform:none}
 #topmini #showtop{position:static;transform:none;display:block}
 #clearbtn{border:0;border-radius:999px;background:#1d1a16;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:9px 14px;font:700 14px Inter;cursor:pointer;display:none}
 body.hasdest #clearbtn{display:block}
-.seen{position:fixed;left:50%;right:auto;translate:-50% 0;white-space:nowrap;z-index:1000;border:0;border-radius:14px;padding:11px 12px;background:#facc15;color:#1d1a16;font:800 13px Inter;box-shadow:0 2px 10px rgba(0,0,0,.3);bottom:calc(58vh + 68px);transition:bottom .28s;cursor:pointer}
+.seen{position:fixed;right:12px;white-space:nowrap;z-index:1000;border:0;border-radius:14px;padding:11px 12px;background:#facc15;color:#1d1a16;font:800 13px Inter;box-shadow:0 2px 10px rgba(0,0,0,.3);bottom:calc(58vh + 68px);transition:bottom .28s;cursor:pointer}
 .dlg{position:fixed;inset:0;z-index:2500;background:rgba(10,8,6,.45);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
 .dlg.on{opacity:1;pointer-events:auto}
 .dlgbox{background:var(--card);width:100%;border-radius:20px 20px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));max-height:75vh;overflow:auto;transform:translateY(40px);transition:transform .35s cubic-bezier(.22,1,.36,1)}
@@ -151,8 +151,8 @@ body.hasdest .clear2{display:block}
 .compass{display:none;font-size:18px;transition:bottom .28s,opacity .2s}
 .compass.on{display:block}
 #needle{display:inline-block;color:#dc2626;transform:rotate(-90deg);transition:transform .1s linear}
-.fab{touch-action:none}
-body.fleft .fab{right:auto!important;left:12px}
+.fab,.seen{touch-action:none}
+body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!important;left:12px}
 
 .dragging{transition:none!important;opacity:.9;box-shadow:0 8px 22px rgba(0,0,0,.4)!important}
 .seenh{font:700 14px Inter;margin:6px 0 6px}
@@ -202,7 +202,7 @@ body.fleft .fab{right:auto!important;left:12px}
 .sccard{border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:6px 0 10px;background:#fff}
 #stopsec.on .scr{animation:scin .45s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i)*60ms + 120ms)}
 @keyframes scin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.compass{bottom:calc(58vh + 68px)}
+.compass{bottom:calc(58vh + 122px)}
 .wdet{margin-top:4px}.wdet summary{color:var(--ok);font-weight:700;cursor:pointer;font-size:13px}
 .wsteps{margin:6px 0 0;padding-left:18px;font-size:13px}.wsteps li{padding:3px 0}
 .h2logo{display:flex;align-items:center;gap:8px}.h2logo img{height:30px;width:auto}
@@ -764,7 +764,7 @@ map.on("click",e=>{destAddr="";const c=[e.latlng.lat,e.latlng.lng];
 const sheet=$("sheet"),fab=$("me");
 function setSheet(min){
   sheet.classList.toggle("min",min);sheet.style.transform="";
-  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("compass").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
+  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
   if(min)sheet.scrollTop=0;
   $("peek").textContent=trip?`🟢 Viaje en curso · Bájate en ${trip.legs[trip.legs.length-1].a.s.name} ⌃`:plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
 }
@@ -995,7 +995,7 @@ setInterval(pollSeen,20000);setInterval(()=>{SEEN.forEach(x=>x.s+=30);drawSeen()
 
 /* ---------- Botones flotantes: arrastrar a izquierda o derecha ---------- */
 try{if(localStorage.getItem("bb-fside")==="l")document.body.classList.add("fleft")}catch(e){}
-(()=>{const els=["me","compass"].map(id=>$(id));let x0=null,dx=0,moved=false;
+(()=>{const els=["me","compass","seenbtn"].map(id=>$(id));let x0=null,dx=0,moved=false;
   const all=()=>els.forEach(e=>{e.style.transform=`translateX(${dx}px)`;e.classList.add("dragging")});
   const end=()=>{if(x0===null)return;const left=document.body.classList.contains("fleft");
     const r=$("me").getBoundingClientRect();const mid=(r.left+r.right)/2;
