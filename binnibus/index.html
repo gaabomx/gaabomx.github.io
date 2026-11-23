@@ -921,9 +921,11 @@ function openSeen(){
   const mk=({k,d},far)=>{const b=document.createElement("button");b.innerHTML=`${k}<small>${far?"lejos · ":""}${d<1000?Math.round(d/10)*10+" m":(d/1000).toFixed(1)+" km"}</small>`;b.className="seenchip"+(far?" far":"");b.style.background=far?"#e7e1d6":(COL[k]||"#0f766e");b.onclick=()=>pick(k,d,far);return b};
   const pick=(k,d,far)=>{
     $("seendirs").innerHTML=(far?`<p class="warnfar">⚠️ La ${k} pasa a ${d<1000?Math.round(d)+" m":(d/1000).toFixed(1)+" km"} de ti. ¿Seguro que es esa?</p>`:"")+`<p class="muted" style="margin:10px 0 4px">¿Qué decía su letrero?</p>`+GEO[k].map((x,i)=>`<button class="mbtn" data-i="${i}" style="width:100%;margin-top:6px">${k} → ${esc(x.to)}</button>`).join("")+`<button class="mbtn" data-i="-1" style="width:100%;margin-top:6px">No me fijé</button>`;
-    $("seendirs").querySelectorAll("[data-i]").forEach(x=>x.onclick=()=>{const to=+x.dataset.i>=0?GEO[k][+x.dataset.i].to:"";
-      sb("bb_visto_add",{p_sesion:SES,p_ruta:k,p_destino:to,p_lat:c[0],p_lon:c[1]});
-      SEEN.unshift({r:k,d:to,lat:c[0],lon:c[1],s:0});drawSeen();updateLiveEta();$("seendlg").classList.remove("on");toast(`👀 Gracias: marcaste la ${k} aquí.`)});
+    $("seendirs").querySelectorAll("[data-i]").forEach(x=>x.onclick=()=>{const di=+x.dataset.i,to=di>=0?GEO[k][di].to:"";
+      const sp=snapSeen(k,di,c);
+      sb("bb_visto_add",{p_sesion:SES,p_ruta:k,p_destino:to,p_lat:sp.ll[0],p_lon:sp.ll[1]});
+      SEEN.unshift({r:k,d:to,lat:sp.ll[0],lon:sp.ll[1],s:0});drawSeen();updateLiveEta();if(SC)renderStopCard();$("seendlg").classList.remove("on");
+      toast(sp.name?`👀 Gracias: marcaste la ${k} en la parada ${sp.name}.`:`👀 Gracias: marcaste la ${k} sobre su ruta.`)});
     $("seendirs").scrollIntoView({behavior:"smooth",block:"nearest"})};
   box.insertAdjacentHTML("beforeend",`<p class="seenh">✅ Pasan cerca de ti${cerca.length?"":": ninguna a menos de 400 m"}</p>`);
   const g1=document.createElement("div");g1.className="chips";cerca.forEach(x=>g1.appendChild(mk(x,false)));box.appendChild(g1);
@@ -933,6 +935,13 @@ function openSeen(){
 }
 $("seenbtn").onclick=openSeen;$("seenx").onclick=()=>$("seendlg").classList.remove("on");
 $("seendlg").onclick=e=>{if(e.target.id==="seendlg")$("seendlg").classList.remove("on")};
+function snapSeen(k,di,c){ // pone la marca en la parada de esa ruta más cercana (o sobre la ruta)
+  const dirs=di>=0?[GEO[k][di]]:GEO[k];let best=null,bd=1e9;
+  dirs.forEach(d=>d.stops.forEach(st=>{if(!st.ll||st.bad)return;const x=D(c,st.ll);if(x<bd){bd=x;best=st}}));
+  if(best&&bd<=500)return {ll:best.ll,name:best.name};
+  let bp=null,pd=1e9;dirs.forEach(d=>d.line.forEach(p=>{const x=D(c,p);if(x<pd){pd=x;bp=p}}));
+  return bp&&pd<=1500?{ll:bp}:{ll:c};
+}
 function drawSeen(){seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<1200);
   const shown=[];
   [...SEEN].sort((a,b)=>a.s-b.s).forEach(x=>{const ll=[x.lat,x.lon];
