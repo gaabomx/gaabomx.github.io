@@ -187,7 +187,7 @@ body.fleft .seen{right:auto!important;left:70px}
 .schd{display:flex;justify-content:space-between;align-items:flex-start}
 .schd b{font:800 16px Archivo;display:block}.schd span{font-size:12px;color:var(--muted)}
 .schd button{border:0;background:#efe8dc;border-radius:10px;width:32px;height:32px;cursor:pointer}
-.scr{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.scr{display:flex;gap:10px;align-items:flex-start;padding:8px 6px;margin:0 -6px;border-top:1px solid var(--line);cursor:pointer;border-radius:10px;transition:background .2s}.scr:active{background:#0000000d}.scr.sel{background:#0f766e14;outline:2px solid #0f766e55}.scr .vr{font-size:12px;font-weight:700;color:#0f766e;margin-top:3px}
 .sct{flex:1;font-size:13px}.sct b{font-weight:700}
 .nx{color:#b91c1c;font-weight:700;margin-top:2px}.nx i,.ps i{font-weight:500;color:var(--muted)}
 .ps{color:#166534;margin-top:2px}.nd{color:var(--muted);margin-top:2px}
@@ -518,7 +518,7 @@ function walkLine(a,b,tag,delay){
     if(tag){document.querySelectorAll(`[data-w="${tag}"]`).forEach(e=>{e.textContent=fmt(w.m);if(w.cross&&!e.dataset.x){e.dataset.x=1;e.insertAdjacentHTML("afterend"," <span class='muted'>(cruzando la calle)</span>")}})}});
 }
 function showPlan(p){
-  const my=++drawId;setFollow(false);
+  const my=++drawId;setFollow(false);if(RT){RT=null;rtId++;rtLayer.clearLayers();rtHid=false}
   tripLayer.clearLayers();hideNetwork();drawEnds();
   const pts=[origin];let delay=350;
   p.legs.forEach((l,j)=>{
@@ -940,7 +940,7 @@ setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("
 /* ---------- Limpiar todo ---------- */
 function clearAll(){
   if(trip)cancelTrip();
-  dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;showNetwork();
+  dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;RT=null;rtId++;rtLayer.clearLayers();rtHid=false;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
   $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
   if(me)map.setView(me.getLatLng(),15);setTop(true);setSheet(false);
@@ -1068,7 +1068,7 @@ function stopStatus(ll){
 function stopSec(){let el=$("stopsec");if(!el){el=document.createElement("div");el.id="stopsec";$("panel").prepend(el)}return el}
 function openStopCard(ll,name,dist){SC={ll,name,dist};const el=stopSec();el.classList.remove("on");renderStopCard();setSheet(false);$("sheet").scrollTop=0;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add("on")));const nb=$("nearbtn");if(nb)nb.classList.add("open")}
 function toggleNear(){
-  if(SC){SC=null;const el=$("stopsec");if(el){el.classList.remove("on");setTimeout(()=>{if(!SC)el.innerHTML=""},350)}const nb=$("nearbtn");if(nb)nb.classList.remove("open");return}
+  if(SC){SC=null;clearRouteView();const el=$("stopsec");if(el){el.classList.remove("on");setTimeout(()=>{if(!SC)el.innerHTML=""},350)}const nb=$("nearbtn");if(nb)nb.classList.remove("open");return}
   if(!ready){toast("Espera, cargando rutas…");return}
   if(!me){toast("Activa tu ubicación para ver tu parada más cercana.");return}
   if(!STOPIDX)buildStopIdx();const c=[me.getLatLng().lat,me.getLatLng().lng];
@@ -1081,12 +1081,41 @@ function renderStopCard(){
   const rows=stopStatus(SC.ll);
   const fmtT=t=>t<1?"ya casi llega":`~${Math.round(t)} min`;
   el.innerHTML=`<div class="sccard"><div class="schd"><div><b>🚏 ${esc(SC.name)}</b><span>Próximos BinniBus${SC.dist!=null?` · tu parada más cercana (${fmt(SC.dist)})`:""}</span></div><button aria-label="Cerrar">✕</button></div>
-   <div class="scl">${rows.length?rows.map((r,i)=>`<div class="scr" style="--i:${i}"><span class="badge" style="background:${COL[r.code]||"#0f766e"}">${r.code}</span><div class="sct"><b>→ ${esc(r.to)}</b>
+   <div class="scl">${rows.length?rows.map((r,i)=>`<div class="scr${RT&&RT.code===r.code&&RT.to===r.to?" sel":""}" data-k="${i}" style="--i:${i}"><span class="badge" style="background:${COL[r.code]||"#0f766e"}">${r.code}</span><div class="sct"><b>→ ${esc(r.to)}</b>
      ${r.next?`<div class="nx">🔴 Llega en ${fmtT(r.next.t)}${r.next.src==="seen"?" <i>(lo vieron)</i>":""}${r.next.sure?"":" <i>· sentido sin confirmar</i>"}</div>`:""}
      ${r.last?`<div class="ps">✓ Ya pasó hace ~${Math.max(1,Math.round(r.last.t))} min</div>`:""}
-     ${!r.next&&!r.last?`<div class="nd">Sin reportes ahorita · pasa cada ~10–15 min</div>`:""}</div></div>`).join(""):`<p class="muted">No encontré rutas en esta parada.</p>`}</div>
+     ${!r.next&&!r.last?`<div class="nd">Sin reportes ahorita · pasa cada ~10–15 min</div>`:""}<div class="vr">${RT&&RT.code===r.code&&RT.to===r.to?"✓ Viendo su recorrido · toca para quitar":"🗺️ Ver por dónde pasa"}</div></div></div>`).join(""):`<p class="muted">No encontré rutas en esta parada.</p>`}</div>
    <div class="scf"><span class="lvupd"><i></i>en vivo</span> · con lo que comparten y ven los usuarios</div></div>`;
   el.querySelector(".schd button").onclick=()=>toggleNear();
+  el.querySelectorAll(".scr").forEach(row=>row.onclick=()=>{const r=rows[+row.dataset.k];
+    if(RT&&RT.code===r.code&&RT.to===r.to)clearRouteView();else showRouteFrom(r.code,r.to,SC.ll,SC.name);renderStopCard()});
+}
+/* ---------- Ver por dónde pasa una ruta desde esta parada ---------- */
+const rtLayer=L.layerGroup().addTo(map);let RT=null,rtHid=false,rtId=0;
+function clearRouteView(){RT=null;rtId++;rtLayer.clearLayers();if(rtHid){rtHid=false;if(!tripLayer.getLayers().length)showNetwork()}}
+function showRouteFrom(code,to,ll,name){
+  const dir=(GEO[code]||[]).find(d=>d.to===to);if(!dir)return;
+  let S=null,sd=1e9;dir.stops.forEach(st=>{if(!st.ll||st.bad||st.i==null)return;const d=D(ll,st.ll);if(d<sd){sd=d;S=st}});if(!S)return;
+  rtLayer.clearLayers();const my=++rtId;RT={code,to};setFollow(false);
+  if(!netHidden){hideNetwork();rtHid=true}
+  const col=COL[code]||"#0f766e",line=dir.line,i0=S.i;
+  const before=line.slice(0,i0+1),after=line.slice(i0);
+  // de dónde viene (gris punteado) y a dónde va (color, se dibuja)
+  if(before.length>1)L.polyline(before,{color:"#fff",weight:4,opacity:.55,dashArray:"4 8",renderer:SVGR,interactive:false}).addTo(rtLayer);
+  const sh=L.polyline(after,{color:"#000",weight:12,opacity:.35,renderer:SVGR,interactive:false}).addTo(rtLayer);
+  const ln=L.polyline(after,{color:col,weight:7,renderer:SVGR,lineCap:"round",lineJoin:"round",interactive:false}).addTo(rtLayer);
+  const dur=Math.min(2200,700+after.length*3);drawIn(sh,dur,250);drawIn(ln,dur,250);
+  setTimeout(()=>{if(my!==rtId)return;L.polyline(after,{color:"#fff",weight:3,opacity:.9,dashArray:"1 18",lineCap:"round",renderer:SVGR,className:"flow",interactive:false}).addTo(rtLayer)},250+dur);
+  const ahead=dir.stops.filter(st=>st.ll&&!st.bad&&st.i!=null&&st.i>i0);
+  ahead.forEach((st,k)=>{const t=Math.round((dir.cum[st.i]-dir.cum[i0])/BUS);
+    setTimeout(()=>{if(my!==rtId)return;L.circleMarker(st.ll,{radius:5,color:"#fff",weight:2,fillColor:col,fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(rtLayer)
+      .bindPopup(`<b>${esc(st.name)}</b><br>${code} → ${esc(to)}<br><span class="muted">~${Math.max(1,t)} min desde ${esc(name)}</span>`)},250+dur*((st.i-i0)/Math.max(1,line.length-1-i0)))});
+  L.circleMarker(S.ll,{radius:9,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(rtLayer).bindTooltip("Subes aquí: "+name,{permanent:true,direction:"right",className:"lbl"});
+  const end=line[line.length-1],tot=Math.round((dir.cum[line.length-1]-dir.cum[i0])/BUS);
+  setTimeout(()=>{if(my!==rtId)return;L.circleMarker(end,{radius:9,color:"#fff",weight:3,fillColor:"#dc2626",fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(rtLayer).bindTooltip(`🏁 ${to} · ~${Math.max(1,tot)} min`,{permanent:true,direction:"right",className:"lbl"})},250+dur);
+  setSheet(true);
+  map.flyToBounds(L.latLngBounds(after),{padding:[40,40],paddingBottomRight:[0,window.innerHeight*.35],duration:.7});
+  toast(`${code} → ${to}: ${ahead.length} paradas más, ~${Math.max(1,tot)} min hasta el final`);
 }
 setInterval(()=>{if(SC&&document.visibilityState==="visible")renderStopCard()},10000);
 
