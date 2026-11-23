@@ -2,7 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>BinniBus Oaxaca · Rutas, paradas y qué camión tomar</title>
 <meta name="description" content="Mapa de las rutas del BinniBus en Oaxaca. Escribe a dónde vas y te dice qué ruta tomar, dónde subir, dónde bajarte y cómo llegar caminando. Gratis, sin descargar.">
 <meta name="keywords" content="BinniBus, Binni Bus, rutas BinniBus, BinniBus Oaxaca, CityBus Oaxaca, rutas de camiones Oaxaca, transporte público Oaxaca, paradas BinniBus, mapa BinniBus">
@@ -23,7 +26,7 @@
 :root{--ink:#1d1a16;--muted:#6b6358;--bg:#f6f2ea;--card:#fffdf8;--line:#e4dccf;--blue:#2563eb;--ok:#0f766e}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 Inter,system-ui,sans-serif}
-#map{position:fixed;inset:0;z-index:1;background:#1b1b1b}
+#map{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100lvh;z-index:1;background:#1b1b1b}
 .top{position:fixed;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));z-index:1000;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s}
 .top.hide{transform:translateY(calc(-100% - 30px));opacity:0;pointer-events:none}
 .tgrab{width:42px;height:5px;border-radius:3px;background:rgba(255,255,255,.85);margin:6px auto 0;box-shadow:0 1px 4px rgba(0,0,0,.4)}

@@ -8,7 +8,7 @@
   const ID_BAJADA = 1001, ID_LLEGADA = 1002, ID_AVISO = 1003;
   let permiso = false, ultimoAviso = 0;
 
-  try { SB && SB.setStyle({ style: "LIGHT" }); } catch (e) {}
+  try { SB && SB.setOverlaysWebView({ overlay: true }); SB && SB.setStyle({ style: "DARK" }); } catch (e) {}
 
   async function pedirPermiso() {
     if (permiso || !LN) return permiso;
