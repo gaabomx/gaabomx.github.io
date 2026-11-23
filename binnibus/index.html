@@ -879,7 +879,7 @@ async function pollLive(){
 }
 function busEta(l){ // ¿viene un camión de esta ruta/dirección antes de tu parada?
   let best=null;
-  LIVE.concat((typeof SEEN!=='undefined'?SEEN:[]).filter(x=>x.d&&x.s<900).map(x=>({r:x.r,d:x.d,ll:[x.lat,x.lon],s:x.s,seen:1}))).forEach(x=>{if(x.r!==l.c||x.d!==l.dk)return;const L=l.dir.line;let bi=0,bd=1e9;for(let i=0;i<=l.b.s.i;i++){const d=D(x.ll,L[i]);if(d<bd){bd=d;bi=i}}
+  LIVE.concat((typeof SEEN!=='undefined'?SEEN:[]).filter(x=>x.d&&x.s<1200).map(x=>({r:x.r,d:x.d,ll:[x.lat,x.lon],s:x.s,seen:1}))).forEach(x=>{if(x.r!==l.c||x.d!==l.dk)return;const L=l.dir.line;let bi=0,bd=1e9;for(let i=0;i<=l.b.s.i;i++){const d=D(x.ll,L[i]);if(d<bd){bd=d;bi=i}}
     if(bd>120)return;const m=l.dir.cum[l.b.s.i]-l.dir.cum[bi];if(m<0)return;const v=x.v&&x.v>5?x.v*1000/60:BUS;const t=m/v+x.s/60;
     if(!best||t<best.t)best={t,m,seen:x.seen,s:x.s}});
   return best;
@@ -925,12 +925,12 @@ function openSeen(){
 }
 $("seenbtn").onclick=openSeen;$("seenx").onclick=()=>$("seendlg").classList.remove("on");
 $("seendlg").onclick=e=>{if(e.target.id==="seendlg")$("seendlg").classList.remove("on")};
-function drawSeen(){seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<900);
+function drawSeen(){seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<1200);
   const shown=[];
   [...SEEN].sort((a,b)=>a.s-b.s).forEach(x=>{const ll=[x.lat,x.lon];
     if(shown.some(y=>y.r===x.r&&D(y.ll,ll)<120))return; // repetido: queda el más reciente
     const stack=shown.filter(y=>D(y.ll,ll)<60).length;shown.push({r:x.r,ll});
-    L.marker(ll,{icon:L.divIcon({className:"",iconSize:[96,24],iconAnchor:[48,12+stack*28],html:`<div class="vis" style="opacity:${Math.max(.45,1-x.s/900)}">👀 ${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</div>`}),zIndexOffset:900-stack}).addTo(seenLayer)
+    L.marker(ll,{icon:L.divIcon({className:"",iconSize:[96,24],iconAnchor:[48,12+stack*28],html:`<div class="vis" style="opacity:${Math.max(.45,1-x.s/1200)}">👀 ${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</div>`}),zIndexOffset:900-stack}).addTo(seenLayer)
      .bindPopup(`<b>👀 Vieron la ${x.r}${x.d?" → "+esc(x.d):""}</b><br>${hace(x.s)}`)})}
 async function pollSeen(){if(document.visibilityState!=="visible")return;
   try{const r=await fetch(SBR+"bb_vistos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){SEEN=await r.json();drawSeen();updateLiveEta()}}catch(e){}}
