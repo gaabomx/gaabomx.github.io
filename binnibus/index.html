@@ -184,7 +184,7 @@ function addDir(code,to,stops,line,colour){
   let last=0;
   stops.forEach(s=>{if(!s.ll)return;let bi=last,bd=1e9;
     for(let i=last;i<line.length&&cum[i]-cum[last]<6000;i++){const d=D(s.ll,line[i]);if(d<bd){bd=d;bi=i}}
-    s.i=bi;s.off=bd;last=bi});
+    s.i=bi;s.off=bd;if(bd>120){s.bad=true;return}last=bi});
   (GEO[code]=GEO[code]||[]).push({to,stops,line,cum});
   if(colour&&!COL[code])COL[code]=colour;
 }
@@ -203,7 +203,7 @@ function draw(code){
   const grp=L.layerGroup(),c=COL[code]||"#0f766e";
   g.forEach((d,j)=>{
     L.polyline(d.line,{color:c,weight:4,opacity:.55,dashArray:j?"6 6":null}).addTo(grp).bindTooltip(`${code} → ${d.to}`,{sticky:true});
-    d.stops.forEach(s=>{if(s.ll)L.circleMarker(s.ll,{radius:3.5,color:"#fff",weight:1.5,fillColor:c,fillOpacity:1}).addTo(grp).bindPopup(`<b>${s.name}</b><br>${code} → ${d.to}`)});
+    d.stops.forEach(s=>{if(s.ll&&!s.bad)L.circleMarker(s.ll,{radius:3.5,color:"#fff",weight:1.5,fillColor:c,fillOpacity:1}).addTo(grp).bindPopup(`<b>${s.name}</b><br>${code} → ${d.to}`)});
   });
   layers[code]=grp;grp.addTo(map);
 }
@@ -211,7 +211,7 @@ function draw(code){
 /* ---------- 3. Planear viaje ---------- */
 let origin=null,dest=null,destName="",tripLayer=L.layerGroup().addTo(map),plans=[],active=null;
 function legsFor(code){return (GEO[code]||[]).map(d=>[d.to,d])}
-function nearestStops(dir,pt,maxD){return dir.stops.map((s,k)=>({s,k,d:s.ll?D(pt,s.ll):1e9})).filter(x=>x.d<maxD)}
+function nearestStops(dir,pt,maxD){return dir.stops.map((s,k)=>({s,k,d:s.ll&&!s.bad?D(pt,s.ll):1e9})).filter(x=>x.d<maxD)}
 const WALK=75,BUS=280,WAIT=8; // m/min caminando, m/min camión (~17 km/h), min de espera
 const wmin=m=>m*1.25/WALK; // la calle real es ~25% más larga que la línea recta
 function rideM(dir,b,a){return Math.max(0,dir.cum[a.s.i]-dir.cum[b.s.i])}
@@ -232,8 +232,8 @@ function plan(W0=1000,W1=900){
     const B=nearestStops(d1,origin,W0);if(!B.length)continue;
     for(const c2 of codes){ if(c2===c1)continue; for(const [k2,d2] of legsFor(c2)){
       const A=nearestStops(d2,dest,W1);if(!A.length)continue;
-      for(const b of B) for(let t1=b.k+1;t1<d1.stops.length;t1++){const s1=d1.stops[t1];if(!s1.ll||s1.i==null)continue;
-        for(let t2=0;t2<d2.stops.length;t2++){const s2=d2.stops[t2];if(!s2.ll||s2.i==null)continue;const tw=D(s1.ll,s2.ll);if(tw>400)continue;
+      for(const b of B) for(let t1=b.k+1;t1<d1.stops.length;t1++){const s1=d1.stops[t1];if(!s1.ll||s1.i==null||s1.bad)continue;
+        for(let t2=0;t2<d2.stops.length;t2++){const s2=d2.stops[t2];if(!s2.ll||s2.i==null||s2.bad)continue;const tw=D(s1.ll,s2.ll);if(tw>400)continue;
           for(const a of A){ if(a.k<=t2)continue;
             const r1=rideM(d1,b,{s:s1}),r2=rideM(d2,{s:s2},a);if(r1<200||r2<200)continue;
             const t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a.d);
@@ -446,7 +446,7 @@ function debugReport(){
   for(const c of Object.keys(GEO).sort()) GEO[c].forEach(d=>{
     let gap=0,gi=-1;for(let i=1;i<d.line.length;i++){const g=D(d.line[i-1],d.line[i]);if(g>gap){gap=g;gi=i}}
     let off=0,offN="",back=0,noll=0;
-    d.stops.forEach(s=>{if(!s.ll){noll++;return}if(s.off>off){off=s.off;offN=s.name}});
+    d.stops.forEach(s=>{if(!s.ll){noll++;return}if(s.bad)return;if(s.off>off){off=s.off;offN=s.name}});
     const len=d.line.reduce((a,p,i)=>i?a+D(d.line[i-1],p):0,0);
     const st=d.stops.filter(s=>s.ll);const sd=st.length>1?D(st[0].ll,d.line[0])+D(st[st.length-1].ll,d.line[d.line.length-1]):0;
     out.push(`${c}→${d.to}|br ${d.breaks} raw ${d.rawN}|stops ${d.stops.length} sin_coord ${noll}|len ${(len/1000).toFixed(1)}km|maxgap ${Math.round(gap)}m@${gi}/${d.line.length}|maxoff ${Math.round(off)}m ${offN}|retro ${back}|ends ${Math.round(sd)}m`);
