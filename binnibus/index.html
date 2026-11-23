@@ -10,7 +10,6 @@
 <meta name="description" content="Mapa de las rutas del BinniBus en Oaxaca. Escribe a dónde vas y te dice qué ruta tomar, dónde subir, dónde bajarte y cómo llegar caminando. Gratis, sin descargar.">
 <meta name="keywords" content="BinniBus, Binni Bus, rutas BinniBus, BinniBus Oaxaca, CityBus Oaxaca, rutas de camiones Oaxaca, transporte público Oaxaca, paradas BinniBus, mapa BinniBus">
 <link rel="canonical" href="https://gaabomx.github.io/binnibus/">
-<meta name="theme-color" content="#0f6e62">
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
@@ -25,7 +24,7 @@
 <style>
 :root{--ink:#1d1a16;--muted:#6b6358;--bg:#f6f2ea;--card:#fffdf8;--line:#e4dccf;--blue:#2563eb;--ok:#0f766e}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 Inter,system-ui,sans-serif}
+html,body{margin:0;height:100%;background:#1b1b1b;color:var(--ink);font:15px/1.4 Inter,system-ui,sans-serif}
 #map{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100lvh;z-index:1;background:#1b1b1b}
 .top{position:fixed;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));z-index:1000;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s}
 .top.hide{transform:translateY(calc(-100% - 30px));opacity:0;pointer-events:none}
@@ -1165,7 +1164,7 @@ try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");s
   for(const c of Object.keys(RAW)){if(GEO[c])continue;try{await buildRoute(c,RAW[c])}catch(e){}}
   Object.keys(GEO).sort().forEach(draw);
   const pb=$("pb");if(pb)pb.style.width="100%";
-  stopsByZoom();renderAll();ready=true;const s=$("st");if(s)s.textContent=`Listo: ${Object.keys(GEO).length} rutas en el mapa.`;
+  stopsByZoom();renderAll();ready=true;const s=$("st");if(s){const pg=s.nextElementSibling;s.remove();if(pg&&pg.classList.contains("prog"))pg.remove()}
   
   Object.keys(GEO).sort().forEach(c=>{const b=document.createElement("button");b.textContent=c;b.dataset.c=c;b.style.background=COL[c];b.onclick=()=>{if(b.classList.contains("off")){b.classList.remove("off");if(!netHidden)layers[c].addTo(map)}else{b.classList.add("off");map.removeLayer(layers[c])}};$("chips").appendChild(b)});
   $("allon").onclick=()=>{if(!netHidden)Object.values(layers).forEach(l=>l.addTo(map));document.querySelectorAll("#chips button").forEach(b=>b.classList.remove("off"))};
