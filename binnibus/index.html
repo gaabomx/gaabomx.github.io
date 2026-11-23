@@ -384,11 +384,20 @@ function drawEnds(){
   L.circleMarker(dest,{radius:9,color:"#fff",weight:3,fillColor:"#111",fillOpacity:1}).addTo(tripLayer).bindTooltip("🏁 "+destName,{permanent:true,direction:"top",className:"lbl"});
 }
 const WC={};
-async function walkRoute(a,b){
+async function walkRoute(a,b){ // la caminata más corta por calles, cruzando donde se pueda
   const k=a.map(x=>x.toFixed(5))+";"+b.map(x=>x.toFixed(5));if(WC[k])return WC[k];
-  try{const r=await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`);
-    const j=await r.json();if(!j.routes||!j.routes[0])return null;
-    return WC[k]={m:j.routes[0].distance,line:j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]])};}catch(e){return null}
+  const straight=D(a,b);
+  if(straight<35)return WC[k]={m:straight,line:[a,b]};
+  const base=`https://routing.openstreetmap.de/routed-foot/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson&alternatives=3&continue_straight=false`;
+  const ask=u=>fetch(u).then(r=>r.json()).then(j=>(j.routes||[]).map(r=>({m:r.distance,g:r.geometry.coordinates.map(c=>[c[1],c[0]])}))).catch(()=>[]);
+  const all=(await Promise.all([ask(base),ask(base+"&snapping=any")])).flat();
+  // sumar el tramo para llegar a la calle desde el punto exacto
+  all.forEach(r=>{if(r.g.length){r.m+=D(a,r.g[0])+D(r.g[r.g.length-1],b);r.g=[a,...r.g,b]}});
+  all.sort((x,y)=>x.m-y.m);
+  const best=all[0];
+  // si el mapa obliga a dar una vuelta enorme para algo que está cerca, usa el camino directo cruzando la calle
+  if(!best||(straight<700&&best.m>Math.max(straight*2,straight+350)))return WC[k]={m:straight*1.15,line:[a,b],cross:true};
+  return WC[k]={m:best.m,line:best.g};
 }
 const SVGR=L.svg({padding:.6});let netHidden=false,drawId=0;
 function hideNetwork(){if(netHidden)return;netHidden=true;Object.values(layers).forEach(l=>map.removeLayer(l));if(map.hasLayer(stopLayer))map.removeLayer(stopLayer)}
@@ -402,7 +411,9 @@ function drawIn(pl,ms,delay){ // anima la línea como si se fuera dibujando
 }
 function walkLine(a,b,tag,delay){
   const pl=L.polyline([a,b],{color:"#fff",weight:4,dashArray:"2 8",renderer:SVGR,className:"walkline"}).addTo(tripLayer);
-  walkRoute(a,b).then(w=>{if(!w)return;pl.setLatLngs(w.line);if(tag){document.querySelectorAll(`[data-w="${tag}"]`).forEach(e=>e.textContent=fmt(w.m))}});
+  walkRoute(a,b).then(w=>{if(!w)return;pl.setLatLngs(w.line);
+    if(w.cross){pl.setStyle({color:"#fbbf24"});pl.bindTooltip("Cruza con cuidado",{permanent:true,direction:"center",className:"lbl"})}
+    if(tag){document.querySelectorAll(`[data-w="${tag}"]`).forEach(e=>{e.textContent=fmt(w.m);if(w.cross&&!e.dataset.x){e.dataset.x=1;e.insertAdjacentHTML("afterend"," <span class='muted'>(cruzando la calle)</span>")}})}});
 }
 function showPlan(p){
   const my=++drawId;

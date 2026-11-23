@@ -17,7 +17,7 @@ on:
 
 jobs:
   ios:
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 45
     defaults:
       run:
@@ -36,7 +36,7 @@ jobs:
         run: npm run build
 
       - name: Elegir Xcode
-        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)" && xcodebuild -version
+        run: xcodebuild -version
 
       - name: Prueba de compilación sin firmar
         if: ${{ inputs.solo_probar }}
