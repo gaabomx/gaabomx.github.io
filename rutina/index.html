@@ -73,7 +73,7 @@ header p{margin:12px 0 0;max-width:52ch;color:var(--mute)}
 .main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;align-items:start}
 .card{background:rgba(14,16,20,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:20px;padding:20px}
 .coach{position:sticky;top:16px;padding:0;overflow:hidden}
-.stage{background:radial-gradient(55% 30% at 50% 88%,rgba(255,110,30,.35),transparent 70%),radial-gradient(70% 70% at 50% 0%,rgba(255,200,120,.14),transparent 60%),#0a0b0e;position:relative}
+.stage{background:radial-gradient(80% 70% at 50% 35%,#ffffff 0%,#f6f6f4 60%,#ebebe8 100%);position:relative}
 #stage3d{display:none;width:100%;aspect-ratio:1/1;max-height:520px;touch-action:none;cursor:grab}
 #stage3d canvas{display:block;width:100%!important;height:100%!important}
 .stage.is3d #stage3d{display:block}
@@ -344,6 +344,7 @@ footer{font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script>
 (function(){
 "use strict";
@@ -446,7 +447,7 @@ variant("lunge","rlunge","Zancada hacia atrás",null,["Da el paso hacia atrás, 
 const SEAT={an:"n",x:150,y:180,th:0,sh:90};
 const SMITH_ARMS={ua:120,la:-60};
 Object.assign(EX,{
-  chestmachine:{name:"Press de pecho en máquina",eq:"seat",tower:-70,dyn:"grips",frames:[Object.assign({},SEAT,{t:-98,ua:130,la:-25}),Object.assign({},SEAT,{t:-98,ua:5,la:0})],labels:["Atrás","Empuja"],d:1.2,
+  chestmachine:{name:"Press de pecho en máquina",eq:"seat",tower:-70,dyn:"grips",pivot:[118,22],frames:[Object.assign({},SEAT,{t:-98,ua:130,la:-25}),Object.assign({},SEAT,{t:-98,ua:5,la:0})],labels:["Atrás","Empuja"],d:1.2,
     tips:["Ajusta el asiento para que las manijas queden a la altura del pecho.","Espalda pegada al respaldo, empuja sin bloquear codos.","Regresa lento hasta sentir el estiramiento en el pecho."],avoid:"Despegar la espalda del respaldo."},
   smithbench:{name:"Press de banca en Smith",eq:"bench",smith:true,dyn:"smith",frames:[{an:"n",x:185,y:168,t:180,ua:-90,la:-90,th:15,sh:95},{an:"n",x:185,y:168,t:180,ua:105,la:-75,th:15,sh:95}],labels:["Arriba","Abajo"],d:1.3,
     tips:["Pon el banco para que la barra baje a la mitad del pecho.","Gira la barra para soltar los ganchos.","Baja controlado y empuja; al final vuelve a enganchar."],avoid:"Rebotar la barra en el pecho."},
@@ -456,7 +457,7 @@ Object.assign(EX,{
     tips:["Rodillas fijas bajo el cojín.","Jala la barra al pecho llevando codos hacia abajo.","Sube lento hasta estirar los brazos."],avoid:"Jalar detrás de la nuca o columpiarte."},
   seatrow:{name:"Remo sentado en máquina",eq:"seat",tower:120,dyn:"grips",cable:[262,150],frames:[Object.assign({},SEAT,{t:-86,th:-4,sh:20,ua:0,la:0}),Object.assign({},SEAT,{t:-92,th:-4,sh:20,ua:170,la:10})],labels:["Brazos estirados","Jala"],d:1.2,
     tips:["Pecho al frente, espalda derecha.","Jala hacia el ombligo juntando los omóplatos.","Regresa lento sin redondear la espalda."],avoid:"Echarte hacia atrás para jalar."},
-  shouldermachine:{name:"Press de hombro en máquina",eq:"seat",tower:-70,dyn:"grips",frames:[Object.assign({},SEAT,{t:-95,ua:100,la:-90}),Object.assign({},SEAT,{t:-95,ua:-88,la:-90})],labels:["Abajo","Arriba"],d:1.2,
+  shouldermachine:{name:"Press de hombro en máquina",eq:"seat",tower:-70,dyn:"grips",pivot:[96,150],frames:[Object.assign({},SEAT,{t:-95,ua:100,la:-90}),Object.assign({},SEAT,{t:-95,ua:-88,la:-90})],labels:["Abajo","Arriba"],d:1.2,
     tips:["Manijas a la altura de los hombros al empezar.","Empuja arriba sin bloquear codos.","Baja lento hasta las orejas."],avoid:"Arquear la espalda baja."},
   abmachine:{name:"Abdomen en máquina",eq:"seat",tower:-70,frames:[Object.assign({},SEAT,{t:-95,ua:115,la:-60}),Object.assign({},SEAT,{t:-55,hd:-45,ua:155,la:-20})],labels:["Arriba","Aprieta"],d:1.1,
     tips:["Sujeta las manijas sin jalar con los brazos.","Enrolla el torso apretando el abdomen.","Regresa lento sin dejar caer el peso."],avoid:"Usar impulso o demasiado peso."},
@@ -686,7 +687,7 @@ function init3D(){
   let renderer; try{renderer=new T.WebGLRenderer({antialias:true,alpha:true});}catch(e){return null;}
   renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=T.PCFSoftShadowMap;
-  renderer.outputEncoding=T.sRGBEncoding; renderer.toneMapping=T.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15;
+  renderer.outputEncoding=T.sRGBEncoding; renderer.toneMapping=T.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
   host.appendChild(renderer.domElement);
   const scene=new T.Scene();
   const cam=new T.PerspectiveCamera(30,1,1,4000); cam.position.set(330,190,470);
@@ -694,31 +695,40 @@ function init3D(){
   ctl.enablePan=false; ctl.enableDamping=true; ctl.dampingFactor=.08; ctl.minDistance=240; ctl.maxDistance=950; ctl.maxPolarAngle=Math.PI*.56; ctl.autoRotateSpeed=2.4; ctl.target.set(0,110,0);
   ctl.addEventListener("start",()=>host.classList.add("touched"));
   const col=h=>new T.Color(h).convertSRGBToLinear();
-  scene.add(new T.HemisphereLight(col("#d8dcff"),col("#2a1a10"),.55));
-  const key=new T.DirectionalLight(col("#fff1df"),1.5); key.position.set(260,420,320); key.castShadow=true;
-  key.shadow.mapSize.set(1024,1024); const sc=key.shadow.camera; sc.left=-260;sc.right=260;sc.top=260;sc.bottom=-260;sc.near=50;sc.far=1400; key.shadow.bias=-.0008;
+  scene.add(new T.HemisphereLight(0xffffff,0xd9d9d9,.75));
+  const key=new T.DirectionalLight(0xffffff,1.15); key.position.set(220,460,300); key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048); const sc=key.shadow.camera; sc.left=-280;sc.right=280;sc.top=300;sc.bottom=-280;sc.near=50;sc.far=1500; key.shadow.bias=-.0006; key.shadow.radius=6;
   scene.add(key);
-  const rim=new T.DirectionalLight(col("#ff7a2a"),1.25); rim.position.set(-380,220,-260); scene.add(rim);
-  const rim2=new T.DirectionalLight(col("#ffc23d"),.9); rim2.position.set(-200,160,380); scene.add(rim2);
-  const floor=new T.Mesh(new T.CircleGeometry(520,72),new T.MeshStandardMaterial({color:col("#08090b"),roughness:1,metalness:0}));
+  const fill=new T.DirectionalLight(0xffffff,.45); fill.position.set(-300,200,-200); scene.add(fill);
+  if(T.RoomEnvironment){try{const pm=new T.PMREMGenerator(renderer); scene.environment=pm.fromScene(new T.RoomEnvironment(),.04).texture;}catch(e){}}
+  const floor=new T.Mesh(new T.PlaneGeometry(3000,3000),new T.ShadowMaterial({opacity:.16}));
   floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-  const ring=new T.Mesh(new T.RingGeometry(150,153,96),new T.MeshBasicMaterial({color:col("#ff7a1f"),transparent:true,opacity:.85}));
-  ring.rotation.x=-Math.PI/2; ring.position.y=.4; scene.add(ring);
-  const ring2=new T.Mesh(new T.RingGeometry(158,159.5,96),new T.MeshBasicMaterial({color:col("#ffb21e"),transparent:true,opacity:.35}));
-  ring2.rotation.x=-Math.PI/2; ring2.position.y=.4; scene.add(ring2);
-
   const M={
     skin:new T.MeshStandardMaterial({color:col("#4a2918"),roughness:.4,metalness:.03}),
     shirt:new T.MeshStandardMaterial({color:col("#111316"),roughness:.62}),
     shorts:new T.MeshStandardMaterial({color:col("#0d0e10"),roughness:.75}),
-    shoe:new T.MeshStandardMaterial({color:col("#141416"),roughness:.5}),
-    sole:new T.MeshStandardMaterial({color:col("#101012"),roughness:.6}),
+    shoe:new T.MeshBasicMaterial({color:0x000000}),
+    sole:new T.MeshBasicMaterial({color:0x000000}),
     hair:new T.MeshStandardMaterial({color:col("#0c0908"),roughness:.95}),
     eye:new T.MeshStandardMaterial({color:col("#0a0a0a"),roughness:.2}),
     metal:new T.MeshStandardMaterial({color:col("#8d939a"),roughness:.3,metalness:.85}),
-    plate:new T.MeshStandardMaterial({color:col("#1c1f23"),roughness:.5,metalness:.4}),
+    plate:new T.MeshStandardMaterial({color:col("#2a2c30"),roughness:.55,metalness:.3}),
     bench:new T.MeshStandardMaterial({color:col("#24272c"),roughness:.6}),
     mat:new T.MeshStandardMaterial({color:col("#2b3a47"),roughness:.9})
+  };
+  const EM={
+    frame:new T.MeshStandardMaterial({color:col("#2c2f34"),roughness:.45,metalness:.55}),
+    chrome:new T.MeshStandardMaterial({color:col("#e8ebee"),roughness:.12,metalness:1}),
+    uph:new T.MeshStandardMaterial({color:col("#3a3c41"),roughness:.75}),
+    plate:new T.MeshStandardMaterial({color:col("#505459"),roughness:.4,metalness:.7}),
+    plate2:new T.MeshStandardMaterial({color:col("#43464b"),roughness:.4,metalness:.7}),
+    shroud:new T.MeshStandardMaterial({color:col("#bfc3c8"),roughness:.35,metalness:.3,transparent:true,opacity:.55}),
+    knob:new T.MeshStandardMaterial({color:col("#d6a02a"),roughness:.4}),
+    grip:new T.MeshStandardMaterial({color:col("#1d1e20"),roughness:.9}),
+    cable:new T.MeshStandardMaterial({color:col("#111"),roughness:.6}),
+    mat:new T.MeshStandardMaterial({color:col("#6f7782"),roughness:.95}),
+    belt:new T.MeshStandardMaterial({color:col("#16171a"),roughness:.95}),
+    screen:new T.MeshStandardMaterial({color:col("#0c2a3a"),roughness:.2,emissive:col("#0e4c6e"),emissiveIntensity:.6})
   };
   const UP=new T.Vector3(0,1,0);
   function lathe(prof,mat,parent,sx,sz){
@@ -781,11 +791,11 @@ function init3D(){
   beard2.scale.set(3.6,3.4,4.8); beard2.position.set(8.5,-9.3,0); head.add(beard2);
   const eqG=new T.Group(); scene.add(eqG);
   function mkDB(){const g=new T.Group();
-    const h=new T.Mesh(new T.CylinderGeometry(1.7,1.7,20,12),M.metal); h.rotation.x=Math.PI/2; g.add(h);
-    [-8,8].forEach(z=>{const p=new T.Mesh(new T.CylinderGeometry(7.5,7.5,4,20),M.plate); p.rotation.x=Math.PI/2; p.position.z=z; p.castShadow=true; g.add(p);});
+    const h=new T.Mesh(new T.CylinderGeometry(1.6,1.6,14,16),EM.chrome); h.rotation.x=Math.PI/2; g.add(h);
+    [-8.5,8.5].forEach(z=>{const p=new T.Mesh(new T.CylinderGeometry(6.4,6.4,5,6),M.plate); p.rotation.x=Math.PI/2; p.rotation.y=Math.PI/6; p.position.z=z; p.castShadow=true; g.add(p);});
     g.visible=false; scene.add(g); return g;}
   const db1=mkDB(), db2=mkDB();
-  T3={T,renderer,scene,cam,ctl,host,B,M,db1,db2,eqG,mode:"side"};
+  T3={T,renderer,scene,cam,ctl,host,B,M,EM,db1,db2,eqG,mode:"side"};
   const ro=new ResizeObserver(()=>{const w=host.clientWidth,h=host.clientHeight; if(!w||!h) return; renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();});
   ro.observe(host);
   return T3;
@@ -835,26 +845,85 @@ function update3(o){
   return J;
 }
 function equip3(id,o){
-  const T=T3.T, g=T3.eqG; while(g.children.length) g.remove(g.children[0]);
-  const eq=EX[id].eq||""; const J=fk3(o);
-  if(MODEL){update3(o); const v=new T.Vector3(); MODEL.b.rHand.getWorldPosition(v); J.w1=v.clone(); MODEL.b.hips.getWorldPosition(v); J.hip=v.clone(); MODEL.b.neck.getWorldPosition(v); J.sh=v.clone();}
-  const box=(w,h,d,x,y,z,mat)=>{const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; g.add(m); return m;};
-  const cyl=(r,len,p,axis,mat)=>{const m=new T.Mesh(new T.CylinderGeometry(r,r,len,14),mat); m.position.copy(p); if(axis==="z") m.rotation.x=Math.PI/2; if(axis==="x") m.rotation.z=Math.PI/2; m.castShadow=true; g.add(m); return m;};
-  if(eq==="mat") box(240,2,70,-10,1,0,T3.M.mat);
-  const ex=EX[id];
-  if(eq==="seat"||eq==="press"){
-    const hp=J.hip, up=J.up.clone().normalize(), fc=new T.Vector3(up.y,-up.x,0).normalize();
-    const sy=hp.y-11; box(40,7,40,hp.x+6,sy-3.5,0,T3.M.bench); box(8,sy-7,8,hp.x+6,(sy-7)/2,0,T3.M.metal);
-    const bk=box(8,eq==="press"?70:62,36,0,0,0,T3.M.bench); bk.position.copy(hp).addScaledVector(up,eq==="press"?30:34).addScaledVector(fc,-14); bk.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),up);
-    if(eq==="press"){box(10,150,70,J.hip.x+120,75,0,T3.M.metal).rotation.z=.45; box(70,8,40,J.hip.x-10,30,0,T3.M.bench).rotation.z=.75;}
+  const T=T3.T, g=T3.eqG, Mt=T3.EM; while(g.children.length) g.remove(g.children[0]);
+  const ex=EX[id], eq=ex.eq||""; const J=fk3(o);
+  const add=m=>{m.castShadow=true; m.receiveShadow=true; g.add(m); return m;};
+  const box=(w,h,d,x,y,z,mat)=>{const m=add(new T.Mesh(new T.BoxGeometry(w,h,d),mat)); m.position.set(x,y,z); return m;};
+  const pad=(w,h,d,x,y,z,mat)=>{const r=Math.min(3,h/2-.2,w/2-.2); const sh=new T.Shape(); const W=w/2-r,H=h/2-r;
+    sh.moveTo(-W,-h/2); sh.lineTo(W,-h/2); sh.quadraticCurveTo(w/2,-h/2,w/2,-H); sh.lineTo(w/2,H); sh.quadraticCurveTo(w/2,h/2,W,h/2); sh.lineTo(-W,h/2); sh.quadraticCurveTo(-w/2,h/2,-w/2,H); sh.lineTo(-w/2,-H); sh.quadraticCurveTo(-w/2,-h/2,-W,-h/2);
+    const ge=new T.ExtrudeGeometry(sh,{depth:d-4,bevelEnabled:true,bevelSize:2,bevelThickness:2,bevelSegments:3,curveSegments:6}); ge.translate(0,0,-(d-4)/2);
+    const m=add(new T.Mesh(ge,mat||Mt.uph)); m.position.set(x,y,z); return m;};
+  const tube=(a,b,r,mat)=>{const d=b.clone().sub(a), m=add(new T.Mesh(new T.CylinderGeometry(r,r,d.length(),16),mat||Mt.frame)); m.position.copy(a).add(b).multiplyScalar(.5); m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize()); return m;};
+  const sq=(a,b,s,mat)=>{const d=b.clone().sub(a), m=add(new T.Mesh(new T.BoxGeometry(s,d.length(),s),mat||Mt.frame)); m.position.copy(a).add(b).multiplyScalar(.5); m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize()); return m;};
+  const V=(x,y,z)=>new T.Vector3(x,y,z);
+  const plateDisc=(p,r,th,axis)=>{const m=add(new T.Mesh(new T.CylinderGeometry(r,r,th,32),Mt.plate)); m.position.copy(p); if(axis==="z") m.rotation.x=Math.PI/2; const hub=add(new T.Mesh(new T.CylinderGeometry(r*.28,r*.28,th+.6,20),Mt.chrome)); hub.position.copy(p); hub.rotation.copy(m.rotation); return m;};
+  // Torre de pesas con placas, guías y polea
+  const stack=(x,z,h)=>{
+    h=h||210;
+    sq(V(x-14,0,z-16),V(x-14,h,z-16),5); sq(V(x+14,0,z-16),V(x+14,h,z-16),5); sq(V(x-14,0,z+16),V(x-14,h,z+16),5); sq(V(x+14,0,z+16),V(x+14,h,z+16),5);
+    box(34,4,38,x,2,z,Mt.frame); box(34,5,38,x,h,z,Mt.frame);
+    tube(V(x,6,z-7),V(x,h-6,z-7),.9,Mt.chrome); tube(V(x,6,z+7),V(x,h-6,z+7),.9,Mt.chrome);
+    for(let i=0;i<13;i++) box(20,4.2,26,x,8+i*4.8,z,i%2?Mt.plate:Mt.plate2);
+    tube(V(x,70,z),V(x,h-10,z),.7,Mt.chrome);
+    const pu=add(new T.Mesh(new T.CylinderGeometry(6,6,3,24),Mt.chrome)); pu.position.set(x,h+5,z); pu.rotation.x=Math.PI/2;
+    box(28,60,2,x,40,z+19.5,Mt.shroud); box(28,60,2,x,40,z-19.5,Mt.shroud);
+  };
+  const seatUnit=(hp,up,fc,back)=>{
+    const sy=hp.y-11; pad(40,7,40,hp.x+6,sy-3.5,0);
+    sq(V(hp.x+6,sy-7,0),V(hp.x+6,3,0),6); box(46,4,8,hp.x+6,2,0,Mt.frame); box(8,4,46,hp.x+6,2,0,Mt.frame);
+    const pin=add(new T.Mesh(new T.SphereGeometry(2.5,12,10),Mt.knob)); pin.position.set(hp.x+11,sy-20,0);
+    if(back){const bk=pad(10,back,36,0,0,0); bk.position.copy(hp).addScaledVector(up,back/2+4).addScaledVector(fc,-15); bk.quaternion.setFromUnitVectors(V(0,1,0),up.clone());
+      sq(bk.position.clone().addScaledVector(fc,-6).addScaledVector(up,-back/2+4),V(hp.x-24,3,0),5);}
+  };
+  if(eq==="mat") pad(200,2.4,60,-10,1.2,0,Mt.mat);
+  if(eq==="seat"){
+    const hp=J.hip, up=J.up.clone().normalize(), fc=V(-up.y,up.x,0).multiplyScalar(-1).normalize();
+    seatUnit(hp,up,fc,58);
+    if(ex.tower!=null) stack(hp.x+ex.tower,0,ex.tower>0?150:215);
+    if(ex.tower!=null&&ex.tower<0){const tx=hp.x+ex.tower; sq(V(tx+14,212,0),V(hp.x+30,212,0),5); }
+    if(id==="pulldown"||id==="chinup"){const kp=add(new T.Mesh(new T.CylinderGeometry(5,5,40,20),Mt.uph)); kp.rotation.x=Math.PI/2; kp.position.set(J.k1.x-6,J.k1.y+12,0); sq(V(J.k1.x-6,J.k1.y+12,0),V(hp.x+30,0,0),5); }
+    if(ex.tower>0) {pad(14,30,40,J.a1.x+10,J.a1.y+10,0,Mt.frame);}
   }
-  if(ex.tower!=null){const tx=J.hip.x+ex.tower; box(24,215,34,tx,107.5,0,T3.M.bench); box(18,90,26,tx,52,0,T3.M.plate);
-    if(ex.cable){box(14,6,14,ex.cable[0]-150,228-ex.cable[1],0,T3.M.metal);}}
-  if(ex.smith){const x=EX[id].poses?fk3(EX[id].poses[0]).w1.x:J.w1.x; [-62,62].forEach(z=>{cyl(2.2,230,new T.Vector3(x-4,115,z),"y",T3.M.metal); cyl(2.2,230,new T.Vector3(x+4,115,z),"y",T3.M.metal);}); box(20,4,140,x,230,0,T3.M.bench); box(30,3,150,x,1.5,0,T3.M.bench);}
-  if(eq==="tread"){box(150,8,60,-5,4,0,T3.M.bench); box(140,1,46,-5,8.5,0,T3.M.plate); [-30,30].forEach(z=>cyl(2,110,new T.Vector3(75,55,z),"y",T3.M.metal)); box(14,24,64,78,110,0,T3.M.bench);}
-  if(eq==="bench"){const top=J.hip.y-(MODEL?14:12), x1=J.sh.x-28, x2=J.hip.x+18; box(x2-x1,7,30,(x1+x2)/2,top-3.5,0,T3.M.bench); box(6,top-7,24,x1+14,(top-7)/2,0,T3.M.metal); box(6,top-7,24,x2-14,(top-7)/2,0,T3.M.metal);}
-  if(eq==="bar"){const y=J.w1.y+(MODEL?3:0), x=J.w1.x; cyl(2.4,150,new T.Vector3(x,y,0),"z",T3.M.metal); [-70,70].forEach(z=>cyl(3,y,new T.Vector3(x,y/2,z),"y",T3.M.bench));}
-  if(eq==="dip"){const y=J.w1.y-(MODEL?3:5), x=J.w1.x; [-19,19].forEach(z=>{cyl(2.6,110,new T.Vector3(x,y,z),"x",T3.M.metal); [-45,45].forEach(dx=>cyl(2.8,y,new T.Vector3(x+dx,y/2,z),"y",T3.M.bench));});}
+  if(eq==="press"){
+    const hp=J.hip, up=J.up.clone().normalize(), fc=V(-up.y,up.x,0).multiplyScalar(-1).normalize();
+    const sp=pad(44,7,40,0,0,0); sp.position.copy(hp).addScaledVector(up,-10).addScaledVector(fc,6); sp.rotation.z=Math.atan2(fc.y,fc.x);
+    const bk=pad(10,70,40,0,0,0); bk.position.copy(hp).addScaledVector(up,38).addScaledVector(fc,-15); bk.quaternion.setFromUnitVectors(V(0,1,0),up);
+    const ld=J.a1.clone().sub(J.h1).normalize();
+    [-26,26].forEach(z=>{const a=V(hp.x+30,10,z), b=V(hp.x+30,10,z).addScaledVector(ld,190); sq(a,b,6);});
+    box(90,6,70,hp.x+40,3,0,Mt.frame); sq(V(hp.x+10,3,0),sp.position.clone().addScaledVector(up,-6),6);
+    sq(V(hp.x-30,3,0),bk.position.clone().addScaledVector(fc,-6),6);
+  }
+  if(eq==="bench"){
+    const top=J.hip.y-(T3.H?13:12), x1=J.sh.x-30, x2=J.hip.x+20;
+    pad(x2-x1,8,28,(x1+x2)/2,top-4,0);
+    sq(V(x1+14,top-8,0),V(x1+14,3,0),5); sq(V(x2-14,top-8,0),V(x2-14,3,0),5);
+    box(6,4,40,x1+14,2,0,Mt.frame); box(6,4,40,x2-14,2,0,Mt.frame); sq(V(x1+14,6,0),V(x2-14,6,0),4);
+  }
+  if(eq==="bar"||eq==="dip"){
+    const hy=J.w1.y, hx=J.w1.x;
+    const fx=hx-40; [-34,34].forEach(z=>{sq(V(fx,0,z),V(fx,eq==="bar"?hy+16:hy+70,z),6);});
+    box(12,6,74,fx,(eq==="bar"?hy+16:hy+70),0,Mt.frame);
+    if(eq==="bar"){tube(V(hx,hy+2,-34),V(hx,hy+2,34),1.8,Mt.chrome); sq(V(fx,hy+2,-30),V(hx,hy+2,-30),4); sq(V(fx,hy+2,30),V(hx,hy+2,30),4);
+      tube(V(hx-8,hy+2,-26),V(hx+8,hy+2,-30),1.6,Mt.chrome); }
+    else {[-20,20].forEach(z=>{tube(V(hx-30,hy-2,z),V(hx+30,hy-2,z),2.2,Mt.chrome); sq(V(fx,hy-2,z),V(hx-30,hy-2,z),4);});}
+    const kp=pad(30,6,40,0,0,0); kp.position.set(fx+30,eq==="bar"?J.k1.y-6:J.k1.y-6,0); sq(V(fx,kp.position.y,0),kp.position,5);
+    stack(fx-30,0,eq==="bar"?hy+16:hy+70);
+    box(60,4,80,fx-10,2,0,Mt.frame);
+  }
+  if(ex.smith){
+    const x=fk3(ex.poses[0]).w1.x;
+    [-62,62].forEach(z=>{tube(V(x-5,0,z),V(x-5,228,z),2,Mt.chrome); tube(V(x+5,0,z),V(x+5,228,z),2,Mt.chrome); sq(V(x-30,0,z),V(x-30,232,z),6); sq(V(x+30,0,z),V(x+30,232,z),6); box(64,5,8,x,232,z,Mt.frame); box(64,4,8,x,2,z,Mt.frame);
+      for(let i=1;i<9;i++) box(3,2,3,x-9,i*24,z+(z>0?-3:3),Mt.knob);});
+    box(64,4,132,x,232,0,Mt.frame).scale.z=.06; sq(V(x-30,2,-62),V(x-30,2,62),5); sq(V(x+30,2,-62),V(x+30,2,62),5);
+  }
+  if(eq==="tread"){
+    box(150,9,64,-5,5,0,Mt.frame); box(136,1.5,46,-5,10.2,0,Mt.belt);
+    box(30,16,64,80,9,0,Mt.shroud);
+    [-29,29].forEach(z=>{sq(V(78,12,z),V(70,120,z),6); tube(V(70,108,z),V(10,108,z),1.6,Mt.chrome);});
+    const con=pad(18,30,66,74,128,0,Mt.frame); con.rotation.z=.5;
+    box(2,14,30,66,132,0,Mt.screen).rotation.z=.5;
+  }
+  if(ex.tower!=null&&eq!=="seat") stack(J.hip.x+ex.tower,0,215);
 }
 function frame3(id){
   T3.mode=EX[id].frames[0].w===1?"front":"side";
@@ -948,8 +1017,8 @@ function buildBody(){
     const c=y<13.5?BK:(y<15?lerpC(BK,SK,(y-13.5)/1.5):SK);
     return {p:[x,y,z],c};
   });
-  const mat=new T.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.05});
-  const smat=new T.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.05,skinning:true});
+  const mat=new T.MeshBasicMaterial({color:0x000000});
+  const smat=new T.MeshBasicMaterial({color:0x000000,skinning:true});
   const torsoMesh=new T.Mesh(torso.g,mat); torsoMesh.castShadow=true; torsoMesh.receiveShadow=true; T3.scene.add(torsoMesh);
   // Extremidades con piel continua y dos huesos
   function limb(prof,L1,blend,colorFn,flat){
@@ -1000,31 +1069,44 @@ function poseBody(J){
 
 /* ---------- Partes móviles de las máquinas ---------- */
 function buildDyn(){
-  const T=T3.T, M=T3.M, D={};
-  const cyl=(r,len,mat)=>{const h=new T.Object3D(); const m=new T.Mesh(new T.CylinderGeometry(r,r,len,16),mat); m.castShadow=true; h.add(m); h.visible=false; T3.scene.add(h); return h;};
-  D.bar=cyl(1.8,74,M.metal); D.bar.children[0].rotation.x=Math.PI/2;
-  D.g1=cyl(2.2,14,M.plate); D.g2=cyl(2.2,14,M.plate); D.g1.children[0].rotation.x=Math.PI/2; D.g2.children[0].rotation.x=Math.PI/2;
-  D.cable=cyl(.5,1,M.plate); D.cable.children[0].position.y=.5;
-  D.pad=cyl(5.5,44,M.bench); D.pad.children[0].rotation.x=Math.PI/2;
-  D.smith=cyl(2,120,M.metal); D.smith.children[0].rotation.x=Math.PI/2;
-  const pl=new T.Mesh(new T.BoxGeometry(70,3,62),M.bench); pl.castShadow=true; D.plate=new T.Object3D(); D.plate.add(pl); D.plate.visible=false; T3.scene.add(D.plate);
+  const T=T3.T, Mt=T3.EM, D={};
+  const holder=(mesh)=>{const h=new T.Object3D(); mesh.castShadow=true; h.add(mesh); h.visible=false; T3.scene.add(h); return h;};
+  const cylY=(r,len,mat,seg)=>new T.Mesh(new T.CylinderGeometry(r,r,len,seg||16),mat);
+  // barra recta de polea
+  const bar=new T.Group(); const bm=cylY(1.4,80,Mt.chrome); bm.rotation.x=Math.PI/2; bar.add(bm); [-34,34].forEach(z=>{const gr=cylY(1.9,16,Mt.grip); gr.rotation.x=Math.PI/2; gr.position.z=z; bar.add(gr);}); D.bar=holder(bar);
+  const mk=()=>{const gp=new T.Group(); const c=cylY(1.9,13,Mt.grip); c.rotation.x=Math.PI/2; gp.add(c); return holder(gp);};
+  D.g1=mk(); D.g2=mk();
+  D.cable=holder(cylY(.45,1,Mt.cable,8)); D.cable.children[0].position.y=.5;
+  D.lev1=holder(new T.Mesh(new T.BoxGeometry(5,1,5),Mt.frame)); D.lev1.children[0].position.y=.5;
+  D.lev2=holder(new T.Mesh(new T.BoxGeometry(5,1,5),Mt.frame)); D.lev2.children[0].position.y=.5;
+  const padG=new T.Group(); const pc=cylY(5.5,40,Mt.uph,24); pc.rotation.x=Math.PI/2; padG.add(pc); D.pad=holder(padG);
+  D.padArm=holder(new T.Mesh(new T.BoxGeometry(5,1,5),Mt.frame)); D.padArm.children[0].position.y=.5;
+  const sm=new T.Group(); const sb=cylY(1.6,140,Mt.chrome); sb.rotation.x=Math.PI/2; sm.add(sb);
+  [-48,48].forEach(z=>{const p=cylY(15,3.5,Mt.plate,32); p.rotation.x=Math.PI/2; p.position.z=z; sm.add(p); const p2=cylY(11,3,Mt.plate2,32); p2.rotation.x=Math.PI/2; p2.position.z=z+(z>0?3.6:-3.6); sm.add(p2);});
+  [-62,62].forEach(z=>{const hk=new T.Mesh(new T.BoxGeometry(4,6,3),Mt.frame); hk.position.set(-3,-2,z); sm.add(hk);});
+  D.smith=holder(sm);
+  const pl=new T.Group(); const sled=new T.Mesh(new T.BoxGeometry(62,3,66),Mt.frame); pl.add(sled); const tread=new T.Mesh(new T.BoxGeometry(56,1,60),Mt.belt); tread.position.y=-1.8; pl.add(tread);
+  [-30,30].forEach(z=>{const hr=cylY(1.4,22,Mt.chrome); hr.position.set(-20,14,z); pl.add(hr); [-1,1].forEach(s=>{const d=cylY(12,3,Mt.plate,28); d.position.set(-20,14+s*4,z); pl.add(d);});});
+  D.plate=holder(pl);
   T3.D=D;
 }
+function segTo(o,a,b){const T=T3.T, d=b.clone().sub(a); o.visible=true; o.position.copy(a); o.scale.set(1,d.length(),1); o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());}
 function updateDyn(J){
   const D=T3.D; if(!D) return; const T=T3.T, ex=EX[cur], dyn=ex.dyn||"";
-  Object.values(D).forEach(o=>o.visible=false);
+  for(const k in D) D[k].visible=false;
   const f1=J.w1.clone().sub(J.e1).normalize(), f2=J.w2.clone().sub(J.e2).normalize();
-  const h1=J.w1.clone().addScaledVector(f1,5), h2=J.w2.clone().addScaledVector(f2,5), mid=h1.clone().add(h2).multiplyScalar(.5);
-  if(dyn==="bar"||dyn==="grips"||dyn==="smith"){
-    if(dyn==="grips"){D.g1.visible=D.g2.visible=true; D.g1.position.copy(h1); D.g2.position.copy(h2);}
-    else {const o=dyn==="smith"?D.smith:D.bar; o.visible=true; o.position.copy(mid);}
-    if(ex.cable){const a=new T.Vector3(ex.cable[0]-150,228-ex.cable[1],0), d=a.clone().sub(mid); D.cable.visible=true; D.cable.position.copy(mid); D.cable.scale.set(1,d.length(),1); D.cable.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());}
-  }
+  const h1=J.w1.clone().addScaledVector(f1,4), h2=J.w2.clone().addScaledVector(f2,4), mid=h1.clone().add(h2).multiplyScalar(.5);
+  if(dyn==="grips"){D.g1.visible=D.g2.visible=true; D.g1.position.copy(h1); D.g2.position.copy(h2);
+    if(ex.pivot){const p=new T.Vector3(ex.pivot[0]-150,228-ex.pivot[1],0); segTo(D.lev1,p.clone().setZ(h1.z+6),h1.clone().setZ(h1.z+6)); segTo(D.lev2,p.clone().setZ(h2.z-6),h2.clone().setZ(h2.z-6));}}
+  if(dyn==="bar"){D.bar.visible=true; D.bar.position.copy(mid);}
+  if(dyn==="smith"){D.smith.visible=true; D.smith.position.copy(mid);}
+  if(ex.cable&&(dyn==="bar"||dyn==="grips")){const a=new T.Vector3(ex.cable[0]-150,228-ex.cable[1],0); segTo(D.cable,mid.clone().setZ(0),a);}
   if(dyn==="padFront"||dyn==="padBack"){
     const sd=J.a1.clone().sub(J.k1).normalize(), n=new T.Vector3(-sd.y,sd.x,0).multiplyScalar(dyn==="padFront"?8:-8);
     D.pad.visible=true; D.pad.position.set(J.a1.x,J.a1.y,0).add(n).addScaledVector(sd,-5);
+    segTo(D.padArm,new T.Vector3(J.k1.x,J.k1.y,-24),D.pad.position.clone().setZ(-24));
   }
-  if(dyn==="plate"){const ld=J.a1.clone().sub(J.h1).normalize(); D.plate.visible=true; D.plate.position.set(J.a1.x,J.a1.y,0).addScaledVector(ld,8); D.plate.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),ld);}
+  if(dyn==="plate"){const ld=J.a1.clone().sub(J.h1).normalize(); D.plate.visible=true; D.plate.position.set(J.a1.x,J.a1.y,0).addScaledVector(ld,7); D.plate.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),ld);}
 }
 
 /* ---------- Animación ---------- */
