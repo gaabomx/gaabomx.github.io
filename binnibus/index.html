@@ -84,6 +84,10 @@ body.mopen .msec{opacity:1;transform:none}
 .mis{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .mis span{flex:1}
 .mis button{border:0;border-radius:8px;padding:6px 9px;font:600 12px Inter;cursor:pointer}
+.lv{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;text-align:center}
+.lv div{background:#ecfdf3;border-radius:10px;padding:8px 4px}
+.lv b{display:block;font:900 18px Archivo;color:#166534}
+.lv span{font-size:11px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -302,14 +306,14 @@ function renderPlans(){
   const wd=dd*1.25,wt=Math.round(wd/WALK);
   const walkBest=!plans.length||wt<=plans[0].t+3;
   let h=`<h2>${destName}</h2><div class="muted">${destAddr||""}</div>
-  <div class="opt walk" style="cursor:default${walkBest?";border:2px solid var(--ink)":""}"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${walkBest?"⭐ Mejor · ":""}<span id="wd">${fmt(wd)} · ${wt} min</span></div></div>${walkBest&&plans.length?'<div class="muted" style="margin-top:4px">Caminando llegas igual o más rápido que en camión.</div>':""}</div>`;
+  <div class="opt walk" style="cursor:default${walkBest?";border:2px solid var(--ink)":""}"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${walkBest?"⭐ Mejor · ":""}<span id="wd">${fmt(wd)} · ${wt} min</span> · llegas ${hora(wt)}</div></div>${walkBest&&plans.length?'<div class="muted" style="margin-top:4px">Caminando llegas igual o más rápido que en camión.</div>':""}</div>`;
   if(!plans.length){
     h+=`<p>No encontré un BinniBus que te deje razonablemente cerca de aquí. Puede que no haya ruta por esa zona.</p>`;
   }
   plans.forEach((p,i)=>{
     const L0=p.legs[0],L1=p.legs[p.legs.length-1];
     const walkT=Math.round(wmin(p.walk[0])+wmin(p.walk[1])+(p.tw?wmin(p.tw):0));
-    h+=`<div class="opt${i===0&&!walkBest?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0&&!walkBest?"⭐ Mejor · ":""}~${Math.round(p.t)} min · 🚶 ${walkT} min</div></div>
+    h+=`<div class="opt${i===0&&!walkBest?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0&&!walkBest?"⭐ Mejor · ":""}~${Math.round(p.t)} min · llegas ${hora(p.t)}</div></div>
     <ul class="steps">
       <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
       ${p.legs.map((l,j)=>`<li class="b">Toma la <b>${l.c}</b> con letrero <b>${l.dk}</b> · ${l.a.k-l.b.k} paradas (${fmt(l.rm)}, ~${Math.round(l.rm/BUS)} min)</li>
@@ -371,25 +375,66 @@ navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
     if(!origin){setOrigin(c,"tu ubicación");map.setView(c,15)}}
   else{me.setLatLng(c);acc.setLatLng(c).setRadius(p.coords.accuracy)}
   if(originIsMe) origin=c;
-  if(trip) checkTrip(c);
+  if(trip) checkTrip(c,p.coords.speed);
 },()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
 let originIsMe=true;
 $("me").onclick=()=>{if(me)map.setView(me.getLatLng(),16)};
+
+/* ---------- Datos en vivo del viaje ---------- */
+setInterval(()=>{if(trip&&me)liveRender([me.getLatLng().lat,me.getLatLng().lng])},30000);
+let TS=null; // estado del viaje
+const hora=m=>{const d=new Date(Date.now()+m*60000);return d.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})};
+function legProg(l,c){ // posición sobre el tramo del camión
+  const L=l.dir.line,i0=l.b.s.i,i1=l.a.s.i;let bi=i0,bd=1e9;
+  for(let i=i0;i<=i1;i++){const d=D(c,L[i]);if(d<bd){bd=d;bi=i}}
+  return {i:bi,off:bd};
+}
+function liveCalc(c){
+  const p=trip;if(!TS)TS={leg:0,onBus:false,speeds:[]};
+  let l=p.legs[TS.leg];
+  const pr=legProg(l,c);
+  // ¿ya va en el camión? (sobre la ruta y avanzó más de 120 m desde la parada)
+  if(!TS.onBus&&pr.off<70&&l.dir.cum[pr.i]-l.dir.cum[l.b.s.i]>120)TS.onBus=true;
+  // ¿ya pasó su bajada?
+  if(TS.onBus&&(D(c,l.a.s.ll)<60||pr.i>=l.a.s.i)&&TS.leg<p.legs.length-1){TS.leg++;TS.onBus=false;l=p.legs[TS.leg]}
+  else if(TS.onBus&&(D(c,l.a.s.ll)<60||pr.i>=l.a.s.i)&&TS.leg===p.legs.length-1){TS.onBus=false;TS.done=true}
+  let m=0,min=0,step="";
+  const busV=TS.v&&TS.onBus?Math.max(120,Math.min(600,TS.v)):BUS;
+  if(TS.done){const w=D(c,dest)*1.25;m=w;min=w/WALK;step=`🚶 Camina a tu destino`}
+  else{
+    const L=p.legs[TS.leg];
+    if(!TS.onBus){const w=D(c,L.b.s.ll)*1.25;m+=w;min+=w/WALK+WAIT;m+=L.rm;min+=L.rm/BUS;
+      step=w>40?`🚶 Camina ${fmt(w)} a la parada <b>${esc(L.b.s.name)}</b> y toma la <b>${L.c}</b>`:`🚏 Espera la <b>${L.c}</b> con letrero <b>${esc(L.dk)}</b>`}
+    else{const q=legProg(L,c);const r=Math.max(0,L.dir.cum[L.a.s.i]-L.dir.cum[q.i]);m+=r;min+=r/busV;
+      const left=L.dir.stops.filter(s=>s.i!=null&&!s.bad&&s.i>q.i&&s.i<=L.a.s.i).length;
+      step=`🚌 En la <b>${L.c}</b> · faltan <b>${left}</b> ${left===1?"parada":"paradas"} para <b>${esc(L.a.s.name)}</b>`}
+    for(let k=TS.leg+1;k<p.legs.length;k++){const K=p.legs[k];const tw=D(p.legs[k-1].a.s.ll,K.b.s.ll)*1.25;m+=tw+K.rm;min+=tw/WALK+WAIT+K.rm/BUS}
+    const fw=D(p.legs[p.legs.length-1].a.s.ll,dest)*1.25;m+=fw;min+=fw/WALK;
+  }
+  return {m,min:Math.max(1,Math.round(min)),step};
+}
+function liveRender(c){
+  const bar=$("tripbar");if(!bar||!trip)return;
+  const r=liveCalc(c);
+  bar.querySelector(".live").innerHTML=`<div class="lv"><div><b>${fmt(r.m)}</b><span>faltan</span></div><div><b>${r.min} min</b><span>restantes</span></div><div><b>${hora(r.min)}</b><span>llegada</span></div></div><div class="muted" style="margin-top:6px">${r.step}</div>`;
+  $("peek").innerHTML=`🟢 ${r.min} min · llegas ${hora(r.min)} · ${fmt(r.m)} ⌃`;
+}
 function tripBar(){
   let bar=$("tripbar");
   if(!trip){if(bar)bar.remove();return}
   const p=trip,last=p.legs[p.legs.length-1];
   const html=`<div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><b>🟢 Viaje en curso</b><div class="muted">${p.legs.map(l=>l.c).join(" → ")} · Bájate en <b>${last.a.s.name}</b></div></div><button id="cancelTrip" style="border:0;border-radius:10px;padding:10px 12px;background:#b91c1c;color:#fff;font:700 13px Inter">Cancelar viaje</button></div>`;
   if(!bar){bar=document.createElement("div");bar.id="tripbar";bar.className="opt";bar.style.cssText="border:2px solid #16a34a;cursor:default;margin-top:0";$("panel").prepend(bar)}
-  bar.innerHTML=html;$("cancelTrip").onclick=cancelTrip;
+  bar.innerHTML=html+'<div class="live"><div class="muted" style="margin-top:6px">📍 Esperando tu ubicación para calcular en vivo…</div></div>';$("cancelTrip").onclick=cancelTrip;if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
 function startTrip(p){
-  trip=p;warned={};
+  trip=p;warned={};TS=null;
   tripBar();
   document.querySelectorAll(".go").forEach(b=>{b.textContent="✓ Viaje iniciado · Cancelar";b.style.background="#b91c1c";b.onclick=e=>{e.stopPropagation();cancelTrip()}});
   if(me)map.setView(me.getLatLng(),16);else $("from").textContent="📍 Activa tu ubicación para que te avise dónde bajar";
   setSheet(true);
   $("peek").textContent=`🟢 Viaje en curso · Bájate en ${p.legs[p.legs.length-1].a.s.name} ⌃`;
+  if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
 function cancelTrip(){
   trip=null;warned={};$("alert").style.display="none";tripBar();
@@ -399,7 +444,9 @@ function cancelTrip(){
 function arrived(){
   const a=$("alert");a.innerHTML=`🏁 ¡Llegaste!<br><small style="font:600 14px Inter">Viaje terminado</small>`;a.style.display="block";setTimeout(()=>a.style.display="none",6000);cancelTrip();
 }
-function checkTrip(c){
+function checkTrip(c,sp){
+  if(TS&&sp!=null&&sp>=0){TS.v=TS.v?TS.v*.7+sp*60*.3:sp*60}
+  liveRender(c);
   trip.legs.forEach((l,j)=>{const s=l.a.s;const d=D(c,s.ll);
     if(d<450&&!warned[j]){warned[j]=1;const a=$("alert");a.innerHTML=`🔔 ¡Prepárate!<br>Bájate en <u>${s.name}</u><br><small style="font:600 14px Inter">${j<trip.legs.length-1?"ahí cambias a la "+trip.legs[j+1].c:"ya casi llegas"}</small>`;a.style.display="block";
       try{navigator.vibrate&&navigator.vibrate([400,150,400,150,600])}catch(e){}
