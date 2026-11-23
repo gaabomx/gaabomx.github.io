@@ -118,8 +118,6 @@ body.hasdest .clear2{display:block}
 .sonar i:nth-child(3){animation-delay:1.6s}
 @keyframes sonar{0%{transform:scale(.5);opacity:.95}80%{opacity:.08}100%{transform:scale(4.2);opacity:0}}
 @keyframes core{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-.sonar .hd{position:absolute;left:50%;top:50%;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:14px solid rgba(37,99,235,.85);transform-origin:50% 100%;margin:-26px 0 0 -7px;opacity:0;transition:opacity .3s}
-.sonar.dir .hd{opacity:1}
 .flow{animation:flow 1.1s linear infinite}
 @keyframes flow{to{stroke-dashoffset:-19}}
 .walkline{animation:wl 1.6s linear infinite}
@@ -163,6 +161,14 @@ body.fleft .seen{right:auto!important;left:70px}
 .tgl span:after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
 .tgl input:checked+span{background:var(--ok)}
 .tgl input:checked+span:after{left:21px}
+.sonar .cone{position:absolute;left:50%;top:50%;width:86px;height:86px;margin:-86px 0 0 -43px;transform-origin:50% 100%;background:radial-gradient(circle at 50% 100%,rgba(37,99,235,.65) 0,rgba(37,99,235,.25) 45%,rgba(37,99,235,0) 72%);clip-path:polygon(50% 100%,8% 0,92% 0);opacity:0;transition:opacity .4s;pointer-events:none;will-change:transform}
+.sonar.hdg .cone{opacity:1}
+.fab.follow{background:#2563eb;color:#fff}
+.lv b.blink{animation:blink .6s ease}
+@keyframes blink{0%{color:#22c55e;transform:scale(1.08)}100%{transform:none}}
+.lvupd{display:flex;align-items:center;gap:6px;font-size:11px;color:#16a34a;margin-top:6px;font-weight:700}
+.lvupd i{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:livep 1.2s infinite}
+@keyframes livep{50%{opacity:.25}}
 </style>
 </head>
 <body>
@@ -450,7 +456,7 @@ function walkLine(a,b,tag,delay){
     if(tag){document.querySelectorAll(`[data-w="${tag}"]`).forEach(e=>{e.textContent=fmt(w.m);if(w.cross&&!e.dataset.x){e.dataset.x=1;e.insertAdjacentHTML("afterend"," <span class='muted'>(cruzando la calle)</span>")}})}});
 }
 function showPlan(p){
-  const my=++drawId;
+  const my=++drawId;setFollow(false);
   tripLayer.clearLayers();hideNetwork();drawEnds();
   const pts=[origin];let delay=350;
   p.legs.forEach((l,j)=>{
@@ -487,29 +493,54 @@ function glide(to,heading,speed){ // desliza el punto suavemente a la nueva posi
   const step=t=>{const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);
     me.setLatLng([from.lat+(to[0]-from.lat)*e,from.lng+(to[1]-from.lng)*e]);if(k<1)glideRAF=requestAnimationFrame(step)};
   glideRAF=requestAnimationFrame(step);
-  const el=me.getElement&&me.getElement();const so=el&&el.querySelector(".sonar");
-  if(so){const moving=heading!=null&&!isNaN(heading)&&speed>0.7;so.classList.toggle("dir",moving);if(moving)so.querySelector(".hd").style.transform=`rotate(${heading}deg)`}
+  if(heading!=null&&!isNaN(heading)&&speed>1.2&&!compassOK)setHeading(heading);
 }
+/* ---------- Hacia dónde ves / vas (cono como Apple Maps) ---------- */
+let HDG=null,HDGshow=null,compassOK=false,hdgRAF=null,FOLLOW=true;
+function setHeading(h){HDG=((h%360)+360)%360;if(!hdgRAF)hdgRAF=requestAnimationFrame(hdgLoop)}
+function hdgLoop(){hdgRAF=null;if(HDG==null||!me)return;
+  if(HDGshow==null)HDGshow=HDG;let d=((HDG-HDGshow+540)%360)-180;HDGshow+=d*.25;
+  const el=me.getElement&&me.getElement();const so=el&&el.querySelector(".sonar");
+  if(so){so.classList.add("hdg");const b=map.getBearing?map.getBearing():0;so.querySelector(".cone").style.transform=`rotate(${HDGshow+b}deg)`}
+  if(Math.abs(d)>.3)hdgRAF=requestAnimationFrame(hdgLoop)}
+map.on("rotate",()=>{if(HDG!=null&&!hdgRAF)hdgRAF=requestAnimationFrame(hdgLoop)});
+function onOrient(e){let h=null;
+  if(e.webkitCompassHeading!=null)h=e.webkitCompassHeading;
+  else if(e.absolute&&e.alpha!=null)h=360-e.alpha;
+  if(h==null||isNaN(h))return;
+  const so=screen.orientation&&screen.orientation.angle||window.orientation||0;compassOK=true;setHeading(h+so)}
+function startCompass(){
+  const go=()=>{addEventListener("deviceorientationabsolute",onOrient,true);addEventListener("deviceorientation",onOrient,true)};
+  if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==="function"){
+    DeviceOrientationEvent.requestPermission().then(r=>{if(r==="granted")go()}).catch(()=>{})}else go();
+}
+// iPhone pide permiso de brújula con un toque: se pide en el primer toque a la pantalla
+let compAsked=false;addEventListener("pointerup",()=>{if(compAsked)return;compAsked=true;startCompass()},{capture:true});
+addEventListener("deviceorientationabsolute",onOrient,true);addEventListener("deviceorientation",onOrient,true);
 
 let me=null,acc=null,trip=null,warned={};
 function setOrigin(c,label){origin=c;$("from").textContent="📍 Desde: "+label;if(dest&&ready)plan()}
 navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
   const c=[p.coords.latitude,p.coords.longitude];
   if(!me){acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
-    me=L.marker(c,{icon:L.divIcon({className:"",iconSize:[24,24],iconAnchor:[12,12],html:'<div class="sonar"><i></i><i></i><i></i><span class="hd"></span><b></b></div>'}),zIndexOffset:2000,keyboard:false}).addTo(map).bindPopup("Estás aquí · en vivo");
+    me=L.marker(c,{icon:L.divIcon({className:"",iconSize:[24,24],iconAnchor:[12,12],html:'<div class="sonar"><i></i><i></i><i></i><span class="cone"></span><b></b></div>'}),zIndexOffset:2000,keyboard:false}).addTo(map).bindPopup("Estás aquí · en vivo");
     if(!origin){setOrigin(c,"tu ubicación");map.setView(c,15)}}
   else{glide(c,p.coords.heading,p.coords.speed);acc.setLatLng(c).setRadius(p.coords.accuracy)}
+  if(FOLLOW)map.panTo(c,{animate:true,duration:.8,easeLinearity:.5});
   if(originIsMe) origin=c;
   if(trip) checkTrip(c,p.coords.speed);
   if(SHARE) pingShare(c,p.coords.speed);
   nearStop(c);
-},()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
+},()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
 let originIsMe=true;
-$("me").onclick=()=>{if(me)map.setView(me.getLatLng(),16)};
+function setFollow(v){FOLLOW=v;$("me").classList.toggle("follow",v)}
+$("me").onclick=()=>{if(!me)return;setFollow(true);map.flyTo(me.getLatLng(),Math.max(map.getZoom(),17),{duration:.6})};
+map.on("dragstart",()=>setFollow(false));
+setFollow(true);
 
 /* ---------- Datos en vivo del viaje ---------- */
 const nat=(e,d)=>{try{window.bbNative&&window.bbNative(e,d||{})}catch(x){}};
-setInterval(()=>{if(trip&&me)liveRender([me.getLatLng().lat,me.getLatLng().lng])},30000);
+setInterval(()=>{if(trip&&me&&document.visibilityState==="visible")liveRender([me.getLatLng().lat,me.getLatLng().lng])},2000);
 let TS=null; // estado del viaje
 const hora=m=>{const d=new Date(Date.now()+m*60000);return d.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})};
 function legProg(l,c){ // posición sobre el tramo del camión
@@ -545,7 +576,11 @@ function liveRender(c){
   const bar=$("tripbar");if(!bar||!trip)return;
   const r=liveCalc(c);
   {const la=trip.legs[trip.legs.length-1].a.s;const fw=D(la.ll,dest)*1.25/WALK;nat("eta",{min:r.min,alight:Math.max(0,r.min-fw),stop:la.name,eta:hora(r.min)})}
-  bar.querySelector(".live").innerHTML=`<div class="lv"><div><b>${fmt(r.m)}</b><span>faltan</span></div><div><b>${r.min} min</b><span>restantes</span></div><div><b>${hora(r.min)}</b><span>llegada</span></div></div><div class="muted" style="margin-top:6px">${r.step}</div>`;
+  const live=bar.querySelector(".live");
+  if(!live.querySelector(".lv"))live.innerHTML=`<div class="lv"><div><b data-k="m"></b><span>faltan</span></div><div><b data-k="t"></b><span>restantes</span></div><div><b data-k="h"></b><span>llegada</span></div></div><div class="muted lvstep" style="margin-top:6px"></div><div class="lvupd"><i></i>en vivo</div>`;
+  const setv=(k,v)=>{const e=live.querySelector(`[data-k="${k}"]`);if(e.textContent!==v){e.textContent=v;e.classList.remove("blink");void e.offsetWidth;e.classList.add("blink")}};
+  setv("m",fmt(r.m));setv("t",r.min+" min");setv("h",hora(r.min));
+  const st=live.querySelector(".lvstep");if(st.innerHTML!==r.step)st.innerHTML=r.step;
   $("peek").innerHTML=`🟢 ${r.min} min · llegas ${hora(r.min)} · ${fmt(r.m)} ⌃`;
 }
 function tripBar(){
@@ -560,7 +595,7 @@ function startTrip(p){
   trip=p;warned={};TS=null;nat("start",{stop:p.legs[p.legs.length-1].a.s.name,route:p.legs.map(l=>l.c).join(" → ")});
   tripBar();
   document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="✓ Viaje iniciado · Cancelar";b.style.background="#b91c1c";b.onclick=e=>{e.stopPropagation();cancelTrip()}});
-  if(me)map.setView(me.getLatLng(),16);else $("from").textContent="📍 Activa tu ubicación para que te avise dónde bajar";
+  if(me){setFollow(true);map.flyTo(me.getLatLng(),17,{duration:.6})}else $("from").textContent="📍 Activa tu ubicación para que te avise dónde bajar";
   setSheet(true);
   $("peek").textContent=`🟢 Viaje en curso · Bájate en ${p.legs[p.legs.length-1].a.s.name} ⌃`;
   if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
