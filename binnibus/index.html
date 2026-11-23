@@ -88,6 +88,14 @@ body.mopen .msec{opacity:1;transform:none}
 .lv div{background:#ecfdf3;border-radius:10px;padding:8px 4px}
 .lv b{display:block;font:900 18px Archivo;color:#166534}
 .lv span{font-size:11px;color:var(--muted)}
+.bus{display:inline-block;white-space:nowrap;background:var(--c);color:#fff;font:800 12px Archivo;padding:4px 8px;border-radius:10px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);animation:busp 2s infinite}
+.bus.mine{outline:3px solid #2563eb}
+@keyframes busp{50%{box-shadow:0 0 0 6px rgba(239,68,68,.25),0 2px 8px rgba(0,0,0,.4)}}
+.go.share{background:#1d4ed8;margin-top:8px}.go.share.on{background:#7c2d12}
+.liveeta{color:#b91c1c;font-weight:700;font-size:13px;margin-top:4px}.liveeta:empty{display:none}
+#livecount:empty{display:none}
+#toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#1d1a16;color:#fff;padding:10px 14px;border-radius:12px;font:600 13px Inter;z-index:3000;opacity:0;transition:.3s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
@@ -101,7 +109,7 @@ body.mopen .msec{opacity:1;transform:none}
   </form>
   <div class="sugg" id="sugg"></div>
   <div class="quick" id="quick"></div>
-  <div class="from" id="from">📍 Desde: buscando tu ubicación…</div>
+  <div class="from" id="from">📍 Desde: buscando tu ubicación…</div> <span class="from" id="livecount" style="cursor:default"></span>
   <div class="topzone" id="topzone"><div class="tgrab"></div></div>
 </div>
 <button id="showtop">🔍 ¿A dónde vas?</button>
@@ -118,9 +126,11 @@ body.mopen .msec{opacity:1;transform:none}
         <li><span>1</span><div>Escribe a dónde vas: una tienda, calle, colonia o lugar. También puedes tocar el mapa.</div></li>
         <li><span>2</span><div>Te muestro caminando y en BinniBus: qué ruta tomar, con qué letrero, dónde subir y dónde bajarte.</div></li>
         <li><span>3</span><div>Toca <b>Iniciar viaje</b> y deja la página abierta: tu celular vibra cuando ya casi llegas a tu parada.</div></li>
-        <li><span>4</span><div>¿No sale tu casa o privada? Toca el mapa ahí y elige <b>📌 Guardar este lugar</b>.</div></li>
+        <li><span>4</span><div>¿Vas en el camión? Compártelo en vivo (anónimo) para que otros vean por dónde viene.</div></li>
+        <li><span>5</span><div>¿No sale tu casa o privada? Toca el mapa ahí y elige <b>📌 Guardar este lugar</b>.</div></li>
       </ol>
     </section>
+    <section class="msec" style="--d:1"><h3>📡 Ya voy en un BinniBus</h3><div id="mshare"></div></section>
     <section class="msec" style="--d:1"><h3>⭐ Mis lugares</h3><div id="mmis"></div></section>
     <section class="msec" style="--d:2"><h3>Rutas en el mapa</h3><p class="muted">Toca una ruta para mostrarla u ocultarla.</p><div class="chips" id="chips"></div>
       <div style="display:flex;gap:8px;margin-top:8px"><button class="mbtn" id="allon">Mostrar todas</button><button class="mbtn" id="alloff">Ocultar todas</button></div></section>
@@ -314,6 +324,7 @@ function renderPlans(){
     const L0=p.legs[0],L1=p.legs[p.legs.length-1];
     const walkT=Math.round(wmin(p.walk[0])+wmin(p.walk[1])+(p.tw?wmin(p.tw):0));
     h+=`<div class="opt${i===0&&!walkBest?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0&&!walkBest?"⭐ Mejor · ":""}~${Math.round(p.t)} min · llegas ${hora(p.t)}</div></div>
+    <div class="liveeta" data-eta="${i}"></div>
     <ul class="steps">
       <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
       ${p.legs.map((l,j)=>`<li class="b">Toma la <b>${l.c}</b> con letrero <b>${l.dk}</b> · ${l.a.k-l.b.k} paradas (${fmt(l.rm)}, ~${Math.round(l.rm/BUS)} min)</li>
@@ -322,7 +333,7 @@ function renderPlans(){
     </ul>${i===0?`<button class="go" data-go="${i}">Iniciar viaje · te aviso dónde bajar</button>`:""}</div>`;
   });
   if(plans.length)h+=`<p class="muted">Tiempos aproximados: incluyen ~${WAIT} min de espera por camión; el tráfico puede cambiarlos.</p>`;
-  P.innerHTML=h;setSheet(false);logSearch();
+  P.innerHTML=h;setSheet(false);logSearch();updateLiveEta();
   P.querySelectorAll(".opt[data-i]").forEach(o=>o.onclick=e=>{if(e.target.dataset.go)return;P.querySelectorAll(".opt[data-i]").forEach(x=>x.classList.remove("on"));o.classList.add("on");
     const old=P.querySelector(".go");if(old)old.remove();o.insertAdjacentHTML("beforeend",`<button class="go" data-go="${o.dataset.i}">Iniciar viaje · te aviso dónde bajar</button>`);bindGo();showPlan(plans[o.dataset.i])});
   bindGo();
@@ -376,6 +387,7 @@ navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
   else{me.setLatLng(c);acc.setLatLng(c).setRadius(p.coords.accuracy)}
   if(originIsMe) origin=c;
   if(trip) checkTrip(c,p.coords.speed);
+  if(SHARE) pingShare(c,p.coords.speed);
 },()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
 let originIsMe=true;
 $("me").onclick=()=>{if(me)map.setView(me.getLatLng(),16)};
@@ -396,8 +408,8 @@ function liveCalc(c){
   // ¿ya va en el camión? (sobre la ruta y avanzó más de 120 m desde la parada)
   if(!TS.onBus&&pr.off<70&&l.dir.cum[pr.i]-l.dir.cum[l.b.s.i]>120)TS.onBus=true;
   // ¿ya pasó su bajada?
-  if(TS.onBus&&(D(c,l.a.s.ll)<60||pr.i>=l.a.s.i)&&TS.leg<p.legs.length-1){TS.leg++;TS.onBus=false;l=p.legs[TS.leg]}
-  else if(TS.onBus&&(D(c,l.a.s.ll)<60||pr.i>=l.a.s.i)&&TS.leg===p.legs.length-1){TS.onBus=false;TS.done=true}
+  if(TS.onBus&&(D(c,l.a.s.ll)<60||pr.i>=l.a.s.i)&&TS.leg<p.legs.length-1){stopShare(true);TS.leg++;TS.onBus=false;l=p.legs[TS.leg]}
+  else if(TS.onBus&&(D(c,l.a.s.ll)<60||pr.i>=l.a.s.i)&&TS.leg===p.legs.length-1){TS.onBus=false;TS.done=true;stopShare(true)}
   let m=0,min=0,step="";
   const busV=TS.v&&TS.onBus?Math.max(120,Math.min(600,TS.v)):BUS;
   if(TS.done){const w=D(c,dest)*1.25;m=w;min=w/WALK;step=`🚶 Camina a tu destino`}
@@ -425,7 +437,7 @@ function tripBar(){
   const p=trip,last=p.legs[p.legs.length-1];
   const html=`<div style="display:flex;align-items:center;gap:10px"><div style="flex:1"><b>🟢 Viaje en curso</b><div class="muted">${p.legs.map(l=>l.c).join(" → ")} · Bájate en <b>${last.a.s.name}</b></div></div><button id="cancelTrip" style="border:0;border-radius:10px;padding:10px 12px;background:#b91c1c;color:#fff;font:700 13px Inter">Cancelar viaje</button></div>`;
   if(!bar){bar=document.createElement("div");bar.id="tripbar";bar.className="opt";bar.style.cssText="border:2px solid #16a34a;cursor:default;margin-top:0";$("panel").prepend(bar)}
-  bar.innerHTML=html+'<div class="live"><div class="muted" style="margin-top:6px">📍 Esperando tu ubicación para calcular en vivo…</div></div>';$("cancelTrip").onclick=cancelTrip;if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
+  bar.innerHTML=html+'<button class="go share" id="sharebtn"></button><div class="live"><div class="muted" style="margin-top:6px">📍 Esperando tu ubicación para calcular en vivo…</div></div>';$("cancelTrip").onclick=cancelTrip;$("sharebtn").onclick=()=>{if(SHARE)stopShare();else{const L=trip.legs[TS?TS.leg:0];if(TS)TS.onBus=true;startShare(L.c,L.dk)}};shareUI();if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
 function startTrip(p){
   trip=p;warned={};TS=null;
@@ -437,6 +449,7 @@ function startTrip(p){
   if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
 function cancelTrip(){
+  stopShare(true);
   trip=null;warned={};$("alert").style.display="none";tripBar();
   document.querySelectorAll(".go").forEach(b=>{b.textContent="Iniciar viaje · te aviso dónde bajar";b.style.background="";bindGo()});
   setSheet(false);
@@ -623,7 +636,7 @@ $("from").onclick=()=>{setSheet(false);$("panel").insertAdjacentHTML("afterbegin
 
 
 /* ---------- Menú ---------- */
-function openMenu(){renderMis();document.body.classList.add("mopen");$("menu").setAttribute("aria-hidden","false")}
+function openMenu(){renderMis();shareUI();document.body.classList.add("mopen");$("menu").setAttribute("aria-hidden","false")}
 function closeMenu(){document.body.classList.remove("mopen");$("menu").setAttribute("aria-hidden","true");$("menu").style.transform=""}
 $("menubtn").onclick=openMenu;$("mclose").onclick=closeMenu;$("mscrim").onclick=closeMenu;
 addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
@@ -641,6 +654,61 @@ function renderMis(){
   el.querySelectorAll("[data-from]").forEach(b=>b.onclick=()=>{const x=MIS[b.dataset.from];closeMenu();originIsMe=false;setOrigin(x.ll,x.name)});
   el.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{MIS.splice(+b.dataset.del,1);saveMis();renderMis()});
 }
+
+
+/* ---------- Red en vivo: camiones compartidos por usuarios ---------- */
+let SHARE=null,lastPing=0,LIVE=[];const busLayer=L.layerGroup().addTo(map);
+function busIcon(r,col,me){return L.divIcon({className:"",iconSize:[64,26],iconAnchor:[32,13],html:`<div class="bus${me?" mine":""}" style="--c:${col}">🚌 ${r}</div>`})}
+function startShare(code,to){
+  SHARE={code,to,since:Date.now(),off:0};lastPing=0;
+  if(me)pingShare([me.getLatLng().lat,me.getLatLng().lng],null);
+  shareUI();toast(`📡 Compartiendo la ${code} en vivo. ¡Gracias por apoyar!`);
+}
+function stopShare(silent){if(!SHARE)return;sb("bb_bus_ping",{p_sesion:SES,p_ruta:SHARE.code,p_destino:SHARE.to,p_lat:17,p_lon:-96.7,p_vel:null,p_activo:false});SHARE=null;shareUI();if(!silent)toast("Dejaste de compartir el camión.")}
+function pingShare(c,sp){
+  if(!SHARE)return;
+  // si se aleja de la ruta mucho tiempo (se bajó), deja de compartir solo
+  const dirs=(GEO[SHARE.code]||[]).filter(d=>d.to===SHARE.to);
+  const off=dirs.length?Math.min(...dirs[0].line.filter((p,i)=>i%2===0).map(p=>D(c,p))):0;
+  if(off>250){SHARE.off=SHARE.off||Date.now();if(Date.now()-SHARE.off>90000){stopShare(true);toast("Parece que ya te bajaste: dejé de compartir el camión.");return}}else SHARE.off=0;
+  if(Date.now()-SHARE.since>3*3600e3){stopShare(true);return}
+  if(Date.now()-lastPing<5000)return;lastPing=Date.now();
+  sb("bb_bus_ping",{p_sesion:SES,p_ruta:SHARE.code,p_destino:SHARE.to,p_lat:c[0],p_lon:c[1],p_vel:sp!=null&&sp>=0?Math.round(sp*3.6):null,p_activo:true});
+}
+addEventListener("pagehide",()=>{if(SHARE)sb("bb_bus_ping",{p_sesion:SES,p_ruta:SHARE.code,p_destino:SHARE.to,p_lat:17,p_lon:-96.7,p_vel:null,p_activo:false})});
+function shareUI(){
+  const b=$("sharebtn");if(b){b.textContent=SHARE?"📡 Compartiendo · Dejar de compartir":"🚌 Ya me subí · compartir camión en vivo";b.classList.toggle("on",!!SHARE)}
+  const m=$("mshare");if(m)m.innerHTML=SHARE?`<p>📡 Compartiendo la <b>${SHARE.code}</b> → ${esc(SHARE.to)}</p><button class="mbtn" id="mstop" style="width:100%">Dejar de compartir</button>`:`<p class="muted">¿Vas arriba de un BinniBus? Compártelo y los demás verán por dónde viene. Es anónimo: solo se ve el camión, sin nombre, y se borra a los 2 minutos.</p><div id="mroutes" class="chips"></div><div id="mdirs"></div>`;
+  if(SHARE){const x=$("mstop");if(x)x.onclick=()=>stopShare()}
+  else{const mr=$("mroutes");if(mr)Object.keys(GEO).sort().forEach(c=>{const bt=document.createElement("button");bt.textContent=c;bt.style.background=COL[c]||"#0f766e";bt.onclick=()=>{
+      $("mdirs").innerHTML=`<p class="muted" style="margin:8px 0 4px">¿Qué dice el letrero del camión?</p>`+GEO[c].map((d,i)=>`<button class="mbtn" data-d="${i}" style="width:100%;margin-top:6px">${c} → ${esc(d.to)}</button>`).join("");
+      $("mdirs").querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>{if(!me){toast("Activa tu ubicación para poder compartir.");return}closeMenu();startShare(c,GEO[c][x.dataset.d].to)})};mr.appendChild(bt)})}
+}
+function toast(t){let e=$("toast");if(!e){e=document.createElement("div");e.id="toast";document.body.appendChild(e)}e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),3500)}
+async function pollLive(){
+  if(document.visibilityState!=="visible")return;
+  try{const r=await fetch(SBR+"bb_buses_vivos",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(!r.ok)return;LIVE=await r.json()}catch(e){return}
+  // juntar a varias personas en el mismo camión
+  const g=[];LIVE.forEach(x=>{const ll=[x.lat,x.lon];const y=g.find(z=>z.r===x.r&&z.d===x.d&&D(z.ll,ll)<150);if(y){y.n++;y.s=Math.min(y.s,x.s)}else g.push({r:x.r,d:x.d,ll,v:x.v,s:x.s,n:1})});
+  LIVE=g;busLayer.clearLayers();
+  g.forEach(x=>{const mine=SHARE&&me&&x.r===SHARE.code&&D(x.ll,[me.getLatLng().lat,me.getLatLng().lng])<150;
+    L.marker(x.ll,{icon:busIcon(x.r,COL[x.r]||"#0f766e",mine),zIndexOffset:1000}).addTo(busLayer)
+     .bindPopup(`<b>🚌 ${x.r} → ${esc(x.d)}</b><br>En vivo · hace ${x.s} s${x.v?` · ${Math.round(x.v)} km/h`:""}<br><span style="color:#6b6358">${x.n>1?x.n+" personas a bordo comparten":"1 persona a bordo comparte"}</span>`)});
+  updateLiveEta();
+  const n=$("livecount");if(n)n.textContent=g.length?`🔴 ${g.length} ${g.length===1?"camión":"camiones"} en vivo`:"";
+}
+function busEta(l){ // ¿viene un camión de esta ruta/dirección antes de tu parada?
+  let best=null;
+  LIVE.forEach(x=>{if(x.r!==l.c||x.d!==l.dk)return;const L=l.dir.line;let bi=0,bd=1e9;for(let i=0;i<=l.b.s.i;i++){const d=D(x.ll,L[i]);if(d<bd){bd=d;bi=i}}
+    if(bd>120)return;const m=l.dir.cum[l.b.s.i]-l.dir.cum[bi];if(m<0)return;const v=x.v&&x.v>5?x.v*1000/60:BUS;const t=m/v+x.s/60;
+    if(!best||t<best.t)best={t,m}});
+  return best;
+}
+function updateLiveEta(){
+  document.querySelectorAll("[data-eta]").forEach(e=>{const p=plans[+e.dataset.eta];if(!p){e.textContent="";return}const b=busEta(p.legs[0]);
+    e.innerHTML=b?`🔴 En vivo: viene una ${p.legs[0].c} a ~${Math.max(1,Math.round(b.t))} min de tu parada`:""});
+}
+setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("visibilitychange",pollLive);
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
