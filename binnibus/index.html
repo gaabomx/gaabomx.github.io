@@ -144,6 +144,11 @@ body.hasdest .clear2{display:block}
 body.fleft .fab{right:auto!important;left:12px}
 body.fleft .seen{right:auto!important;left:70px}
 .dragging{transition:none!important;opacity:.9;box-shadow:0 8px 22px rgba(0,0,0,.4)!important}
+.seenh{font:700 14px Inter;margin:6px 0 6px}
+.seenchip{display:flex;flex-direction:column;align-items:center;line-height:1.1;padding:6px 9px!important}
+.seenchip small{font:600 10px Inter;opacity:.9;margin-top:2px}
+.seenchip.far{color:#6b6358!important}
+.warnfar{background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 10px;font-size:13px;margin:10px 0 0}
 </style>
 </head>
 <body>
@@ -165,7 +170,7 @@ body.fleft .seen{right:auto!important;left:70px}
 <button class="fab compass" id="compass" title="Norte" aria-label="Apuntar al norte"><span id="needle">➤</span></button>
 <button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
 <button class="seen" id="seenbtn">👀 Vi un Binni</button>
-<div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b>👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><p class="muted" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div class="chips" id="seenroutes"></div><div id="seendirs"></div></div></div>
+<div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b>👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><p class="muted" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div id="seenroutes"></div><div id="seendirs"></div></div></div>
 <div class="alert" id="alert"></div>
 <div class="mscrim" id="mscrim"></div>
 <aside class="menu" id="menu" aria-hidden="true">
@@ -825,11 +830,18 @@ function openSeen(){
   const c=[me.getLatLng().lat,me.getLatLng().lng];
   const near=Object.keys(GEO).map(k=>({k,d:Math.min(...GEO[k].map(d=>Math.min(...d.line.filter((p,i)=>i%2===0).map(p=>D(c,p)))))})).sort((a,b)=>a.d-b.d);
   const box=$("seenroutes");box.innerHTML="";$("seendirs").innerHTML="";
-  near.forEach(({k,d})=>{const b=document.createElement("button");b.textContent=k;b.style.background=COL[k]||"#0f766e";if(d>400)b.style.opacity=.45;b.onclick=()=>{
-    $("seendirs").innerHTML=`<p class="muted" style="margin:10px 0 4px">¿Qué decía su letrero?</p>`+GEO[k].map((x,i)=>`<button class="mbtn" data-i="${i}" style="width:100%;margin-top:6px">${k} → ${esc(x.to)}</button>`).join("")+`<button class="mbtn" data-i="-1" style="width:100%;margin-top:6px">No me fijé</button>`;
+  const cerca=near.filter(x=>x.d<=400),lejos=near.filter(x=>x.d>400);
+  const mk=({k,d},far)=>{const b=document.createElement("button");b.innerHTML=`${k}<small>${far?"lejos · ":""}${d<1000?Math.round(d/10)*10+" m":(d/1000).toFixed(1)+" km"}</small>`;b.className="seenchip"+(far?" far":"");b.style.background=far?"#e7e1d6":(COL[k]||"#0f766e");b.onclick=()=>pick(k,d,far);return b};
+  const pick=(k,d,far)=>{
+    $("seendirs").innerHTML=(far?`<p class="warnfar">⚠️ La ${k} pasa a ${d<1000?Math.round(d)+" m":(d/1000).toFixed(1)+" km"} de ti. ¿Seguro que es esa?</p>`:"")+`<p class="muted" style="margin:10px 0 4px">¿Qué decía su letrero?</p>`+GEO[k].map((x,i)=>`<button class="mbtn" data-i="${i}" style="width:100%;margin-top:6px">${k} → ${esc(x.to)}</button>`).join("")+`<button class="mbtn" data-i="-1" style="width:100%;margin-top:6px">No me fijé</button>`;
     $("seendirs").querySelectorAll("[data-i]").forEach(x=>x.onclick=()=>{const to=+x.dataset.i>=0?GEO[k][+x.dataset.i].to:"";
       sb("bb_visto_add",{p_sesion:SES,p_ruta:k,p_destino:to,p_lat:c[0],p_lon:c[1]});
-      SEEN.unshift({r:k,d:to,lat:c[0],lon:c[1],s:0});drawSeen();updateLiveEta();$("seendlg").classList.remove("on");toast(`👀 Gracias: marcaste la ${k} aquí.`)})};box.appendChild(b)});
+      SEEN.unshift({r:k,d:to,lat:c[0],lon:c[1],s:0});drawSeen();updateLiveEta();$("seendlg").classList.remove("on");toast(`👀 Gracias: marcaste la ${k} aquí.`)});
+    $("seendirs").scrollIntoView({behavior:"smooth",block:"nearest"})};
+  box.insertAdjacentHTML("beforeend",`<p class="seenh">✅ Pasan cerca de ti${cerca.length?"":": ninguna a menos de 400 m"}</p>`);
+  const g1=document.createElement("div");g1.className="chips";cerca.forEach(x=>g1.appendChild(mk(x,false)));box.appendChild(g1);
+  if(lejos.length){const det=document.createElement("details");det.className="mdet";det.innerHTML=`<summary><p class="seenh" style="margin:12px 0 0">📍 Lejos de ti (${lejos.length})</p><span class="chev">▾</span></summary>`;
+    const g2=document.createElement("div");g2.className="chips";g2.style.marginTop="8px";lejos.forEach(x=>g2.appendChild(mk(x,true)));det.appendChild(g2);if(!cerca.length)det.open=true;box.appendChild(det)}
   $("seendlg").classList.add("on");
 }
 $("seenbtn").onclick=openSeen;$("seenx").onclick=()=>$("seendlg").classList.remove("on");
