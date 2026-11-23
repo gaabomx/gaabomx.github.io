@@ -147,8 +147,10 @@ body.fleft .seen{right:auto!important;left:70px}
 .seenchip small{font:600 10px Inter;opacity:.9;margin-top:2px}
 .seenchip.far{color:#6b6358!important}
 .warnfar{background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 10px;font-size:13px;margin:10px 0 0}
-#stopban{position:fixed;left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 64px);z-index:2200;display:flex;gap:10px;align-items:center;background:#1d1a16;color:#fff;border-radius:16px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:13px;transform:translateY(-140%);opacity:0;transition:transform .4s cubic-bezier(.22,1,.36,1),opacity .3s;cursor:pointer}
-#stopban.on{transform:none;opacity:1}
+#stopban{position:fixed;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));z-index:2200;display:flex;gap:10px;align-items:center;background:#1d1a16;color:#fff;border-radius:16px;padding:8px 12px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:13px;cursor:pointer;transform:perspective(700px) rotateX(-90deg);transform-origin:50% 50%;opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .2s;backface-visibility:hidden}
+#stopban.on{transform:perspective(700px) rotateX(0);opacity:1;pointer-events:auto}
+.search{transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .25s;transform-origin:50% 50%;backface-visibility:hidden}
+.top.flip .search{transform:perspective(700px) rotateX(90deg);opacity:0}
 #stopban b{font:800 14px Archivo}
 #stopban .sbic{font-size:26px;animation:sbp 1s ease-in-out 3}
 @keyframes sbp{50%{transform:scale(1.25)}}
@@ -994,12 +996,17 @@ function nearStop(c){
   try{navigator.vibrate&&navigator.vibrate([120,80,120])}catch(e){}
   nat("stop",{name:best.name,routes:rs.join(", ")});
 }
+function hideBan(){const el=$("stopban");if(!el)return;clearTimeout(el._t);clearTimeout(el._t2);el.classList.remove("on");setTimeout(()=>topEl.classList.remove("flip"),300)}
 function showStopBanner(g,rs,d){
   let el=$("stopban");if(!el){el=document.createElement("div");el.id="stopban";document.body.appendChild(el)}
   el.innerHTML=`<div class="sbic">🚏</div><div style="flex:1"><b>Parada cerca · ${Math.round(d)} m</b><div>${esc(g.name)}</div><div class="sbr">${rs.map(r=>`<span style="background:${COL[r]||"#0f766e"}">${r}</span>`).join("")}</div></div><button aria-label="Cerrar">✕</button>`;
-  el.querySelector("button").onclick=()=>el.classList.remove("on");
-  el.onclick=e=>{if(e.target.tagName==="BUTTON")return;map.flyTo(g.ll,17,{duration:.6});el.classList.remove("on");openStopCard(g.ll,g.name)};
-  requestAnimationFrame(()=>el.classList.add("on"));clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),8000);
+  el.querySelector("button").onclick=e=>{e.stopPropagation();hideBan()};
+  el.onclick=e=>{if(e.target.tagName==="BUTTON")return;map.flyTo(g.ll,17,{duration:.6});hideBan();openStopCard(g.ll,g.name)};
+  clearTimeout(el._t);clearTimeout(el._t2);setTop(true);
+  // 1) primero se ve el buscador, 2) gira y aparece la parada, 3) regresa el buscador
+  el.classList.remove("on");topEl.classList.remove("flip");
+  el._t2=setTimeout(()=>{topEl.classList.add("flip");setTimeout(()=>el.classList.add("on"),300)},350);
+  el._t=setTimeout(hideBan,7000);
 }
 
 /* ---------- Próximo BinniBus en cada parada ---------- */
