@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rutina 7 Días de Ángel</title>
+<title>Rutina 7 Días</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -105,6 +105,18 @@ header p{margin:12px 0 0;max-width:52ch;color:var(--mute)}
 
 .list-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:14px}
 .list-head p{margin:6px 0 0;font-size:13.5px;color:var(--mute)}
+.setup{border-color:rgba(255,140,30,.5);box-shadow:var(--glow)}
+.setup[hidden]{display:none}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.sgrid .wide{grid-column:1/-1}
+.chips{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px;flex-direction:row}
+.chips legend{font-size:12px;font-weight:600;color:var(--mute);margin-bottom:6px;padding:0;width:100%}
+.chips label{position:relative}
+.chips input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.chips span{display:inline-block;padding:9px 14px;border-radius:999px;border:1px solid #2e3338;background:#0f1113;font-weight:700;font-size:13.5px}
+.chips input:checked+span{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--accent-ink);border-color:transparent;box-shadow:var(--glow)}
+.chips input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:700px){.sgrid{grid-template-columns:1fr 1fr}}
 .blockbox{display:flex;flex-direction:column;gap:2px;background:linear-gradient(120deg,rgba(255,77,28,.16),rgba(255,178,30,.08));border:1px solid rgba(255,140,30,.4);border-radius:12px;padding:10px 12px;margin-bottom:12px}
 .blockbox b{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .blockbox span{font-size:13.5px}
@@ -190,9 +202,10 @@ footer{font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding
 
 <header>
   <div>
-    <div class="eyebrow live">Reto de Ángel · Definición + músculo</div>
-    <h1>Rutina 7 días</h1>
-    <p>Seis días de pesas y cardio, uno de descanso activo. Toca cualquier ejercicio y el entrenador te enseña el movimiento. Cada 4 semanas cambian las variantes. Palomea lo que vayas haciendo y registra tu peso cada lunes.</p>
+    <div class="eyebrow live" id="hd-eyebrow">Tu reto · Arma tu plan</div>
+    <h1 id="hd-title">Rutina 7 días</h1>
+    <p id="hd-desc">Pon tus datos y la página te arma tu rutina. Toca cualquier ejercicio y el entrenador 3D te enseña el movimiento. Cada 4 semanas cambian las variantes.</p>
+    <button class="btn ghost" id="edit-plan" type="button" style="margin-top:14px">Editar mi plan</button>
   </div>
   <div class="stats">
     <div class="stat"><b class="num" id="s-week">0/6</b><span>Días completos esta semana</span></div>
@@ -201,6 +214,34 @@ footer{font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding
     <div class="stat"><b class="num" id="s-goal">—</b><span>Semanas para tu meta</span></div>
   </div>
 </header>
+
+<section class="card setup" id="setup" hidden>
+  <div class="sec-head"><div class="eyebrow">Paso 1</div><h2>Arma tu rutina</h2><p class="muted" style="margin:0">Tus datos se quedan en tu cuenta o en tu celular. Nadie más los ve.</p></div>
+  <form id="sform" class="sgrid">
+    <div class="field wide"><label for="p-nombre">Tu nombre</label><input id="p-nombre" maxlength="30" placeholder="Escribe tu nombre" required autocomplete="given-name"></div>
+    <div class="field"><label for="p-edad">Edad</label><input id="p-edad" type="number" min="14" max="80" value="22" required></div>
+    <div class="field"><label for="p-sexo">Sexo</label><select id="p-sexo"><option value="h">Hombre</option><option value="m">Mujer</option></select></div>
+    <div class="field"><label for="p-peso">Peso (kg)</label><input id="p-peso" type="number" step="0.1" min="35" max="200" value="75" required></div>
+    <div class="field"><label for="p-alt">Estatura (cm)</label><input id="p-alt" type="number" min="140" max="215" value="175" required></div>
+    <fieldset class="field wide chips"><legend>Objetivo</legend>
+      <label><input type="radio" name="p-obj" value="definir" checked><span>Definir y marcar</span></label>
+      <label><input type="radio" name="p-obj" value="musculo"><span>Ganar músculo</span></label>
+      <label><input type="radio" name="p-obj" value="grasa"><span>Bajar grasa</span></label></fieldset>
+    <fieldset class="field wide chips"><legend>Nivel</legend>
+      <label><input type="radio" name="p-niv" value="principiante" checked><span>Principiante</span></label>
+      <label><input type="radio" name="p-niv" value="intermedio"><span>Intermedio</span></label>
+      <label><input type="radio" name="p-niv" value="avanzado"><span>Avanzado</span></label></fieldset>
+    <fieldset class="field chips"><legend>Días por semana</legend>
+      <label><input type="radio" name="p-dias" value="3"><span>3</span></label>
+      <label><input type="radio" name="p-dias" value="4"><span>4</span></label>
+      <label><input type="radio" name="p-dias" value="5" checked><span>5</span></label>
+      <label><input type="radio" name="p-dias" value="6"><span>6</span></label></fieldset>
+    <fieldset class="field chips"><legend>Dónde entrenas</legend>
+      <label><input type="radio" name="p-lugar" value="gym" checked><span>Gimnasio</span></label>
+      <label><input type="radio" name="p-lugar" value="home"><span>Casa con mancuernas</span></label></fieldset>
+    <div class="wide row" style="justify-content:flex-end"><button class="btn ghost" type="button" id="s-cancel">Cancelar</button><button class="btn" type="submit">Crear mi rutina</button></div>
+  </form>
+</section>
 
 <nav class="days" id="days" aria-label="Días de la semana"></nav>
 
@@ -481,21 +522,64 @@ const SWAP={chestmachine:"smithbench",bench:"incline",pulldown:"pullup",seatrow:
 for(const k in EX){EX[k].poses=EX[k].frames.map(norm);}
 
 /* ---------- Rutina ---------- */
-const DAYS=[
-  {d:"Lun",full:"Lunes",title:"Pecho y tríceps",desc:"Máquinas y mancuernas. Descansa 60–90 s entre series.",ex:[["chestmachine","4 × 8–12"],["bench","3 × 10"],["dips","3 × 8–12"],["pushdown","3 × 12"],["plank","3 × 40 s"]]},
-  {d:"Mar",full:"Martes",title:"Espalda y bíceps",desc:"Jalón, remo y brazo. Descansa 60–90 s.",ex:[["pulldown","4 × 10"],["seatrow","4 × 10"],["row","3 × 10 por brazo"],["curl","3 × 12"],["abmachine","3 × 15"]]},
-  {d:"Mié",full:"Miércoles",title:"Pierna",desc:"La pierna es lo que más calorías quema. No la saltes.",ex:[["smithsquat","4 × 10"],["legpress","4 × 12"],["legcurl","3 × 12"],["legext","3 × 15"],["smithcalf","4 × 15"]]},
-  {d:"Jue",full:"Jueves",title:"Hombro y abdomen",desc:"Hombros anchos hacen ver la cintura más chica.",ex:[["shouldermachine","4 × 10"],["lateral","4 × 12–15"],["rdl","3 × 10"],["abmachine","3 × 15"],["plank","3 × 45 s"]]},
-  {d:"Vie",full:"Viernes",title:"Full body quemagrasa",desc:"Circuito: haz los 5 seguidos, descansa 90 s y repite 3–4 veces.",ex:[["legpress","15 reps"],["chestmachine","12 reps"],["pulldown","12 reps"],["press","12 reps"],["burpee","10 reps"]]},
-  {d:"Sáb",full:"Sábado",title:"Cardio y core",desc:"Caminadora inclinada y abdomen en el área de tapetes.",ex:[["treadmill","30 min"],["jacks","4 × 45 s"],["climbers","3 × 40 s"],["legraise","3 × 15"],["crunch","3 × 20"]]},
-  {d:"Dom",full:"Domingo",title:"Descanso activo",desc:"Recupera para la semana. Camina y estira.",ex:[["walk","30–45 min"],["stretch","10 min"]]}
-];
-const NOTES=["Si la máquina de fondos está ocupada, haz fondos en banco con los pies en el piso.","En Planet Fitness no hay rack: el jalón y el remo en máquina son tu base de espalda.","La Smith no es trampa: úsala con buena técnica y sube peso cada semana.","Las mancuernas están junto a los bancos; empieza ligero en laterales.","Si el circuito está lleno, cambia por la máquina libre más cercana y sigue.","Usa la zona de tapetes o el área de 30 minutos para el abdomen.","El domingo también cuenta: palomea la caminata."];
+/* ---------- Generador de rutina personalizada ---------- */
+const PICK={gym:{chestA:"chestmachine",chestB:"bench",triA:"pushdown",triB:"dips",backA:"pulldown",backB:"seatrow",backC:"row",bi:"curl",bi2:"hammer",quadA:"smithsquat",quadB:"legpress",ham:"legcurl",quadC:"legext",hinge:"rdl",calf:"smithcalf",shoA:"shouldermachine",shoB:"lateral",shoC:"press",absA:"abmachine",cardio:"treadmill"},
+  home:{chestA:"pushup",chestB:"pushup",triA:"triext",triB:"triext",backA:"row",backB:"row",backC:"row",bi:"curl",bi2:"hammer",quadA:"squat",quadB:"lunge",ham:"rdl",quadC:"squat",hinge:"rdl",calf:"calf",shoA:"press",shoB:"lateral",shoC:"press",absA:"crunch",cardio:"walk"}};
+const CORE={absB:"plank",absC:"legraise",absD:"climbers",crunch:"crunch",burpee:"burpee",jacks:"jacks",walk:"walk",stretch:"stretch"};
+const GOALS={definir:"Definición + músculo",musculo:"Ganar músculo",grasa:"Bajar grasa"};
+const LEVELS={principiante:"Principiante",intermedio:"Intermedio",avanzado:"Avanzado"};
+const DEF_PROFILE={nombre:"",edad:22,sexo:"h",objetivo:"definir",nivel:"principiante",dias:5,lugar:"gym"};
+function buildPlan(p){
+  p=Object.assign({},DEF_PROFILE,p||{});
+  const P=PICK[p.lugar]||PICK.gym;
+  const R={musculo:"8–12",definir:"10–15",grasa:"12–15"}[p.objetivo]||"10–15";
+  const S=p.nivel==="principiante"?3:4;
+  const tm=p.nivel==="principiante"?30:p.nivel==="intermedio"?40:50;
+  const cardioMin=p.objetivo==="grasa"?"40–45 min":p.objetivo==="musculo"?"20–25 min":"30 min";
+  const set=k=>{
+    const id=P[k]||CORE[k]||k;
+    if(id==="plank") return [id,S+" × "+tm+" s"];
+    if(id==="climbers"||id==="jacks") return [id,S+" × "+tm+" s"];
+    if(id==="treadmill"||id==="walk") return [id,cardioMin];
+    if(id==="stretch") return [id,"10 min"];
+    if(id==="burpee") return [id,S+" × 10"];
+    if(["crunch","legraise","abmachine"].includes(id)) return [id,S+" × 15"];
+    if(id==="calf"||id==="smithcalf") return [id,S+" × 15–20"];
+    if(id==="lateral") return [id,S+" × 12–15"];
+    if(id==="lunge") return [id,S+" × 10 por pierna"];
+    if(id==="pushup"&&p.nivel==="principiante") return [id,S+" × las que salgan"];
+    return [id,S+" × "+R];
+  };
+  const day=(d,full,title,desc,keys)=>({d,full,title,desc,ex:keys.map(set),rest:false});
+  const restD=(d,full)=>({d,full,title:"Descanso activo",desc:"Recupera. Camina y estira.",ex:[["walk","30 min"],["stretch","10 min"]],rest:true});
+  const cardioD=(d,full)=>({d,full,title:"Cardio y abdomen",desc:"Cardio a ritmo constante y abdomen.",ex:[set("cardio"),set("jacks"),set("absD"),set("absC"),set("crunch")],rest:false});
+  const rest=p.nivel==="principiante"?"Descansa 90 s entre series.":"Descansa 60–90 s entre series.";
+  const fin=p.objetivo==="grasa"?" Termina con 15 min de caminadora inclinada.":"";
+  const N=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"], F=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+  const PT=()=>["Pecho y tríceps",rest+fin,["chestA","chestB","triB","triA","absB"]];
+  const BB=()=>["Espalda y bíceps",rest+fin,["backA","backB","backC","bi","absA"]];
+  const LG=()=>["Pierna","La pierna es lo que más calorías quema. No la saltes."+fin,["quadA","quadB","ham","quadC","calf"]];
+  const SH=()=>["Hombro y abdomen","Hombros anchos hacen ver la cintura más chica."+fin,["shoA","shoB","hinge","absA","absB"]];
+  const FB=()=>["Full body quemagrasa","Circuito: los 5 seguidos, descansa 90 s y repite 3–4 veces.",["quadB","chestA","backA","shoC","burpee"]];
+  const TA=()=>["Torso A",rest+fin,["chestA","backA","shoA","triA","bi"]];
+  const TB=()=>["Torso B",rest+fin,["chestB","backB","shoB","triB","bi2"]];
+  const LA=()=>["Pierna A",rest+fin,["quadA","ham","quadB","calf","absB"]];
+  const LB=()=>["Pierna B",rest+fin,["quadB","hinge","quadC","calf","absC"]];
+  const FA=()=>["Full body A",rest+fin,["quadA","chestA","backA","shoA","absB"]];
+  const FBb=()=>["Full body B",rest+fin,["quadB","chestB","backB","shoB","absA"]];
+  const FC=()=>["Full body C",rest+fin,["hinge","chestA","backC","bi","triA"]];
+  const T={6:[PT,BB,LG,SH,FB,"C","R"],5:[PT,BB,LG,SH,FB,"C","R"],4:[TA,LA,"R",TB,LB,"C","R"],3:[FA,"R",FBb,"R",FC,"C","R"]}[p.dias]||[PT,BB,LG,SH,FB,"C","R"];
+  if(p.dias==5) T[5]="R";
+  if(p.objetivo==="grasa"&&p.dias<6){T[5]="C";}
+  return T.map((t,i)=>t==="R"?restD(N[i],F[i]):t==="C"?cardioD(N[i],F[i]):(x=>day(N[i],F[i],x[0],x[1],x[2]))(t()));
+}
+let DAYS=buildPlan(null);
+const NOTES=["Sube peso o una repetición cuando completes todas las series con buena técnica.","Si una máquina está ocupada, cambia el orden y vuelve después.","La técnica va antes que el peso: baja siempre controlado.","Toma agua entre series y lleva tu toalla.","Si te cuesta el circuito, empieza con 3 vueltas.","Usa la zona de tapetes para el abdomen.","El descanso también cuenta: palomea la caminata."];
 
 /* ---------- Estado ---------- */
-const STORE="rutina7_angel_v1";
-let state={v:1,checks:{},weights:[],goal:{peso:75,alt:175,grasa:"0.20",meta:"0.12",ritmo:"0.0075"}};
-try{const s=localStorage.getItem(STORE); if(s){const d=JSON.parse(s); if(d&&d.v) state=Object.assign(state,d);}}catch(e){}
+const STORE="rutina7_v2";
+let state={v:1,profile:null,checks:{},weights:[],goal:{peso:75,alt:175,grasa:"0.20",meta:"0.12",ritmo:"0.0075"}};
+try{const s=localStorage.getItem(STORE)||localStorage.getItem("rutina7_angel_v1"); if(s){const d=JSON.parse(s); if(d&&d.v) state=Object.assign(state,d);}}catch(e){}
 
 function mondayKey(dt){const d=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()); const i=(d.getDay()+6)%7; d.setDate(d.getDate()-i); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 const NOW=new Date(), WK=mondayKey(NOW), TODAY=(NOW.getDay()+6)%7;
@@ -536,7 +620,7 @@ async function push(){
     let d=null;
     if(snap){ if(typeof snap.data==="function") d=snap.data(); else if(snap.data&&typeof snap.data==="object") d=snap.data; else d=snap; }
     ref=r;
-    if(d&&d.v){state=Object.assign(state,d); try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){} renderAll(); syncEl.textContent="Progreso guardado en tu cuenta";}
+    if(d&&d.v){state=Object.assign(state,d); try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){} renderAll(); if(state.profile){$("setup").hidden=true; selEx=0; setEx(exId(DAYS[selDay].ex[0][0]));} syncEl.textContent="Progreso guardado en tu cuenta";}
     else {syncEl.textContent="Progreso guardado en tu cuenta"; push();}
   }catch(e){}
 })();
@@ -1213,8 +1297,8 @@ $("all").addEventListener("click",()=>{
 
 function totalSessions(){let n=0; for(const wk in state.checks){for(let d=0;d<7;d++) if(dayDone(d,wk)) n++;} return n;}
 function renderStats(){
-  let wd=0; for(let d=0;d<6;d++) if(dayDone(d)) wd++;
-  $("s-week").textContent=wd+"/6";
+  let wd=0, tot=0; DAYS.forEach((x,d)=>{if(!x.rest){tot++; if(dayDone(d)) wd++;}});
+  $("s-week").textContent=wd+"/"+tot;
   $("s-total").textContent=totalSessions();
   const W=state.weights;
   if(W.length){const l=W[W.length-1]; $("s-weight").textContent=l.kg.toFixed(1)+" kg";
@@ -1246,7 +1330,7 @@ function goalCalc(){
   const g=state.goal, W=+g.peso||75, bf=+g.grasa, tb=+g.meta, rate=+g.ritmo, alt=+g.alt||175;
   const lean=W*(1-bf), target=lean/(1-tb);
   let w=W, weeks=0; while(w>target&&weeks<200){w-=w*rate; weeks++;}
-  const bmr=10*W+6.25*alt-5*19+5, tdee=bmr*1.55, deficit=W*rate*7700/7;
+  const pf=Object.assign({},DEF_PROFILE,state.profile||{}), bmr=10*W+6.25*alt-5*(+pf.edad||22)+(pf.sexo==="m"?-161:5), tdee=bmr*1.55, deficit=W*rate*7700/7;
   return {W,target,weeks,kcal:Math.round((tdee-deficit)/50)*50,prot:Math.round(W*2)};
 }
 function renderGoal(){
@@ -1295,7 +1379,40 @@ function renderChart(){
   '<text x="'+pl+'" y="'+(vh-6)+'" font-size="11" fill="#8d9298">'+fmt(W[0].date)+'</text><text x="'+(vw-pr)+'" y="'+(vh-6)+'" text-anchor="end" font-size="11" fill="#8d9298">'+fmt(l.date)+' · '+l.kg.toFixed(1)+' kg</text></svg>';
 }
 
-function renderAll(){fillGoal(); renderDays(); renderDay(); renderCoach(); renderStats(); renderWeek(); renderChart(); renderGoal();}
+/* ---------- Perfil ---------- */
+function renderHead(){
+  const p=state.profile;
+  if(p){
+    $("hd-eyebrow").textContent="Reto de "+p.nombre+" · "+GOALS[p.objetivo];
+    $("hd-title").textContent="Rutina de "+p.nombre;
+    const td=DAYS.filter(d=>!d.rest).length;
+    $("hd-desc").textContent=td+" días de entrenamiento"+(p.lugar==="gym"?" en gimnasio":" en casa")+", nivel "+LEVELS[p.nivel].toLowerCase()+". Toca cualquier ejercicio y el entrenador 3D te enseña el movimiento. Cada 4 semanas cambian las variantes.";
+    $("edit-plan").hidden=false;
+  } else {$("hd-eyebrow").textContent="Tu reto · Arma tu plan"; $("hd-title").textContent="Rutina 7 días"; $("edit-plan").hidden=true;}
+  document.title=p?"Rutina de "+p.nombre:"Rutina 7 Días";
+}
+function openSetup(){
+  const p=Object.assign({},DEF_PROFILE,state.profile||{});
+  $("p-nombre").value=p.nombre; $("p-edad").value=p.edad; $("p-sexo").value=p.sexo; $("p-peso").value=state.goal.peso; $("p-alt").value=state.goal.alt;
+  [["p-obj",p.objetivo],["p-niv",p.nivel],["p-dias",String(p.dias)],["p-lugar",p.lugar]].forEach(([n,v])=>{const r=document.querySelector('input[name="'+n+'"][value="'+v+'"]'); if(r) r.checked=true;});
+  $("s-cancel").hidden=!state.profile; $("setup").hidden=false;
+}
+$("edit-plan").addEventListener("click",()=>{openSetup(); $("setup").scrollIntoView({behavior:"smooth",block:"start"});});
+$("s-cancel").addEventListener("click",()=>{$("setup").hidden=true;});
+$("sform").addEventListener("submit",e=>{
+  e.preventDefault();
+  const rv=n=>document.querySelector('input[name="'+n+'"]:checked').value;
+  const old=state.profile;
+  state.profile={nombre:$("p-nombre").value.trim().slice(0,30)||"Atleta",edad:+$("p-edad").value||22,sexo:$("p-sexo").value,objetivo:rv("p-obj"),nivel:rv("p-niv"),dias:+rv("p-dias"),lugar:rv("p-lugar")};
+  state.goal.peso=+$("p-peso").value||state.goal.peso; state.goal.alt=+$("p-alt").value||state.goal.alt;
+  if(state.profile.objetivo==="musculo") state.goal.meta="0.14";
+  if(!old||old.dias!==state.profile.dias||old.lugar!==state.profile.lugar) delete state.checks[WK];
+  if(!state.weights.length) state.weights.push({date:new Date().toISOString().slice(0,10),kg:state.goal.peso});
+  $("setup").hidden=true; selEx=0; save(); renderAll(); setEx(exId(DAYS[selDay].ex[0][0]));
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+
+function renderAll(){DAYS=buildPlan(state.profile); renderHead(); fillGoal(); renderDays(); renderDay(); renderCoach(); renderStats(); renderWeek(); renderChart(); renderGoal();}
 
 T3=init3D();
 if(T3){document.querySelector(".stage").classList.add("is3d"); buildBody(); buildDyn();}
@@ -1304,6 +1421,7 @@ if(T3){spinBtn.addEventListener("click",()=>{T3.ctl.autoRotate=!T3.ctl.autoRotat
 renderAll();
 setEx(exId(DAYS[selDay].ex[selEx][0]));
 save();
+if(!state.profile) openSetup();
 syncPlay();
 requestAnimationFrame(tick);
 })();
