@@ -96,6 +96,26 @@ body.mopen .msec{opacity:1;transform:none}
 #livecount:empty{display:none}
 #toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#1d1a16;color:#fff;padding:10px 14px;border-radius:12px;font:600 13px Inter;z-index:3000;opacity:0;transition:.3s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
+.sonar{position:relative;width:22px;height:22px}
+.sonar b{position:absolute;inset:3px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45)}
+.sonar i{position:absolute;inset:0;border-radius:50%;background:rgba(37,99,235,.45);animation:sonar 2s ease-out infinite}
+.sonar i+i{animation-delay:1s}
+@keyframes sonar{0%{transform:scale(.6);opacity:.9}100%{transform:scale(3.6);opacity:0}}
+#topmini{position:fixed;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));z-index:1001;display:none;gap:8px}
+.top.hide~#topmini{display:flex}
+#topmini #showtop{position:static;transform:none;display:block}
+#clearbtn{border:0;border-radius:999px;background:#1d1a16;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:9px 14px;font:700 14px Inter;cursor:pointer;display:none}
+body.hasdest #clearbtn{display:block}
+.seen{position:fixed;right:12px;z-index:1000;border:0;border-radius:14px;padding:11px 12px;background:#facc15;color:#1d1a16;font:800 13px Inter;box-shadow:0 2px 10px rgba(0,0,0,.3);bottom:calc(58vh + 68px);transition:bottom .28s;cursor:pointer}
+.dlg{position:fixed;inset:0;z-index:2500;background:rgba(10,8,6,.45);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.dlg.on{opacity:1;pointer-events:auto}
+.dlgbox{background:var(--card);width:100%;border-radius:20px 20px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));max-height:75vh;overflow:auto;transform:translateY(40px);transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.dlg.on .dlgbox{transform:none}
+.dlgbox .head{display:flex;justify-content:space-between;align-items:center}
+.dlgbox .head b{font:900 18px Archivo}
+.vis{display:inline-block;white-space:nowrap;background:#facc15;color:#1d1a16;font:800 11px Inter;padding:3px 7px;border-radius:10px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.clear2{display:none;border:0;background:#efe8dc!important;color:var(--ink)!important;border-radius:12px;width:40px;font-size:16px;cursor:pointer}
+body.hasdest .clear2{display:block}
 </style>
 </head>
 <body>
@@ -106,15 +126,17 @@ body.mopen .msec{opacity:1;transform:none}
     <button type="button" id="menubtn" class="menubtn" aria-label="Menú">☰</button>
     <input id="q" type="search" placeholder="¿A dónde vas? Tienda, lugar, calle…" autocomplete="off">
     <button>Buscar</button>
-  </form>
+  <button type="button" id="clear2" class="clear2" title="Limpiar">✕</button></form>
   <div class="sugg" id="sugg"></div>
   <div class="quick" id="quick"></div>
   <div class="from" id="from">📍 Desde: buscando tu ubicación…</div> <span class="from" id="livecount" style="cursor:default"></span>
   <div class="topzone" id="topzone"><div class="tgrab"></div></div>
 </div>
-<button id="showtop">🔍 ¿A dónde vas?</button>
+<div id="topmini"><button id="showtop">🔍 ¿A dónde vas?</button><button id="clearbtn" title="Limpiar">✕ Limpiar</button></div>
 
 <button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
+<button class="seen" id="seenbtn">👀 Vi un Binni</button>
+<div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b>👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><p class="muted" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div class="chips" id="seenroutes"></div><div id="seendirs"></div></div></div>
 <div class="alert" id="alert"></div>
 <div class="mscrim" id="mscrim"></div>
 <aside class="menu" id="menu" aria-hidden="true">
@@ -341,7 +363,7 @@ function renderPlans(){
   plans.forEach((p,i)=>{if(i===0)return;walkRoute(origin,p.legs[0].b.s.ll).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-0"]`).forEach(e=>e.textContent=fmt(w.m))});walkRoute(p.legs[p.legs.length-1].a.s.ll,dest).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-1"]`).forEach(e=>e.textContent=fmt(w.m))})});
   if(plans[0])showPlan(plans[0]);else{tripLayer.clearLayers();drawEnds();walkLine(origin,dest);map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
 }
-function bindGo(){document.querySelectorAll(".go").forEach(b=>b.onclick=e=>{e.stopPropagation();trip?cancelTrip():startTrip(plans[b.dataset.go])})}
+function bindGo(){document.querySelectorAll(".go[data-go]").forEach(b=>b.onclick=e=>{e.stopPropagation();trip?cancelTrip():startTrip(plans[b.dataset.go])})}
 function drawEnds(){
   L.circleMarker(dest,{radius:9,color:"#fff",weight:3,fillColor:"#111",fillOpacity:1}).addTo(tripLayer).bindTooltip("🏁 "+destName,{permanent:true,direction:"top",className:"lbl"});
 }
@@ -382,7 +404,7 @@ function setOrigin(c,label){origin=c;$("from").textContent="📍 Desde: "+label;
 navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
   const c=[p.coords.latitude,p.coords.longitude];
   if(!me){acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
-    me=L.circleMarker(c,{radius:8,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map).bindPopup("Estás aquí");
+    me=L.marker(c,{icon:L.divIcon({className:"",iconSize:[22,22],iconAnchor:[11,11],html:'<div class="sonar"><i></i><i></i><b></b></div>'}),zIndexOffset:2000,keyboard:false}).addTo(map).bindPopup("Estás aquí · en vivo");
     if(!origin){setOrigin(c,"tu ubicación");map.setView(c,15)}}
   else{me.setLatLng(c);acc.setLatLng(c).setRadius(p.coords.accuracy)}
   if(originIsMe) origin=c;
@@ -442,7 +464,7 @@ function tripBar(){
 function startTrip(p){
   trip=p;warned={};TS=null;
   tripBar();
-  document.querySelectorAll(".go").forEach(b=>{b.textContent="✓ Viaje iniciado · Cancelar";b.style.background="#b91c1c";b.onclick=e=>{e.stopPropagation();cancelTrip()}});
+  document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="✓ Viaje iniciado · Cancelar";b.style.background="#b91c1c";b.onclick=e=>{e.stopPropagation();cancelTrip()}});
   if(me)map.setView(me.getLatLng(),16);else $("from").textContent="📍 Activa tu ubicación para que te avise dónde bajar";
   setSheet(true);
   $("peek").textContent=`🟢 Viaje en curso · Bájate en ${p.legs[p.legs.length-1].a.s.name} ⌃`;
@@ -451,7 +473,7 @@ function startTrip(p){
 function cancelTrip(){
   stopShare(true);
   trip=null;warned={};$("alert").style.display="none";tripBar();
-  document.querySelectorAll(".go").forEach(b=>{b.textContent="Iniciar viaje · te aviso dónde bajar";b.style.background="";bindGo()});
+  document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="Iniciar viaje · te aviso dónde bajar";b.style.background="";bindGo()});
   setSheet(false);
 }
 function arrived(){
@@ -521,7 +543,7 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 $("q").addEventListener("input",()=>{clearTimeout(sTimer);const q=$("q").value.trim();if(q.length<3){$("sugg").style.display="none";return}sTimer=setTimeout(()=>search(q,true),350)});
 $("sform").onsubmit=e=>{e.preventDefault();const q=$("q").value.trim();if(q)search(q);$("q").blur()};
 function setDest(c,name){
-  dest=c;destName=name;$("q").value=name;$("sugg").style.display="none";setSheet(false);
+  document.body.classList.add("hasdest");dest=c;destName=name;$("q").value=name;$("sugg").style.display="none";setSheet(false);
   if(!origin){$("panel").innerHTML="<h2>"+esc(name)+"</h2><p>¿Desde dónde sales? Activa tu ubicación (botón 📍) o toca el mapa donde estás y elige <b>📍 Salir de aquí</b>.</p>";tripLayer.clearLayers();drawEnds();map.setView(c,15);pending=true;return}
   if(!ready){$("panel").innerHTML="<h2>"+esc(name)+"</h2><p>Cargando las rutas, en un segundo te doy las opciones…</p><div class='prog'><i style='width:60%'></i></div>";pending=true;return}
   plan();
@@ -536,7 +558,7 @@ map.on("click",e=>{destAddr="";const c=[e.latlng.lat,e.latlng.lng];
 const sheet=$("sheet"),fab=$("me");
 function setSheet(min){
   sheet.classList.toggle("min",min);sheet.style.transform="";
-  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";
+  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
   if(min)sheet.scrollTop=0;
   $("peek").textContent=trip?`🟢 Viaje en curso · Bájate en ${trip.legs[trip.legs.length-1].a.s.name} ⌃`:plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
 }
@@ -677,7 +699,7 @@ function pingShare(c,sp){
 }
 addEventListener("pagehide",()=>{if(SHARE)sb("bb_bus_ping",{p_sesion:SES,p_ruta:SHARE.code,p_destino:SHARE.to,p_lat:17,p_lon:-96.7,p_vel:null,p_activo:false})});
 function shareUI(){
-  const b=$("sharebtn");if(b){b.textContent=SHARE?"📡 Compartiendo · Dejar de compartir":"🚌 Ya me subí · compartir camión en vivo";b.classList.toggle("on",!!SHARE)}
+  const b=$("sharebtn");if(b){const L0=trip&&trip.legs[TS?TS.leg:0];b.textContent=SHARE?`📡 Compartiendo la ${SHARE.code} en vivo · Dejar de compartir`:`🚌 Estoy arriba del Binni${L0?" "+L0.c:""}`;b.classList.toggle("on",!!SHARE)}
   const m=$("mshare");if(m)m.innerHTML=SHARE?`<p>📡 Compartiendo la <b>${SHARE.code}</b> → ${esc(SHARE.to)}</p><button class="mbtn" id="mstop" style="width:100%">Dejar de compartir</button>`:`<p class="muted">¿Vas arriba de un BinniBus? Compártelo y los demás verán por dónde viene. Es anónimo: solo se ve el camión, sin nombre, y se borra a los 2 minutos.</p><div id="mroutes" class="chips"></div><div id="mdirs"></div>`;
   if(SHARE){const x=$("mstop");if(x)x.onclick=()=>stopShare()}
   else{const mr=$("mroutes");if(mr)Object.keys(GEO).sort().forEach(c=>{const bt=document.createElement("button");bt.textContent=c;bt.style.background=COL[c]||"#0f766e";bt.onclick=()=>{
@@ -699,16 +721,51 @@ async function pollLive(){
 }
 function busEta(l){ // ¿viene un camión de esta ruta/dirección antes de tu parada?
   let best=null;
-  LIVE.forEach(x=>{if(x.r!==l.c||x.d!==l.dk)return;const L=l.dir.line;let bi=0,bd=1e9;for(let i=0;i<=l.b.s.i;i++){const d=D(x.ll,L[i]);if(d<bd){bd=d;bi=i}}
+  LIVE.concat((typeof SEEN!=='undefined'?SEEN:[]).filter(x=>x.d&&x.s<900).map(x=>({r:x.r,d:x.d,ll:[x.lat,x.lon],s:x.s,seen:1}))).forEach(x=>{if(x.r!==l.c||x.d!==l.dk)return;const L=l.dir.line;let bi=0,bd=1e9;for(let i=0;i<=l.b.s.i;i++){const d=D(x.ll,L[i]);if(d<bd){bd=d;bi=i}}
     if(bd>120)return;const m=l.dir.cum[l.b.s.i]-l.dir.cum[bi];if(m<0)return;const v=x.v&&x.v>5?x.v*1000/60:BUS;const t=m/v+x.s/60;
-    if(!best||t<best.t)best={t,m}});
+    if(!best||t<best.t)best={t,m,seen:x.seen,s:x.s}});
   return best;
 }
 function updateLiveEta(){
   document.querySelectorAll("[data-eta]").forEach(e=>{const p=plans[+e.dataset.eta];if(!p){e.textContent="";return}const b=busEta(p.legs[0]);
-    e.innerHTML=b?`🔴 En vivo: viene una ${p.legs[0].c} a ~${Math.max(1,Math.round(b.t))} min de tu parada`:""});
+    e.innerHTML=b?(b.seen?`👀 Vieron una ${p.legs[0].c} ${hace(b.s)}: llegaría a tu parada en ~${Math.max(1,Math.round(b.t))} min`:`🔴 En vivo: viene una ${p.legs[0].c} a ~${Math.max(1,Math.round(b.t))} min de tu parada`):""});
 }
 setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("visibilitychange",pollLive);
+
+
+/* ---------- Limpiar todo ---------- */
+function clearAll(){
+  if(trip)cancelTrip();
+  dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();
+  $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
+  $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p>`;
+  if(me)map.setView(me.getLatLng(),15);setTop(true);setSheet(false);
+}
+$("clearbtn").onclick=clearAll;$("clear2").onclick=clearAll;
+
+/* ---------- Vi un BinniBus ---------- */
+let SEEN=[];const seenLayer=L.layerGroup().addTo(map);
+const hace=s=>s<60?"hace un momento":s<3600?`hace ${Math.round(s/60)} min`:`hace ${Math.round(s/3600)} h`;
+function openSeen(){
+  if(!me){toast("Activa tu ubicación para marcar dónde lo viste.");return}
+  const c=[me.getLatLng().lat,me.getLatLng().lng];
+  const near=Object.keys(GEO).map(k=>({k,d:Math.min(...GEO[k].map(d=>Math.min(...d.line.filter((p,i)=>i%2===0).map(p=>D(c,p)))))})).sort((a,b)=>a.d-b.d);
+  const box=$("seenroutes");box.innerHTML="";$("seendirs").innerHTML="";
+  near.forEach(({k,d})=>{const b=document.createElement("button");b.textContent=k;b.style.background=COL[k]||"#0f766e";if(d>400)b.style.opacity=.45;b.onclick=()=>{
+    $("seendirs").innerHTML=`<p class="muted" style="margin:10px 0 4px">¿Qué decía su letrero?</p>`+GEO[k].map((x,i)=>`<button class="mbtn" data-i="${i}" style="width:100%;margin-top:6px">${k} → ${esc(x.to)}</button>`).join("")+`<button class="mbtn" data-i="-1" style="width:100%;margin-top:6px">No me fijé</button>`;
+    $("seendirs").querySelectorAll("[data-i]").forEach(x=>x.onclick=()=>{const to=+x.dataset.i>=0?GEO[k][+x.dataset.i].to:"";
+      sb("bb_visto_add",{p_sesion:SES,p_ruta:k,p_destino:to,p_lat:c[0],p_lon:c[1]});
+      SEEN.unshift({r:k,d:to,lat:c[0],lon:c[1],s:0});drawSeen();updateLiveEta();$("seendlg").classList.remove("on");toast(`👀 Gracias: marcaste la ${k} aquí.`)})};box.appendChild(b)});
+  $("seendlg").classList.add("on");
+}
+$("seenbtn").onclick=openSeen;$("seenx").onclick=()=>$("seendlg").classList.remove("on");
+$("seendlg").onclick=e=>{if(e.target.id==="seendlg")$("seendlg").classList.remove("on")};
+function drawSeen(){seenLayer.clearLayers();SEEN.forEach(x=>{
+  L.marker([x.lat,x.lon],{icon:L.divIcon({className:"",iconSize:[90,22],iconAnchor:[45,11],html:`<div class="vis" style="opacity:${Math.max(.45,1-x.s/1500)}">👀 ${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</div>`}),zIndexOffset:900}).addTo(seenLayer)
+   .bindPopup(`<b>👀 Vieron la ${x.r}${x.d?" → "+esc(x.d):""}</b><br>${hace(x.s)}`)})}
+async function pollSeen(){if(document.visibilityState!=="visible")return;
+  try{const r=await fetch(SBR+"bb_vistos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){SEEN=await r.json();drawSeen();updateLiveEta()}}catch(e){}}
+setInterval(pollSeen,20000);setTimeout(pollSeen,2000);
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
