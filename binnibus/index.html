@@ -274,7 +274,7 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
 <script src="routes.js"></script>
 <script src="stops.js"></script>
 <script>
-const COL={"RA-16":"#dc2626"};
+const COL={"RA-16":"#dc2626","RA-12":"#3f9a42","RA-14":"#d9412f","RC-02":"#e0708a","RC-03":"#a9473a","RC-08":"#b8692a"};
 const BBOX="16.95,-96.85,17.16,-96.60"; // s,w,n,e
 const CACHE="bb-lines-v2";
 const $=id=>document.getElementById(id);
@@ -1149,7 +1149,7 @@ let ready=false,pending=false;
 $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
 try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");setTimeout(openMenu,900)}}catch(e){}
 (async()=>{
-  let RAW={};try{RAW=await (await fetch("geo.json?v=2")).json()}catch(e){}
+  let RAW={};try{RAW=await (await fetch("geo.json?v=3")).json()}catch(e){}
   let n=0;const tot=OSM_REL.length;
   const st=t=>{const s=$("st");if(s)s.textContent=t};
   // 0) rutas guardadas en tu servidor (una sola descarga)
