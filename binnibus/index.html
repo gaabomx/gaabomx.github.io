@@ -169,8 +169,6 @@ body.fleft .seen{right:auto!important;left:70px}
 .lvupd{display:flex;align-items:center;gap:6px;font-size:11px;color:#16a34a;margin-top:6px;font-weight:700}
 .lvupd i{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:livep 1.2s infinite}
 @keyframes livep{50%{opacity:.25}}
-#stopcard{position:fixed;left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 112px);z-index:1400;background:var(--card);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px 14px;max-height:45vh;overflow:auto;transform:translateY(-16px) scale(.97);opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.22,1,.36,1),opacity .25s}
-#stopcard.on{transform:none;opacity:1;pointer-events:auto}
 .schd{display:flex;justify-content:space-between;align-items:flex-start}
 .schd b{font:800 16px Archivo;display:block}.schd span{font-size:12px;color:var(--muted)}
 .schd button{border:0;background:#efe8dc;border-radius:10px;width:32px;height:32px;cursor:pointer}
@@ -180,6 +178,16 @@ body.fleft .seen{right:auto!important;left:70px}
 .ps{color:#166534;margin-top:2px}.nd{color:var(--muted);margin-top:2px}
 .scf{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:4px}
 .scf .lvupd{margin:0}
+.nearbtn{display:flex;justify-content:space-between;align-items:center;width:100%;margin:10px 0 4px;border:0;border-radius:14px;padding:12px 14px;background:#ecfdf3;color:#166534;font:700 14px Inter;text-align:left;cursor:pointer;transition:transform .15s,background .2s}
+.nearbtn:active{transform:scale(.98)}
+.nearbtn .chev{transition:transform .3s}.nearbtn.open .chev{transform:rotate(180deg)}
+#stopsec{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .45s cubic-bezier(.22,1,.36,1),opacity .3s}
+#stopsec>*{overflow:hidden}
+#stopsec.on{grid-template-rows:1fr;opacity:1}
+.sccard{border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:6px 0 10px;background:#fff}
+#stopsec.on .scr{animation:scin .45s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i)*60ms + 120ms)}
+@keyframes scin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.compass{bottom:calc(58vh + 68px)}
 </style>
 </head>
 <body>
@@ -896,7 +904,7 @@ function clearAll(){
   if(trip)cancelTrip();
   dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
-  $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p>`;
+  $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
   if(me)map.setView(me.getLatLng(),15);setTop(true);setSheet(false);
 }
 $("clearbtn").onclick=clearAll;$("clear2").onclick=clearAll;
@@ -1005,23 +1013,31 @@ function stopStatus(ll){
   const rank=x=>x.next?x.next.t:x.last?100+x.last.t:999;
   return out.sort((a,b)=>rank(a)-rank(b));
 }
-function openStopCard(ll,name){SC={ll,name};renderStopCard();setTop(true)}
+function stopSec(){let el=$("stopsec");if(!el){el=document.createElement("div");el.id="stopsec";$("panel").prepend(el)}return el}
+function openStopCard(ll,name,dist){SC={ll,name,dist};const el=stopSec();el.classList.remove("on");renderStopCard();setSheet(false);$("sheet").scrollTop=0;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add("on")));const nb=$("nearbtn");if(nb)nb.classList.add("open")}
+function toggleNear(){
+  if(SC){SC=null;const el=$("stopsec");if(el){el.classList.remove("on");setTimeout(()=>{if(!SC)el.innerHTML=""},350)}const nb=$("nearbtn");if(nb)nb.classList.remove("open");return}
+  if(!ready){toast("Espera, cargando rutas…");return}
+  if(!me){toast("Activa tu ubicación para ver tu parada más cercana.");return}
+  if(!STOPIDX)buildStopIdx();const c=[me.getLatLng().lat,me.getLatLng().lng];
+  let best=null,bd=1e9;for(const g of STOPIDX){const d=D(c,g.ll);if(d<bd){bd=d;best=g}}
+  if(!best){toast("No hay paradas cerca.");return}
+  openStopCard(best.ll,best.name,bd);
+}
 function renderStopCard(){
-  let el=$("stopcard");if(!SC){if(el)el.classList.remove("on");return}
-  if(!el){el=document.createElement("div");el.id="stopcard";document.body.appendChild(el)}
+  const el=$("stopsec");if(!el||!SC)return;
   const rows=stopStatus(SC.ll);
   const fmtT=t=>t<1?"ya casi llega":`~${Math.round(t)} min`;
-  el.innerHTML=`<div class="schd"><div><b>🚏 ${esc(SC.name)}</b><span>Próximo BinniBus</span></div><button aria-label="Cerrar">✕</button></div>
-   <div class="scl">${rows.length?rows.map(r=>`<div class="scr"><span class="badge" style="background:${COL[r.code]||"#0f766e"}">${r.code}</span><div class="sct"><b>→ ${esc(r.to)}</b>
+  el.innerHTML=`<div class="sccard"><div class="schd"><div><b>🚏 ${esc(SC.name)}</b><span>Próximos BinniBus${SC.dist!=null?` · tu parada más cercana (${fmt(SC.dist)})`:""}</span></div><button aria-label="Cerrar">✕</button></div>
+   <div class="scl">${rows.length?rows.map((r,i)=>`<div class="scr" style="--i:${i}"><span class="badge" style="background:${COL[r.code]||"#0f766e"}">${r.code}</span><div class="sct"><b>→ ${esc(r.to)}</b>
      ${r.next?`<div class="nx">🔴 Llega en ${fmtT(r.next.t)}${r.next.src==="seen"?" <i>(lo vieron)</i>":""}${r.next.sure?"":" <i>· sentido sin confirmar</i>"}</div>`:""}
      ${r.last?`<div class="ps">✓ Ya pasó hace ~${Math.max(1,Math.round(r.last.t))} min</div>`:""}
      ${!r.next&&!r.last?`<div class="nd">Sin reportes ahorita · pasa cada ~10–15 min</div>`:""}</div></div>`).join(""):`<p class="muted">No encontré rutas en esta parada.</p>`}</div>
-   <div class="scf"><span class="lvupd"><i></i>en vivo</span> · con lo que comparten y ven los usuarios</div>`;
-  el.querySelector("button").onclick=()=>{SC=null;el.classList.remove("on")};
-  requestAnimationFrame(()=>el.classList.add("on"));
+   <div class="scf"><span class="lvupd"><i></i>en vivo</span> · con lo que comparten y ven los usuarios</div></div>`;
+  el.querySelector(".schd button").onclick=()=>toggleNear();
 }
 setInterval(()=>{if(SC&&document.visibilityState==="visible")renderStopCard()},10000);
-map.on("click",()=>{if(SC){SC=null;renderStopCard()}});
+
 
 /* ---------- Girar el mapa 360° ---------- */
 function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;
@@ -1033,7 +1049,7 @@ upCompass();
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
-$("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
+$("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
 try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");setTimeout(openMenu,900)}}catch(e){}
 (async()=>{
   let RAW={};try{RAW=await (await fetch("geo.json?v=2")).json()}catch(e){}
