@@ -8,7 +8,7 @@
 <meta name="keywords" content="BinniBus, Binni Bus, rutas BinniBus, BinniBus Oaxaca, CityBus Oaxaca, rutas de camiones Oaxaca, transporte público Oaxaca, paradas BinniBus, mapa BinniBus">
 <link rel="canonical" href="https://gaabomx.github.io/binnibus/">
 <meta name="theme-color" content="#0f6e62">
-<link rel="icon" href="icono.png">
+<link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="es_MX">
@@ -205,6 +205,8 @@ body.fleft .seen{right:auto!important;left:70px}
 .compass{bottom:calc(58vh + 68px)}
 .wdet{margin-top:4px}.wdet summary{color:var(--ok);font-weight:700;cursor:pointer;font-size:13px}
 .wsteps{margin:6px 0 0;padding-left:18px;font-size:13px}.wsteps li{padding:3px 0}
+.h2logo{display:flex;align-items:center;gap:8px}.h2logo img{height:30px;width:auto}
+.brand{display:flex;align-items:center;gap:10px}.brand img{height:44px;width:auto;filter:drop-shadow(0 4px 10px #e8336d55)}.brand b{display:block;font-family:Archivo,sans-serif;font-weight:900;font-size:22px;line-height:1;letter-spacing:-.02em}.brand small{display:block;font-weight:800;font-size:10px;letter-spacing:.35em;color:#0f766e;margin-top:3px}
 </style>
 </head>
 <body>
@@ -230,7 +232,7 @@ body.fleft .seen{right:auto!important;left:70px}
 <div class="alert" id="alert"></div>
 <div class="mscrim" id="mscrim"></div>
 <aside class="menu" id="menu" aria-hidden="true">
-  <div class="mhead"><b>Menú</b><button id="mclose" class="mclose" aria-label="Cerrar">✕</button></div>
+  <div class="mhead"><div class="brand"><img src="logo.png" alt="" width="34" height="44"><div><b>Binni Rutas</b><small>OAXACA</small></div></div><button id="mclose" class="mclose" aria-label="Cerrar">✕</button></div>
   <div class="mbody">
     <section class="msec credit" style="--d:0"><p>Página hecha por <a href="https://www.instagram.com/gaabomx/" target="_blank" rel="noopener"><b>@gaabomx</b></a></p><p style="margin-top:4px;font-size:12px"><a href="privacidad.html" target="_blank" style="color:var(--muted);text-decoration:underline">Aviso de privacidad</a> · No es la app oficial de BinniBus</p></section>
     <section class="msec" style="--d:0">
@@ -942,7 +944,7 @@ function clearAll(){
   if(trip)cancelTrip();
   dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;RT=null;rtId++;rtLayer.clearLayers();rtHid=false;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
-  $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
+  $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
   if(me)map.setView(me.getLatLng(),15);setTop(true);setSheet(false);
 }
 $("clearbtn").onclick=clearAll;$("clear2").onclick=clearAll;
@@ -1130,7 +1132,7 @@ upCompass();
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
-$("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
+$("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
 try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");setTimeout(openMenu,900)}}catch(e){}
 (async()=>{
   let RAW={};try{RAW=await (await fetch("geo.json?v=2")).json()}catch(e){}
