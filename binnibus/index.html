@@ -169,6 +169,17 @@ body.fleft .seen{right:auto!important;left:70px}
 .lvupd{display:flex;align-items:center;gap:6px;font-size:11px;color:#16a34a;margin-top:6px;font-weight:700}
 .lvupd i{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:livep 1.2s infinite}
 @keyframes livep{50%{opacity:.25}}
+#stopcard{position:fixed;left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 112px);z-index:1400;background:var(--card);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px 14px;max-height:45vh;overflow:auto;transform:translateY(-16px) scale(.97);opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.22,1,.36,1),opacity .25s}
+#stopcard.on{transform:none;opacity:1;pointer-events:auto}
+.schd{display:flex;justify-content:space-between;align-items:flex-start}
+.schd b{font:800 16px Archivo;display:block}.schd span{font-size:12px;color:var(--muted)}
+.schd button{border:0;background:#efe8dc;border-radius:10px;width:32px;height:32px;cursor:pointer}
+.scr{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.sct{flex:1;font-size:13px}.sct b{font-weight:700}
+.nx{color:#b91c1c;font-weight:700;margin-top:2px}.nx i,.ps i{font-weight:500;color:var(--muted)}
+.ps{color:#166534;margin-top:2px}.nd{color:var(--muted);margin-top:2px}
+.scf{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:4px}
+.scf .lvupd{margin:0}
 </style>
 </head>
 <body>
@@ -336,7 +347,7 @@ function draw(code){
   const grp=L.layerGroup(),c=COL[code]||"#0f766e";
   g.forEach((d,j)=>{
     L.polyline(d.line,{color:c,weight:3,opacity:.6,dashArray:j?"6 6":null,smoothFactor:1.5,interactive:false}).addTo(grp);
-    d.stops.forEach(s=>{if(s.ll&&!s.bad)L.circleMarker(s.ll,{radius:4,color:"#fff",weight:1.5,fillColor:c,fillOpacity:1}).addTo(stopLayer).bindPopup(`<b>${esc(s.name)}</b><br>${code} → ${esc(d.to)}`)});
+    d.stops.forEach(s=>{if(s.ll&&!s.bad)L.circleMarker(s.ll,{radius:5,color:"#fff",weight:1.5,fillColor:c,fillOpacity:1}).addTo(stopLayer).on("click",e=>{L.DomEvent.stop(e);openStopCard(s.ll,s.name)})});
   });
   layers[code]=grp;grp.addTo(map);
 }
@@ -863,7 +874,7 @@ async function pollLive(){
   g.forEach(x=>{const mine=SHARE&&me&&x.r===SHARE.code&&D(x.ll,[me.getLatLng().lat,me.getLatLng().lng])<150;
     L.marker(x.ll,{icon:busIcon(x.r,COL[x.r]||"#0f766e",mine),zIndexOffset:1000}).addTo(busLayer)
      .bindPopup(`<b>🚌 ${x.r} → ${esc(x.d)}</b><br>En vivo · hace ${x.s} s${x.v?` · ${Math.round(x.v)} km/h`:""}<br><span style="color:#6b6358">${x.n>1?x.n+" personas a bordo comparten":"1 persona a bordo comparte"}</span>`)});
-  updateLiveEta();
+  updateLiveEta();if(SC)renderStopCard();
   const n=$("livecount");if(n)n.textContent=g.length?`🔴 ${g.length} ${g.length===1?"camión":"camiones"} en vivo`:"";
 }
 function busEta(l){ // ¿viene un camión de esta ruta/dirección antes de tu parada?
@@ -914,9 +925,13 @@ function openSeen(){
 }
 $("seenbtn").onclick=openSeen;$("seenx").onclick=()=>$("seendlg").classList.remove("on");
 $("seendlg").onclick=e=>{if(e.target.id==="seendlg")$("seendlg").classList.remove("on")};
-function drawSeen(){seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<900);SEEN.forEach(x=>{
-  L.marker([x.lat,x.lon],{icon:L.divIcon({className:"",iconSize:[90,22],iconAnchor:[45,11],html:`<div class="vis" style="opacity:${Math.max(.4,1-x.s/900)}">👀 ${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</div>`}),zIndexOffset:900}).addTo(seenLayer)
-   .bindPopup(`<b>👀 Vieron la ${x.r}${x.d?" → "+esc(x.d):""}</b><br>${hace(x.s)}`)})}
+function drawSeen(){seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<900);
+  const shown=[];
+  [...SEEN].sort((a,b)=>a.s-b.s).forEach(x=>{const ll=[x.lat,x.lon];
+    if(shown.some(y=>y.r===x.r&&D(y.ll,ll)<120))return; // repetido: queda el más reciente
+    const stack=shown.filter(y=>D(y.ll,ll)<60).length;shown.push({r:x.r,ll});
+    L.marker(ll,{icon:L.divIcon({className:"",iconSize:[96,24],iconAnchor:[48,12+stack*28],html:`<div class="vis" style="opacity:${Math.max(.45,1-x.s/900)}">👀 ${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</div>`}),zIndexOffset:900-stack}).addTo(seenLayer)
+     .bindPopup(`<b>👀 Vieron la ${x.r}${x.d?" → "+esc(x.d):""}</b><br>${hace(x.s)}`)})}
 async function pollSeen(){if(document.visibilityState!=="visible")return;
   try{const r=await fetch(SBR+"bb_vistos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){SEEN=await r.json();drawSeen();updateLiveEta()}}catch(e){}}
 setInterval(pollSeen,20000);setInterval(()=>{SEEN.forEach(x=>x.s+=30);drawSeen()},30000);setTimeout(pollSeen,2000);
@@ -966,9 +981,47 @@ function showStopBanner(g,rs,d){
   let el=$("stopban");if(!el){el=document.createElement("div");el.id="stopban";document.body.appendChild(el)}
   el.innerHTML=`<div class="sbic">🚏</div><div style="flex:1"><b>Parada cerca · ${Math.round(d)} m</b><div>${esc(g.name)}</div><div class="sbr">${rs.map(r=>`<span style="background:${COL[r]||"#0f766e"}">${r}</span>`).join("")}</div></div><button aria-label="Cerrar">✕</button>`;
   el.querySelector("button").onclick=()=>el.classList.remove("on");
-  el.onclick=e=>{if(e.target.tagName==="BUTTON")return;map.flyTo(g.ll,17,{duration:.6});el.classList.remove("on")};
+  el.onclick=e=>{if(e.target.tagName==="BUTTON")return;map.flyTo(g.ll,17,{duration:.6});el.classList.remove("on");openStopCard(g.ll,g.name)};
   requestAnimationFrame(()=>el.classList.add("on"));clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),8000);
 }
+
+/* ---------- Próximo BinniBus en cada parada ---------- */
+let SC=null;
+function obsList(){return LIVE.map(x=>({r:x.r,d:x.d,ll:x.ll,s:x.s,v:x.v,src:"live"})).concat(SEEN.map(x=>({r:x.r,d:x.d,ll:[x.lat,x.lon],s:x.s,src:"seen"})))}
+function stopStatus(ll){
+  const out=[];
+  Object.keys(GEO).forEach(code=>GEO[code].forEach(dir=>{
+    let si=-1,sd=1e9;dir.stops.forEach((st,i)=>{if(!st.ll||st.bad||st.i==null)return;const d=D(ll,st.ll);if(d<sd){sd=d;si=i}});
+    if(si<0||sd>40)return;const S=dir.stops[si];
+    let next=null,last=null;
+    obsList().forEach(o=>{if(o.r!==code)return;if(o.d&&o.d!==dir.to)return;
+      let bi=-1,bd=1e9;for(let i=0;i<dir.line.length;i+=2){const d=D(o.ll,dir.line[i]);if(d<bd){bd=d;bi=i}}if(bd>150)return;
+      const v=o.v&&o.v>5?o.v*1000/60:BUS,gap=(dir.cum[S.i]-dir.cum[bi])/v,age=o.s/60;
+      const eta=gap-age; // >0 aún no llega
+      if(eta>-1){if(!next||eta<next.t)next={t:Math.max(0,eta),src:o.src,sure:!!o.d}}
+      else{const ago=-eta;if(ago<=20&&(!last||ago<last.t))last={t:ago,src:o.src,sure:!!o.d}}});
+    out.push({code,to:dir.to,next,last});
+  }));
+  const rank=x=>x.next?x.next.t:x.last?100+x.last.t:999;
+  return out.sort((a,b)=>rank(a)-rank(b));
+}
+function openStopCard(ll,name){SC={ll,name};renderStopCard();setTop(true)}
+function renderStopCard(){
+  let el=$("stopcard");if(!SC){if(el)el.classList.remove("on");return}
+  if(!el){el=document.createElement("div");el.id="stopcard";document.body.appendChild(el)}
+  const rows=stopStatus(SC.ll);
+  const fmtT=t=>t<1?"ya casi llega":`~${Math.round(t)} min`;
+  el.innerHTML=`<div class="schd"><div><b>🚏 ${esc(SC.name)}</b><span>Próximo BinniBus</span></div><button aria-label="Cerrar">✕</button></div>
+   <div class="scl">${rows.length?rows.map(r=>`<div class="scr"><span class="badge" style="background:${COL[r.code]||"#0f766e"}">${r.code}</span><div class="sct"><b>→ ${esc(r.to)}</b>
+     ${r.next?`<div class="nx">🔴 Llega en ${fmtT(r.next.t)}${r.next.src==="seen"?" <i>(lo vieron)</i>":""}${r.next.sure?"":" <i>· sentido sin confirmar</i>"}</div>`:""}
+     ${r.last?`<div class="ps">✓ Ya pasó hace ~${Math.max(1,Math.round(r.last.t))} min</div>`:""}
+     ${!r.next&&!r.last?`<div class="nd">Sin reportes ahorita · pasa cada ~10–15 min</div>`:""}</div></div>`).join(""):`<p class="muted">No encontré rutas en esta parada.</p>`}</div>
+   <div class="scf"><span class="lvupd"><i></i>en vivo</span> · con lo que comparten y ven los usuarios</div>`;
+  el.querySelector("button").onclick=()=>{SC=null;el.classList.remove("on")};
+  requestAnimationFrame(()=>el.classList.add("on"));
+}
+setInterval(()=>{if(SC&&document.visibilityState==="visible")renderStopCard()},10000);
+map.on("click",()=>{if(SC){SC=null;renderStopCard()}});
 
 /* ---------- Girar el mapa 360° ---------- */
 function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;
