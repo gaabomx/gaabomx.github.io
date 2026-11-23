@@ -52,6 +52,10 @@
       vibrar(true);
       await programar(ID_AVISO, "🔔 ¡Prepárate!",
         d.change ? `Bájate en ${d.stop}: ahí cambias a la ${d.change}.` : `Bájate en ${d.stop}.`, 0);
+    } else if (evento === "stop") {
+      try { HP.impact({ style: "LIGHT" }); setTimeout(() => HP.impact({ style: "LIGHT" }), 150); } catch (e) {}
+      if (document.visibilityState !== "visible")
+        await programar(1004, "🚏 Parada cerca", `${d.name} · ${d.routes}`, 0);
     } else if (evento === "end") {
       ultimoAviso = 0;
       await cancelar([ID_BAJADA, ID_LLEGADA, ID_AVISO]);

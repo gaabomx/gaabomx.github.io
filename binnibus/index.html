@@ -149,6 +149,20 @@ body.fleft .seen{right:auto!important;left:70px}
 .seenchip small{font:600 10px Inter;opacity:.9;margin-top:2px}
 .seenchip.far{color:#6b6358!important}
 .warnfar{background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 10px;font-size:13px;margin:10px 0 0}
+#stopban{position:fixed;left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 64px);z-index:2200;display:flex;gap:10px;align-items:center;background:#1d1a16;color:#fff;border-radius:16px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:13px;transform:translateY(-140%);opacity:0;transition:transform .4s cubic-bezier(.22,1,.36,1),opacity .3s;cursor:pointer}
+#stopban.on{transform:none;opacity:1}
+#stopban b{font:800 14px Archivo}
+#stopban .sbic{font-size:26px;animation:sbp 1s ease-in-out 3}
+@keyframes sbp{50%{transform:scale(1.25)}}
+#stopban .sbr{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+#stopban .sbr span{font:800 11px Archivo;padding:2px 6px;border-radius:6px}
+#stopban button{border:0;background:#3a342d;color:#fff;border-radius:10px;width:30px;height:30px}
+.tgl{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer}
+.tgl input{display:none}
+.tgl span{flex:none;width:42px;height:24px;border-radius:12px;background:#d6cdbf;position:relative;transition:.2s}
+.tgl span:after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+.tgl input:checked+span{background:var(--ok)}
+.tgl input:checked+span:after{left:21px}
 </style>
 </head>
 <body>
@@ -187,6 +201,7 @@ body.fleft .seen{right:auto!important;left:70px}
         <li><span>5</span><div>¿No sale tu casa o privada? Toca el mapa ahí y elige <b>📌 Guardar este lugar</b>.</div></li>
       </ol>
     </section>
+    <section class="msec" style="--d:1"><label class="tgl"><input type="checkbox" id="stopwarn"><span></span>🚏 Avisarme cuando pase cerca de una parada</label></section>
     <section class="msec" style="--d:1"><h3>⭐ Mis lugares</h3><div id="mmis"></div></section>
     <section class="msec" style="--d:2"><details class="mdet"><summary><h3>Rutas en el mapa</h3><span class="chev">▾</span></summary><p class="muted">Toca una ruta para mostrarla u ocultarla.</p><div class="chips" id="chips"></div>
       <div style="display:flex;gap:8px;margin-top:8px"><button class="mbtn" id="allon">Mostrar todas</button><button class="mbtn" id="alloff">Ocultar todas</button></div></details></section>
@@ -487,6 +502,7 @@ navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
   if(originIsMe) origin=c;
   if(trip) checkTrip(c,p.coords.speed);
   if(SHARE) pingShare(c,p.coords.speed);
+  nearStop(c);
 },()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
 let originIsMe=true;
 $("me").onclick=()=>{if(me)map.setView(me.getLatLng(),16)};
@@ -870,6 +886,33 @@ try{if(localStorage.getItem("bb-fside")==="l")document.body.classList.add("fleft
     el.addEventListener("click",e=>{if(moved){e.stopImmediatePropagation();e.preventDefault()}},true);
   });
 })();
+
+/* ---------- Aviso de parada cercana ---------- */
+let STOPIDX=null,stopOn=true,lastNear=0;const warnedStops={};
+try{stopOn=localStorage.getItem("bb-stopwarn")!=="0"}catch(e){}
+$("stopwarn").checked=stopOn;$("stopwarn").onchange=e=>{stopOn=e.target.checked;try{localStorage.setItem("bb-stopwarn",stopOn?"1":"0")}catch(x){}toast(stopOn?"🚏 Te aviso cuando pases cerca de una parada.":"Avisos de paradas apagados.")};
+function buildStopIdx(){ // junta paradas de todas las rutas (las del mismo punto se agrupan)
+  STOPIDX=[];Object.keys(GEO).forEach(code=>GEO[code].forEach(d=>d.stops.forEach(st=>{if(!st.ll||st.bad)return;
+    let g=STOPIDX.find(x=>D(x.ll,st.ll)<30);if(!g){g={ll:st.ll,name:st.name,r:new Set()};STOPIDX.push(g)}g.r.add(code)})));
+}
+function nearStop(c){
+  if(!stopOn||!ready)return;const now=Date.now();if(now-lastNear<3000)return;lastNear=now;
+  if(!STOPIDX)buildStopIdx();
+  let best=null,bd=1e9;for(const g of STOPIDX){const d=D(c,g.ll);if(d<bd){bd=d;best=g}}
+  if(!best||bd>50)return;
+  const k=best.ll.join();if(warnedStops[k]&&now-warnedStops[k]<10*60000)return;warnedStops[k]=now;
+  const rs=[...best.r].sort();
+  showStopBanner(best,rs,bd);
+  try{navigator.vibrate&&navigator.vibrate([120,80,120])}catch(e){}
+  nat("stop",{name:best.name,routes:rs.join(", ")});
+}
+function showStopBanner(g,rs,d){
+  let el=$("stopban");if(!el){el=document.createElement("div");el.id="stopban";document.body.appendChild(el)}
+  el.innerHTML=`<div class="sbic">🚏</div><div style="flex:1"><b>Parada cerca · ${Math.round(d)} m</b><div>${esc(g.name)}</div><div class="sbr">${rs.map(r=>`<span style="background:${COL[r]||"#0f766e"}">${r}</span>`).join("")}</div></div><button aria-label="Cerrar">✕</button>`;
+  el.querySelector("button").onclick=()=>el.classList.remove("on");
+  el.onclick=e=>{if(e.target.tagName==="BUTTON")return;map.flyTo(g.ll,17,{duration:.6});el.classList.remove("on")};
+  requestAnimationFrame(()=>el.classList.add("on"));clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),8000);
+}
 
 /* ---------- Girar el mapa 360° ---------- */
 function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;
