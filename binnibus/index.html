@@ -63,6 +63,27 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .quick button.loading{opacity:.55}
 .leaflet-container{background:#1b1b1b}
 .sheet,.top{transform:translateZ(0)}
+.menubtn{border:0;background:transparent;font-size:22px;width:40px;color:var(--ink);padding:0;cursor:pointer}
+#showtop{color:var(--ink)}
+.mscrim{position:fixed;inset:0;z-index:1500;background:rgba(10,8,6,.45);opacity:0;pointer-events:none;transition:opacity .3s ease;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.menu{position:fixed;top:0;left:0;bottom:0;width:min(86vw,380px);z-index:1600;background:var(--card);box-shadow:8px 0 30px rgba(0,0,0,.3);transform:translateX(-105%);transition:transform .38s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;border-radius:0 22px 22px 0;padding-top:env(safe-area-inset-top);will-change:transform}
+body.mopen .menu{transform:none}
+body.mopen .mscrim{opacity:1;pointer-events:auto}
+.mhead{display:flex;justify-content:space-between;align-items:center;padding:16px 18px 8px}
+.mhead b{font:900 24px Archivo}
+.mclose{border:0;background:#efe8dc;border-radius:12px;width:38px;height:38px;font-size:16px;color:var(--ink);cursor:pointer;transition:transform .2s}
+.mclose:active{transform:rotate(90deg) scale(.9)}
+.mbody{overflow-y:auto;padding:0 18px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.msec{padding:14px 0;border-bottom:1px solid var(--line);opacity:0;transform:translateX(-18px);transition:opacity .35s ease,transform .45s cubic-bezier(.22,1,.36,1);transition-delay:calc(var(--d)*55ms + 80ms)}
+body.mopen .msec{opacity:1;transform:none}
+.msec h3{font:800 16px Archivo;margin:0 0 8px}
+.how{list-style:none;padding:0;margin:0}
+.how li{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:8px 0}
+.how span{flex:none;width:24px;height:24px;border-radius:50%;background:var(--ok);color:#fff;font:800 13px/24px Inter;text-align:center}
+.mbtn{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px;font:600 13px Inter;color:var(--ink);cursor:pointer}
+.mis{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.mis span{flex:1}
+.mis button{border:0;border-radius:8px;padding:6px 9px;font:600 12px Inter;cursor:pointer}
 </style>
 </head>
 <body>
@@ -70,6 +91,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 
 <div class="top" id="top">
   <form class="search" id="sform">
+    <button type="button" id="menubtn" class="menubtn" aria-label="Menú">☰</button>
     <input id="q" type="search" placeholder="¿A dónde vas? Tienda, lugar, calle…" autocomplete="off">
     <button>Buscar</button>
   </form>
@@ -82,20 +104,32 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 
 <button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
 <div class="alert" id="alert"></div>
+<div class="mscrim" id="mscrim"></div>
+<aside class="menu" id="menu" aria-hidden="true">
+  <div class="mhead"><b>Menú</b><button id="mclose" class="mclose" aria-label="Cerrar">✕</button></div>
+  <div class="mbody">
+    <section class="msec" style="--d:0">
+      <h3>¿Cómo funciona?</h3>
+      <ol class="how">
+        <li><span>1</span><div>Escribe a dónde vas: una tienda, calle, colonia o lugar. También puedes tocar el mapa.</div></li>
+        <li><span>2</span><div>Te muestro caminando y en BinniBus: qué ruta tomar, con qué letrero, dónde subir y dónde bajarte.</div></li>
+        <li><span>3</span><div>Toca <b>Iniciar viaje</b> y deja la página abierta: tu celular vibra cuando ya casi llegas a tu parada.</div></li>
+        <li><span>4</span><div>¿No sale tu casa o privada? Toca el mapa ahí y elige <b>📌 Guardar este lugar</b>.</div></li>
+      </ol>
+    </section>
+    <section class="msec" style="--d:1"><h3>⭐ Mis lugares</h3><div id="mmis"></div></section>
+    <section class="msec" style="--d:2"><h3>Rutas en el mapa</h3><p class="muted">Toca una ruta para mostrarla u ocultarla.</p><div class="chips" id="chips"></div>
+      <div style="display:flex;gap:8px;margin-top:8px"><button class="mbtn" id="allon">Mostrar todas</button><button class="mbtn" id="alloff">Ocultar todas</button></div></section>
+    <section class="msec" style="--d:3"><h3>Las 35 rutas</h3><div id="all"></div></section>
+    <section class="msec" style="--d:4"><h3>Tarifas y horario</h3><p class="muted">$8 con tarjeta · $10 en efectivo · $4 estudiantes y adultos mayores · Personas con discapacidad: gratis. Horario 6:00–22:00.</p>
+      <p class="muted">Recorridos y paradas de OpenStreetMap (© colaboradores de OpenStreetMap). Los tiempos son aproximados; confirma con el chofer si algo no cuadra.</p></section>
+  </div>
+</aside>
+
 
 <div class="sheet" id="sheet">
   <div class="handle" id="handle"><div class="grab"></div><div class="peek" id="peek">Desliza hacia arriba para ver opciones ⌃</div></div>
   <div id="panel"></div>
-  <details>
-    <summary>Rutas en el mapa</summary>
-    <p class="muted">Toca una ruta para mostrarla u ocultarla.</p>
-    <div class="chips" id="chips"></div>
-  </details>
-  <details>
-    <summary>Las 35 rutas</summary>
-    <div id="all"></div>
-  </details>
-  <p class="muted" style="margin-top:12px">Tarifa $8 con tarjeta · $10 efectivo · $4 estudiantes y adultos mayores. Horario 6:00–22:00. Recorridos y paradas de OpenStreetMap (© colaboradores de OpenStreetMap). Confirma con el chofer si algo no cuadra.</p>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -268,7 +302,7 @@ function renderPlans(){
   const wd=dd*1.25,wt=Math.round(wd/WALK);
   const walkBest=!plans.length||wt<=plans[0].t+3;
   let h=`<h2>${destName}</h2><div class="muted">${destAddr||""}</div>
-  <div class="opt" style="cursor:default${walkBest?";border:2px solid var(--ink)":""}"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${walkBest?"⭐ Mejor · ":""}<span id="wd">${fmt(wd)} · ${wt} min</span></div></div>${walkBest&&plans.length?'<div class="muted" style="margin-top:4px">Caminando llegas igual o más rápido que en camión.</div>':""}</div>`;
+  <div class="opt walk" style="cursor:default${walkBest?";border:2px solid var(--ink)":""}"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${walkBest?"⭐ Mejor · ":""}<span id="wd">${fmt(wd)} · ${wt} min</span></div></div>${walkBest&&plans.length?'<div class="muted" style="margin-top:4px">Caminando llegas igual o más rápido que en camión.</div>':""}</div>`;
   if(!plans.length){
     h+=`<p>No encontré un BinniBus que te deje razonablemente cerca de aquí. Puede que no haya ruta por esa zona.</p>`;
   }
@@ -285,7 +319,7 @@ function renderPlans(){
   });
   if(plans.length)h+=`<p class="muted">Tiempos aproximados: incluyen ~${WAIT} min de espera por camión; el tráfico puede cambiarlos.</p>`;
   P.innerHTML=h;setSheet(false);logSearch();
-  P.querySelectorAll(".opt").forEach(o=>o.onclick=e=>{if(e.target.dataset.go)return;P.querySelectorAll(".opt").forEach(x=>x.classList.remove("on"));o.classList.add("on");
+  P.querySelectorAll(".opt[data-i]").forEach(o=>o.onclick=e=>{if(e.target.dataset.go)return;P.querySelectorAll(".opt[data-i]").forEach(x=>x.classList.remove("on"));o.classList.add("on");
     const old=P.querySelector(".go");if(old)old.remove();o.insertAdjacentHTML("beforeend",`<button class="go" data-go="${o.dataset.i}">Iniciar viaje · te aviso dónde bajar</button>`);bindGo();showPlan(plans[o.dataset.i])});
   bindGo();
   walkRoute(origin,dest).then(w=>{const e=$("wd");if(w&&e)e.textContent=fmt(w.m)+" · "+Math.round(w.m/WALK)+" min"});
@@ -540,9 +574,31 @@ $("from").onclick=()=>{setSheet(false);$("panel").insertAdjacentHTML("afterbegin
   fb.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{const x=MIS[b.dataset.f];fb.remove();originIsMe=false;setOrigin(x.ll,x.name)});
 };
 
+
+/* ---------- Menú ---------- */
+function openMenu(){renderMis();document.body.classList.add("mopen");$("menu").setAttribute("aria-hidden","false")}
+function closeMenu(){document.body.classList.remove("mopen");$("menu").setAttribute("aria-hidden","true");$("menu").style.transform=""}
+$("menubtn").onclick=openMenu;$("mclose").onclick=closeMenu;$("mscrim").onclick=closeMenu;
+addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
+// deslizar a la izquierda para cerrar
+(()=>{const m=$("menu");let x0=null,dx=0;
+  m.addEventListener("touchstart",e=>{x0=e.touches[0].clientX;dx=0;m.style.transition="none"},{passive:true});
+  m.addEventListener("touchmove",e=>{if(x0===null)return;dx=Math.min(0,e.touches[0].clientX-x0);if(dx<-5)m.style.transform=`translateX(${dx}px)`},{passive:true});
+  m.addEventListener("touchend",()=>{m.style.transition="";if(dx<-70)closeMenu();else m.style.transform="";x0=null});
+})();
+function renderMis(){
+  const el=$("mmis");
+  if(!MIS.length){el.innerHTML='<p class="muted">Aún no tienes. Toca el mapa en un lugar y elige 📌 Guardar este lugar.</p>';return}
+  el.innerHTML=MIS.map((x,i)=>`<div class="mis"><span>⭐ ${esc(x.name)}</span><button data-go="${i}" style="background:var(--ok);color:#fff">Ir</button><button data-from="${i}" style="background:#efe8dc">Salir de aquí</button><button data-del="${i}" style="background:#fde2e2;color:#b91c1c">✕</button></div>`).join("");
+  el.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const x=MIS[b.dataset.go];closeMenu();destAddr="Guardado por ti";setDest(x.ll,x.name)});
+  el.querySelectorAll("[data-from]").forEach(b=>b.onclick=()=>{const x=MIS[b.dataset.from];closeMenu();originIsMe=false;setOrigin(x.ll,x.name)});
+  el.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{MIS.splice(+b.dataset.del,1);saveMis();renderMis()});
+}
+
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
-$("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Escribe un lugar, toca uno de los botones o toca el mapa. Te digo qué BinniBus tomar, dónde subir y dónde bajarte.</p><div class="muted" id="st">Trazando rutas…</div><div class="prog"><i id="pb"></i></div>`;
+$("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
+try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");setTimeout(openMenu,900)}}catch(e){}
 (async()=>{
   let RAW={};try{RAW=await (await fetch("geo.json?v=2")).json()}catch(e){}
   let n=0;const tot=OSM_REL.length;
@@ -560,6 +616,8 @@ $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Escribe un lugar,
   stopsByZoom();renderAll();ready=true;const s=$("st");if(s)s.textContent=`Listo: ${Object.keys(GEO).length} rutas en el mapa.`;
   
   Object.keys(GEO).sort().forEach(c=>{const b=document.createElement("button");b.textContent=c;b.style.background=COL[c];b.onclick=()=>{if(map.hasLayer(layers[c])){map.removeLayer(layers[c]);b.classList.add("off")}else{layers[c].addTo(map);b.classList.remove("off")}};$("chips").appendChild(b)});
+  $("allon").onclick=()=>{Object.values(layers).forEach(l=>l.addTo(map));document.querySelectorAll("#chips button").forEach(b=>b.classList.remove("off"))};
+  $("alloff").onclick=()=>{Object.values(layers).forEach(l=>map.removeLayer(l));document.querySelectorAll("#chips button").forEach(b=>b.classList.add("off"))};
   const U=new URLSearchParams(location.search);
   if(U.get("desde")){const c=U.get("desde").split(",").map(Number);originIsMe=false;setOrigin(c,"punto del enlace")}
   if(U.get("a")==="estadio")setDest([17.0700,-96.7130],"Estadio Yu'va");
