@@ -72,7 +72,11 @@ section.info li{margin:3px 0}
 .rc-chip{border:0;border-radius:7px;padding:5px 7px;font:700 12px Archivo;color:#fff;cursor:pointer;opacity:.85}
 .rc-chip.on{outline:3px solid #1d1a16;opacity:1}
 .warn{font-size:12px;color:var(--muted);margin:10px 2px 0}
-#lmap{height:70vh;min-height:430px;border-radius:10px;background:#222}
+#gm{width:100%;height:65vh;min-height:420px;border:0;border-radius:10px;margin-top:8px;background:#eee}
+.dest{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#destout{margin-top:10px}
+#destout .step{background:#f3ede2;border-radius:10px;padding:10px 12px;margin:6px 0}
+#lmap{height:45vh;min-height:300px;border-radius:10px;background:#222}
 .locbtn{position:absolute;left:10px;bottom:10px;z-index:500;border:0;border-radius:10px;padding:9px 12px;font:600 13px Inter;background:#fffdf8;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer}
 .leaflet-tooltip.lbl{background:rgba(29,26,22,.82);color:#fff;border:0;box-shadow:none;font:600 11px Inter;padding:2px 6px}
 .leaflet-tooltip.lbl:before{display:none}
@@ -99,12 +103,25 @@ section.info li{margin:3px 0}
     </div>
   </div>
 
-  <div class="mapbox">
-    <div class="maphead"><b>Mapa simplificado</b><span id="sel">Toca una ruta</span></div>
-    <div class="mapwrap"><div id="lmap"></div><button id="locbtn" class="locbtn">📍 Dónde estoy</button></div>
-    <div class="legend"><span><i class="lg rt"></i>Troncal</span><span><i class="lg ra"></i>Alimentadora</span><span><i class="lg rc"></i>Colectora</span><span>⚾ Estadio Yu'va</span><button id="allbtn" class="chip">Ver todas</button></div>
+  <div class="mapbox" id="mapa">
+    <div class="maphead"><b>Recorrido real</b><span id="sel"></span></div>
+    <iframe id="gm" title="Mapa de la ruta" loading="lazy" allowfullscreen></iframe>
     <div class="routechips" id="rchips"></div>
-    <p class="warn">Mapa aproximado: al tocar una ruta la línea se ajusta a las calles entre sus puntos clave, pero el recorrido real del camión puede ser distinto. Para el trayecto exacto abre el mapa oficial de cada ruta abajo.</p>
+    <p class="warn">Mapas oficiales de cada ruta (Google My Maps). Toca una ruta para ver su recorrido y sus paradas; dentro del mapa puedes hacer zoom con los dedos.</p>
+  </div>
+
+  <div class="mapbox">
+    <div class="maphead"><b>¿A dónde vas?</b></div>
+    <div class="dest">
+      <button class="chip on" data-d="yuva">⚾ Estadio Yu'va</button>
+    </div>
+    <div id="destout"></div>
+    <a class="btn" style="margin-top:10px" href="https://rutasoaxaca.com/">Planear viaje con transbordos (rutasoaxaca.com) →</a>
+  </div>
+
+  <div class="mapbox">
+    <div class="maphead"><b>Tu ubicación en vivo</b><span id="locmsg"></span></div>
+    <div class="mapwrap"><div id="lmap"></div><button id="locbtn" class="locbtn">📍 Dónde estoy</button></div>
   </div>
 
   <div class="sticky">
@@ -205,157 +222,59 @@ function render(){
       <button class="star${on?" on":""}" aria-label="Guardar ruta">★</button>
       <div class="od">${r[3]}</div>
       <div class="tags"><span class="tag">${TYPES[t]}</span>${r[5]?'<span class="tag yuva">⚾ Baja cerca del Yu\'va</span>':""}${r[6]?'<span class="tag night">🌙 Nocturna</span>':""}</div>
-      <div class="links"><a href="${IMG+r[4]}">Ver mapa oficial →</a></div>`;
+      <div class="links"><a href="#mapa" data-r="${r[0]}" class="vr">Ver recorrido en el mapa →</a> · <a href="${IMG+r[4]}">Imagen oficial</a></div>`;
     d.querySelector(".star").onclick=()=>{favs=on?favs.filter(x=>x!==r[0]):[...favs,r[0]];save();render()};
-    list.appendChild(d);});
+    const vr=d.querySelector(".vr");if(vr)vr.onclick=e=>{e.preventDefault();pick(r[0],true)};list.appendChild(d);});
 }
 document.getElementById("q").addEventListener("input",render);
 render();
 
-/* ---------- Mapa simplificado ---------- */
-// Posiciones aproximadas [lat, lon]; hub = punto de transbordo importante
-const N={
- centro:["Centro",17.061,-96.725,1], yuva:["⚾ Yu'va",17.070,-96.713,1],
- viguera:["Yuroo Viguera",17.105,-96.757,1], amor:["Parque del Amor",17.055,-96.695,1],
- xoxo:["Yuroo Xoxocotlán",17.030,-96.733,1], pvalle:["Plaza del Valle",17.064,-96.688,1],
- modazul:["Módulo Azul",17.022,-96.722,1], cdadmin:["Cd. Administrativa",17.071,-96.663,1],
- mexicapam:["San Martín Mexicapam",17.068,-96.740], primera:["Primera Etapa",17.077,-96.700],
- etla:["San Pablo Etla",17.150,-96.765], scetla:["Sta. Cruz Etla",17.160,-96.790],
- huitzo:["Huitzo",17.272,-96.876], atzompa:["Atzompa",17.095,-96.785],
- guadv:["Guadalupe Victoria",17.085,-96.733], moctezuma:["Col. Moctezuma",17.058,-96.712],
- monjas:["San Isidro Monjas",17.000,-96.738], esquipulas:["Esquipulas",17.015,-96.742],
- tecno:["Tecnológico",17.078,-96.744], scamilpas:["Sta. Cruz Amilpas",17.066,-96.676],
- jardin:["Col. Jardín",17.072,-96.722], anahuac:["Anáhuac",17.092,-96.718],
- donaji:["Ag. Donají",17.088,-96.742], satelite:["Satélite",17.073,-96.697],
- alamos:["Los Álamos",17.086,-96.702], pjardin:["Panteón Jardín",17.057,-96.703],
- cuevita:["La Cuevita",17.076,-96.733], rosario:["El Rosario",17.044,-96.684],
- montoya:["Montoya",17.074,-96.757], soledad:["La Soledad",17.064,-96.733],
- montealban:["Col. Monte Albán",17.058,-96.755], tule:["El Tule",17.047,-96.636],
- tomaltepec:["Tomaltepec",17.062,-96.598], guelaguetza:["Col. Guelaguetza",17.095,-96.730],
- simbolos:["Símbolos Patrios",17.040,-96.718], dif:["CRI DIF",17.045,-96.735],
- joya:["La Joya",17.083,-96.765], sfelipe:["San Felipe del Agua",17.103,-96.708],
- experimental:["La Experimental",17.030,-96.700], yahuiche:["Yahuiche",17.100,-96.775],
- huayapam:["Huayápam",17.105,-96.672], montebello:["Monte Bello",17.085,-96.752],
- sluis:["San Luis Beltrán",17.098,-96.693], heladio:["Heladio Ramírez",17.033,-96.695],
- bugambilias:["Bugambilias",17.100,-96.745], manzanal:["Manzana L",17.020,-96.738],
- animas:["Ánimas Trujano",16.990,-96.712], raya:["La Raya / Aeropuerto",17.000,-96.722],
- tlalixtac:["Tlalixtac",17.075,-96.652], issste:["ISSSTE",17.072,-96.706],
- crit:["CRIT",17.005,-96.700], tutla:["San Sebastián Tutla",17.050,-96.680],
- hmujer:["Hosp. de la Mujer",16.990,-96.735]
-};
-// Recorrido simplificado: inicio, puntos clave, final
-const P={
- "RT-01":["viguera","tecno","centro","xoxo"],
- "RT-02":["viguera","tecno","yuva","pvalle","cdadmin"],
- "RA-01":["monjas","esquipulas","xoxo","centro"],
- "RA-02":["atzompa","guadv"],
- "RA-03":["amor","yuva","huayapam"],
- "RA-04":["tecno","yuva","scamilpas"],
- "RA-05":["jardin","yuva","anahuac"],
- "RA-06":["mexicapam","centro","yuva","primera"],
- "RA-07":["guadv","centro","moctezuma"],
- "RA-08":["donaji","yuva","satelite"],
- "RA-09":["alamos","yuva","pjardin"],
- "RA-10":["cuevita","yuva","rosario"],
- "RA-11":["montoya","centro","jardin"],
- "RA-12":["soledad","yuva","primera"],
- "RA-14":["montoya","centro","rosario"],
- "RA-15":["montealban","centro","tule","tomaltepec"],
- "RA-16":["guelaguetza","pvalle"],
- "RA-17":["simbolos","montealban"],
- "RA-18":["viguera","dif"],
- "RA-19":["huitzo","etla","viguera"],
- "RC-01":["joya","yuva","donaji"],
- "RC-02":["viguera","yuva","primera"],
- "RC-03":["sfelipe","pvalle"],
- "RC-04":["scetla","viguera","pvalle","experimental"],
- "RC-05":["etla","viguera","centro"],
- "RC-06":["yahuiche","yuva","huayapam"],
- "RC-07":["montebello","centro"],
- "RC-08":["sluis","jardin","yuva","heladio"],
- "RC-09":["bugambilias","rosario"],
- "RC-10":["manzanal","animas"],
- "RC-11":["raya","yuva","modazul"],
- "RC-12":["tlalixtac","amor"],
- "RC-13":["issste","crit"],
- "RC-14":["viguera","centro","tutla"],
- "RC-15":["hmujer","simbolos","modazul"]
-};
+const MID={"RT-01": "1RS4boTAVhA6lxBzfZC3x9SAM-tYbxGE", "RA-03": "1i_QjIrsX3PJBQ3tXBVuUm42HAX6NmUY", "RC-05": "1t1RmEsRMqotxpOi1LNV_AIkAVrl2mHA", "RC-06": "1yjAIAJhIPN8IRzpyIIlYWDLwZTuLpC4", "RC-09": "1gcakTjFsYLGppj1FlxmPQDL6CdJHLmw", "RC-10": "1rdzLewEm7OMe56xSSsiOj6MU_UULQeo", "RC-11": "14fJAASgxD4tW77Uf3WRNWPCAph6SDk8", "RC-12": "19a9N9c1eUD6tt4qhyoZ9AMBAABuZuB8", "RC-14": "1jIGlXq0DB6Pfm7EzrthjE3l45voo6Gw", "RA-15": "1KS--IOW4TelKMGwvrN7p8SwTU4q3BDw", "RC-15": "118NgL6x-IGiEMmSQVxiaMZfZRY3V8uI", "RA-17": "1DiE9OzK7jeVCdPhaz6jg0BVEXSyj1ko", "RA-18": "1GhDKLpolPsqeT7KFIZI5zY5lywiEJLk", "RA-11": "1AFDoKpp78jkHUxo_kv92Sv-Mam1ie14", "RA-14": "15u7ZUVPfoAyrB4ql0eJ8lvyYsW0aqWE", "RA-01": "1v_K3uzPa1hgMdwx03ATHmerEADAeEF4", "RA-07": "1gv3nFdqbWMjSAKWSvsF3_d8EFEm3zGU", "RA-16": "1HdNUi5qgzguco033Y0DbyEgp6HBvcw0", "RC-08": "1zeHskPKUOu4-SfJq6G_Jw4rPUJmTUGw", "RA-02": "1xJfTmJQMRlzmhsi4T-2X6kmrMCoYuQU", "RA-13": "1cnd_BCJj2q8kNpRsJw-A4ZsWcbV223M", "RC-13": "1ze2zxgi4Ruvtw60InwMrzKcRkOp6v0k", "RA-06": "19UqZmt4kkVyyX8Ow9Ci1rTAEzFLpyH0", "RA-08": "1070g-eOCBlnqmeklyjE5lx58J-G_Wro", "RC-01": "1IHXtIHwtF1Rls8JCzqO7BWzF41ozoaE", "RA-12": "1_ZglwPqfGADHFUKmfPSqOucPl7thJTM", "RA-04": "10ZLX1U97ri6KxET7PRIa3mIIgUIbLWg", "RC-04": "1RqhJqZVWOYCk5uqadF3uHUsiekpgOHg", "RC-02": "15MeDubtexmxMkc1Wq_sFhRFiwfOm6oA", "RA-09": "1Iq9CzCI3NabyPThrGRfBLLlsEeMUGoI", "RA-05": "1q4Dz5u1hcVeM83Ls9zM-WfLnSKR5BRQ", "RC-03": "1cKAh2wrvGZbN197uA4m8e60_vjUMbKM", "RA-10": "162i9Zis3mrBYkf4mkLZju0KxjY3MucM", "RA-19": "1pD5KURxeoWwyhiWCQShTC5WLkkBs5kI", "RC-07": "1dX5wo-QcEmeYdWMwdAuqQgoq-iia3tM"};
 const COL={RT:"#c2410c",RA:"#0f766e",RC:"#7c3aed"};
-
-const map=L.map("lmap",{zoomControl:true,attributionControl:true}).setView([17.065,-96.72],13);
+let sel=null;
+const rch=document.getElementById("rchips");
+R.forEach(r=>{const code=r[0];if(!MID[code])return;
+  const b=document.createElement("button");b.className="rc-chip";b.textContent=code;
+  b.style.background=COL[code.slice(0,2)];b.dataset.c=code;b.onclick=()=>pick(code);rch.appendChild(b);});
+function pick(code,scroll){
+  sel=code;const r=R.find(x=>x[0]===code);
+  document.getElementById("gm").src="https://www.google.com/maps/d/embed?mid="+MID[code]+"&ehbc=2E312F";
+  document.getElementById("sel").textContent=r?`${r[0]} ${r[1]}: ${r[3]}`:code;
+  [...rch.children].forEach(b=>b.classList.toggle("on",b.dataset.c===code));
+  if(scroll)document.getElementById("mapa").scrollIntoView({behavior:"smooth"});
+}
+/* destinos */
+const DEST={yuva:{name:"Estadio Yu'va",ll:[17.0700,-96.7130],
+  txt:`<div class="step"><b>Desde San Martín Mexicapam / Periférico:</b> toma la <b>RA-06 Wagul</b> con letrero <b>Primera Etapa</b>. Bájate en la parada <b>Alianza</b> (después de Panteón General y Esc. Sec. Téc. N°6) y camina al estadio.</div>
+  <div class="step"><b>Otras rutas con bajada cerca del estadio:</b> RA-03, RA-04, RA-05, RA-09, RA-10, RA-12, RC-01, RC-02, RC-06, RC-08, RC-11.</div>
+  <div class="step">📍 Blvd. Eduardo Vasconcelos y Calz. Héroes de Chapultepec, Col. Jalatlaco.</div>`}};
+function showDest(k){document.getElementById("destout").innerHTML=DEST[k].txt;if(destMk)destMk.setLatLng(DEST[k].ll)}
+document.querySelectorAll(".dest .chip").forEach(b=>b.onclick=()=>showDest(b.dataset.d));
+/* ubicación en vivo */
+const map=L.map("lmap").setView([17.065,-96.72],13);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imágenes © Esri, Maxar, Earthstar Geographics"}).addTo(map);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,opacity:.7}).addTo(map);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19}).addTo(map);
-const ll=k=>[N[k][1],N[k][2]];
-const lines={},street={};let sel="RA-06";
-Object.keys(P).forEach(code=>{
-  const pl=L.polyline(P[code].map(ll),{color:COL[code.slice(0,2)],weight:3,opacity:.6}).addTo(map);
-  pl.on("click",()=>pick(code));lines[code]=pl;
-});
-const dots={};
-Object.keys(N).forEach(k=>{
-  const n=N[k];
-  const m=L.circleMarker(ll(k),{radius:n[3]?7:4.5,color:"#fff",weight:2,fillColor:n[3]?"#1d1a16":"#fffdf8",fillOpacity:1}).addTo(map);
-  const rs=Object.keys(P).filter(c=>P[c].includes(k));
-  m.bindPopup(`<b>${n[0].replace(/[↑→] ?/g,"")}</b><br>Pasan: ${rs.join(", ")}`);
-  m.bindTooltip(n[0].replace(/[↑→] ?/g,""),{permanent:true,direction:"right",offset:[6,0],className:"lbl"});
-  dots[k]=m;
-});
-function refreshLabels(){
-  const z=map.getZoom(),used=sel?new Set(P[sel]):null;
-  Object.entries(dots).forEach(([k,m])=>{
-    const show=N[k][3]||(used&&used.has(k))||z>=14;
-    const t=m.getTooltip();if(show)m.openTooltip();else m.closeTooltip();
-  });
-}
-map.on("zoomend",refreshLabels);
-async function streetLine(code){
-  if(street[code]!==undefined)return street[code];
-  try{
-    const q=P[code].map(k=>N[k][2]+","+N[k][1]).join(";");
-    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${q}?overview=full&geometries=geojson`);
-    const j=await r.json();
-    street[code]=j.routes&&j.routes[0]?j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]):null;
-  }catch(e){street[code]=null}
-  return street[code];
-}
-const rch=document.getElementById("rchips");
-Object.keys(P).forEach(code=>{
-  const b=document.createElement("button");b.className="rc-chip";b.textContent=code;
-  b.style.background=COL[code.slice(0,2)];b.dataset.c=code;b.onclick=()=>pick(code);rch.appendChild(b);
-});
-document.getElementById("allbtn").onclick=()=>pick(null);
-async function pick(code){
-  sel=code;
-  Object.entries(lines).forEach(([c,pl])=>{
-    const on=!code||c===code;
-    pl.setStyle({opacity:code?(on?1:.12):.75,weight:code&&on?6:3});
-    if(code&&on)pl.bringToFront();
-  });
-  [...rch.children].forEach(b=>b.classList.toggle("on",b.dataset.c===code));
-  const r=code&&R.find(x=>x[0]===code);
-  document.getElementById("sel").textContent=r?`${r[0]} ${r[1]}: ${r[3]}`:"Todas las rutas";
-  refreshLabels();
-  if(code){
-    map.fitBounds(lines[code].getBounds(),{padding:[40,40],maxZoom:15});
-    const g=await streetLine(code);
-    if(g&&sel===code){lines[code].setLatLngs(g)}
-  }else map.setView([17.065,-96.72],12);
-}
+let destMk=L.marker(DEST.yuva.ll).addTo(map).bindTooltip("⚾ Estadio Yu'va",{permanent:true,direction:"top"});
+
 let me=null,acc=null,watchId=null,follow=true,firstFix=true;
-const locbtn=document.getElementById("locbtn");
+const locbtn=document.getElementById("locbtn"),locmsg=document.getElementById("locmsg");
 map.on("dragstart",()=>{if(watchId!==null){follow=false;locbtn.textContent="📍 Centrar en mí"}});
 function onPos(p){
-  const c=[p.coords.latitude,p.coords.longitude];
+  const c=[p.coords.latitude,p.coords.longitude];locmsg.textContent="";
   if(!me){
     acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
     me=L.circleMarker(c,{radius:8,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map).bindPopup("Estás aquí (en vivo)");
   }else{me.setLatLng(c);acc.setLatLng(c).setRadius(p.coords.accuracy)}
+  const d=map.distance(c,destMk.getLatLng());locmsg.textContent=(d>=1000?(d/1000).toFixed(1)+" km":Math.round(d)+" m")+" al destino";
   if(follow)map.setView(c,firstFix?16:map.getZoom(),{animate:true});
   firstFix=false;
 }
-function onErr(e){if(e&&e.code!==1&&me)return;if(e&&e.code!==1){document.getElementById("sel").textContent="Buscando tu ubicación…";return}if(watchId!==null)navigator.geolocation.clearWatch(watchId);document.getElementById("sel").textContent="No se pudo obtener tu ubicación. Revisa el permiso de ubicación del navegador.";locbtn.textContent="📍 Dónde estoy";watchId=null}
+function onErr(e){
+  if(e&&e.code!==1){if(!me)locmsg.textContent="Buscando tu ubicación…";return}
+  if(watchId!==null)navigator.geolocation.clearWatch(watchId);
+  locmsg.textContent="Activa el permiso de ubicación del navegador";locbtn.textContent="📍 Dónde estoy";watchId=null;
+}
 locbtn.onclick=()=>{
   if(!navigator.geolocation)return onErr({code:1});
   if(watchId===null){
@@ -364,12 +283,11 @@ locbtn.onclick=()=>{
   }else if(!follow){
     follow=true;locbtn.textContent="⏹ Detener ubicación";if(me)map.setView(me.getLatLng(),map.getZoom());
   }else{
-    navigator.geolocation.clearWatch(watchId);watchId=null;locbtn.textContent="📍 Dónde estoy";
+    navigator.geolocation.clearWatch(watchId);watchId=null;locbtn.textContent="📍 Dónde estoy";locmsg.textContent="";
     if(me){map.removeLayer(me);map.removeLayer(acc);me=acc=null}
   }
 };
-pick(sel);
-
+pick("RA-06");showDest("yuva");
 </script>
 </body>
 </html>
