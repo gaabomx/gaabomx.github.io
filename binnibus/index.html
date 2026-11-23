@@ -775,12 +775,12 @@ function openSeen(){
 }
 $("seenbtn").onclick=openSeen;$("seenx").onclick=()=>$("seendlg").classList.remove("on");
 $("seendlg").onclick=e=>{if(e.target.id==="seendlg")$("seendlg").classList.remove("on")};
-function drawSeen(){seenLayer.clearLayers();SEEN.forEach(x=>{
-  L.marker([x.lat,x.lon],{icon:L.divIcon({className:"",iconSize:[90,22],iconAnchor:[45,11],html:`<div class="vis" style="opacity:${Math.max(.45,1-x.s/1500)}">👀 ${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</div>`}),zIndexOffset:900}).addTo(seenLayer)
+function drawSeen(){seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<900);SEEN.forEach(x=>{
+  L.marker([x.lat,x.lon],{icon:L.divIcon({className:"",iconSize:[90,22],iconAnchor:[45,11],html:`<div class="vis" style="opacity:${Math.max(.4,1-x.s/900)}">👀 ${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</div>`}),zIndexOffset:900}).addTo(seenLayer)
    .bindPopup(`<b>👀 Vieron la ${x.r}${x.d?" → "+esc(x.d):""}</b><br>${hace(x.s)}`)})}
 async function pollSeen(){if(document.visibilityState!=="visible")return;
   try{const r=await fetch(SBR+"bb_vistos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){SEEN=await r.json();drawSeen();updateLiveEta()}}catch(e){}}
-setInterval(pollSeen,20000);setTimeout(pollSeen,2000);
+setInterval(pollSeen,20000);setInterval(()=>{SEEN.forEach(x=>x.s+=30);drawSeen()},30000);setTimeout(pollSeen,2000);
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
