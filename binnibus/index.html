@@ -190,6 +190,8 @@ body.fleft .seen{right:auto!important;left:70px}
 #stopsec.on .scr{animation:scin .45s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i)*60ms + 120ms)}
 @keyframes scin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .compass{bottom:calc(58vh + 68px)}
+.wdet{margin-top:4px}.wdet summary{color:var(--ok);font-weight:700;cursor:pointer;font-size:13px}
+.wsteps{margin:6px 0 0;padding-left:18px;font-size:13px}.wsteps li{padding:3px 0}
 </style>
 </head>
 <body>
@@ -439,7 +441,7 @@ function renderPlans(){
       <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
       ${p.legs.map((l,j)=>`<li class="b">Toma la <b>${l.c}</b> con letrero <b>${l.dk}</b> · ${l.a.k-l.b.k} paradas (${fmt(l.rm)}, ~${Math.round(l.rm/BUS)} min)</li>
         <li class="${j<p.legs.length-1?"t":"o"}">Bájate en <b>${l.a.s.name}</b>${j<p.legs.length-1?(p.tw<25?` y ahí mismo cambia de camión`:` y camina ${fmt(p.tw*1.25)} a <b>${p.legs[j+1].b.s.name}</b>`):""}</li>`).join("")}
-      <li class="w">Camina <span data-w="${i}-1">${fmt(p.walk[1]*1.25)}</span> a tu destino</li>
+      <li class="w">Camina <span data-w="${i}-1">${fmt(p.walk[1]*1.25)}</span> a tu destino<details class="wdet" data-wd="${i}"><summary>Ver cómo llegar caminando</summary><div class="muted">Calculando…</div></details></li>
     </ul>${i===0?`<button class="go" data-go="${i}">Iniciar viaje · te aviso dónde bajar</button>`:""}</div>`;
   });
   if(plans.length)h+=`<p class="muted">Tiempos aproximados: incluyen ~${WAIT} min de espera por camión; el tráfico puede cambiarlos.</p>`;
@@ -448,7 +450,7 @@ function renderPlans(){
     const old=P.querySelector(".go");if(old)old.remove();o.insertAdjacentHTML("beforeend",`<button class="go" data-go="${o.dataset.i}">Iniciar viaje · te aviso dónde bajar</button>`);bindGo();showPlan(plans[o.dataset.i])});
   bindGo();
   walkRoute(origin,dest).then(w=>{const e=$("wd");if(w&&e)e.textContent=fmt(w.m)+" · "+Math.round(w.m/WALK)+" min"});
-  plans.forEach((p,i)=>{if(i===0)return;walkRoute(origin,p.legs[0].b.s.ll).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-0"]`).forEach(e=>e.textContent=fmt(w.m))});walkRoute(p.legs[p.legs.length-1].a.s.ll,dest).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-1"]`).forEach(e=>e.textContent=fmt(w.m))})});
+  plans.forEach((p,i)=>{if(i===0)return;walkRoute(origin,p.legs[0].b.s.ll).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-0"]`).forEach(e=>e.textContent=fmt(w.m))});walkRoute(p.legs[p.legs.length-1].a.s.ll,dest).then(w=>{if(!w)return;document.querySelectorAll(`[data-w="${i}-1"]`).forEach(e=>e.textContent=fmt(w.m));document.querySelectorAll(`[data-wd="${i}"] div`).forEach(d=>d.outerHTML=stepsHTML(w)||'<div class="muted">Camino directo, cruza con cuidado.</div>')})});
   if(plans[0])showPlan(plans[0]);else{drawId++;tripLayer.clearLayers();showNetwork();drawEnds();walkLine(origin,dest);map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
 }
 function bindGo(){document.querySelectorAll(".go[data-go]").forEach(b=>b.onclick=e=>{e.stopPropagation();trip?cancelTrip():startTrip(plans[b.dataset.go])})}
@@ -456,21 +458,35 @@ function drawEnds(){
   L.circleMarker(dest,{radius:9,color:"#fff",weight:3,fillColor:"#111",fillOpacity:1}).addTo(tripLayer).bindTooltip("🏁 "+destName,{permanent:true,direction:"top",className:"lbl"});
 }
 const WC={};
-async function walkRoute(a,b){ // la caminata más corta por calles, cruzando donde se pueda
+const MOD={left:"a la izquierda","slight left":"un poco a la izquierda","sharp left":"a la izquierda",right:"a la derecha","slight right":"un poco a la derecha","sharp right":"a la derecha",straight:"derecho",uturn:"de regreso"};
+function stepText(st){const n=st.name?` por <b>${esc(st.name)}</b>`:"",mo=st.maneuver.modifier,ty=st.maneuver.type;
+  if(ty==="depart")return `Sal${n}`;
+  if(ty==="arrive")return `Llegas a tu destino`;
+  if(ty==="roundabout"||ty==="rotary")return `En la glorieta toma la salida ${st.maneuver.exit||""}${n}`;
+  if(mo==="straight"||ty==="continue"&&!mo)return `Sigue derecho${n}`;
+  return `Gira ${MOD[mo]||""}${n}`}
+async function walkRoute(a,b){ // la caminata más corta por calles, con indicaciones
   const k=a.map(x=>x.toFixed(5))+";"+b.map(x=>x.toFixed(5));if(WC[k])return WC[k];
   const straight=D(a,b);
-  if(straight<35)return WC[k]={m:straight,line:[a,b]};
-  const base=`https://routing.openstreetmap.de/routed-foot/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson&alternatives=3&continue_straight=false`;
-  const ask=u=>fetch(u).then(r=>r.json()).then(j=>(j.routes||[]).map(r=>({m:r.distance,g:r.geometry.coordinates.map(c=>[c[1],c[0]])}))).catch(()=>[]);
-  const all=(await Promise.all([ask(base),ask(base+"&snapping=any")])).flat();
-  // sumar el tramo para llegar a la calle desde el punto exacto
+  if(straight<35)return WC[k]={m:straight,line:[a,b],steps:[]};
+  const base=`https://routing.openstreetmap.de/routed-foot/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson&steps=true&alternatives=3&continue_straight=false`;
+  const ask=u=>fetch(u).then(r=>r.json()).then(j=>(j.routes||[]).map(r=>({m:r.distance,g:r.geometry.coordinates.map(c=>[c[1],c[0]]),steps:(r.legs[0].steps||[])}))).catch(()=>[]);
+  let all=(await Promise.all([ask(base),ask(base+"&snapping=any")])).flat();
+  if(!all.length){await new Promise(r=>setTimeout(r,700));all=await ask(base)} // reintento
   all.forEach(r=>{if(r.g.length){r.m+=D(a,r.g[0])+D(r.g[r.g.length-1],b);r.g=[a,...r.g,b]}});
   all.sort((x,y)=>x.m-y.m);
   const best=all[0];
-  // si el mapa obliga a dar una vuelta enorme para algo que está cerca, usa el camino directo cruzando la calle
-  if(!best||(straight<700&&best.m>Math.max(straight*2,straight+350)))return WC[k]={m:straight*1.15,line:[a,b],cross:true};
-  return WC[k]={m:best.m,line:best.g};
+  if(!best||(straight<150&&best.m>straight*3))return WC[k]={m:straight*1.15,line:[a,b],cross:true,steps:[]};
+  // juntar pasos: quitar los de 0 m y unir los que siguen por la misma calle
+  const steps=[];best.steps.forEach(st=>{const t=stepText(st);const last=steps[steps.length-1];
+    if(st.maneuver.type==="arrive")return;
+    if(last&&st.name&&last.name===st.name&&(st.maneuver.modifier==="straight"||!st.maneuver.modifier)){last.m+=st.distance;return}
+    if(st.distance<3&&steps.length)return;
+    steps.push({t,m:st.distance,name:st.name,ll:[st.maneuver.location[1],st.maneuver.location[0]]})});
+  return WC[k]={m:best.m,line:best.g,steps};
 }
+function stepsHTML(w){if(!w||!w.steps||!w.steps.length)return"";
+  return `<ol class="wsteps">${w.steps.map(s=>`<li>${s.t}${s.m>=10?` <span class="muted">· ${fmt(s.m)}</span>`:""}</li>`).join("")}<li>🏁 Llegas a tu destino</li></ol>`}
 const SVGR=L.svg({padding:.6});let netHidden=false,drawId=0;
 function hideNetwork(){if(netHidden)return;netHidden=true;Object.values(layers).forEach(l=>map.removeLayer(l));if(map.hasLayer(stopLayer))map.removeLayer(stopLayer)}
 function showNetwork(){if(!netHidden)return;netHidden=false;Object.entries(layers).forEach(([c,l])=>{const b=document.querySelector(`#chips button[data-c="${c}"]`);if(!b||!b.classList.contains("off"))l.addTo(map)});stopsByZoom()}
@@ -485,6 +501,7 @@ function walkLine(a,b,tag,delay){
   const pl=L.polyline([a,b],{color:"#fff",weight:4,dashArray:"2 8",renderer:SVGR,className:"walkline"}).addTo(tripLayer);
   walkRoute(a,b).then(w=>{if(!w)return;pl.setLatLngs(w.line);
     if(w.cross){pl.setStyle({color:"#fbbf24"});pl.bindTooltip("Cruza con cuidado",{permanent:true,direction:"center",className:"lbl"})}
+    if(tag&&tag.endsWith("-1")){document.querySelectorAll(`[data-wd="${tag.split('-')[0]}"]`).forEach(d=>{d.querySelector("div").outerHTML=stepsHTML(w)||'<div class="muted">Camino directo, cruza con cuidado.</div>'})}
     if(tag){document.querySelectorAll(`[data-w="${tag}"]`).forEach(e=>{e.textContent=fmt(w.m);if(w.cross&&!e.dataset.x){e.dataset.x=1;e.insertAdjacentHTML("afterend"," <span class='muted'>(cruzando la calle)</span>")}})}});
 }
 function showPlan(p){
@@ -597,7 +614,13 @@ function liveCalc(c){
   else if(TS.onBus&&(D(c,l.a.s.ll)<60||pr.i>=l.a.s.i)&&TS.leg===p.legs.length-1){TS.onBus=false;TS.done=true;stopShare(true)}
   let m=0,min=0,step="";
   const busV=TS.v&&TS.onBus?Math.max(120,Math.min(600,TS.v)):BUS;
-  if(TS.done){const w=D(c,dest)*1.25;m=w;min=w/WALK;step=`🚶 Camina a tu destino`}
+  if(TS.done){const w=D(c,dest)*1.25;m=w;min=w/WALK;step=`🚶 Camina a tu destino`;
+    const la=p.legs[p.legs.length-1].a.s.ll,wr=WC[la.map(x=>x.toFixed(5))+";"+dest.map(x=>x.toFixed(5))];
+    if(wr&&wr.steps&&wr.steps.length){let ni=wr.steps.findIndex((s2,i)=>i>0&&D(c,s2.ll)>15&&wr.steps.slice(i).some(()=>true)&&D(c,s2.ll)<D(c,dest)+30);
+      // siguiente maniobra: la más cercana que aún esté adelante
+      let best=-1,bd=1e9;wr.steps.forEach((s2,i)=>{const d=D(c,s2.ll);if(d<bd){bd=d;best=i}});
+      const nx=bd<25?wr.steps[best+1]:wr.steps[best];
+      if(nx)step=`🚶 En ${fmt(D(c,nx.ll))}: ${nx.t}`}}
   else{
     const L=p.legs[TS.leg];
     if(!TS.onBus){const w=D(c,L.b.s.ll)*1.25;m+=w;min+=w/WALK+WAIT;m+=L.rm;min+=L.rm/BUS;
