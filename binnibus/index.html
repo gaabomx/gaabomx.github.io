@@ -127,14 +127,17 @@ async function nominatim(q){
 let GEO={},LINES={};try{LINES=JSON.parse(localStorage.getItem(CACHE)||"{}")}catch(e){}
 function save(){try{localStorage.setItem(CACHE,JSON.stringify(LINES))}catch(e){}}
 const OSM_REL=[20215875,20215876,20276840,20276841,19736820,19736821,20509255,20509256,21031480,21031481,20781030,20781031,20258125,20258126,20325722,20325723,21032371,21032372,20658960,20658961,20325039,20325040,19895385,19895386,19847172,19847173,19847174,19847175,21011321,21011322,20324827,20324828,20449256,20449257,19895381,19895384,19732593,19733118,21011355,21031572,19895382,19895383,19962635,19962636,19851160,19851161,19847176,19847177,20339963,20339964,19847170,19847171,19829299,19829310,19825137,19825138,21217622,21217623];
-const OSMC="bb-osm-v1";let OSMD={};try{OSMD=JSON.parse(localStorage.getItem(OSMC)||"{}")}catch(e){}
+const OSMC="bb-osm-v2";let OSMD={};try{OSMD=JSON.parse(localStorage.getItem(OSMC)||"{}")}catch(e){}
 function saveOSM(){try{localStorage.setItem(OSMC,JSON.stringify(OSMD))}catch(e){}}
-function simplify(pts,tol){ // quita puntos casi en línea recta
-  if(pts.length<3)return pts;const out=[pts[0]];
-  for(let i=1;i<pts.length-1;i++){const a=out[out.length-1],b=pts[i],c=pts[i+1];
-    const cross=Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))/Math.max(1e-9,Math.hypot(c[0]-a[0],c[1]-a[1]));
-    if(cross>tol||D(a,b)>400)out.push(b)}
-  out.push(pts[pts.length-1]);return out;
+function rdp(pts,tolM){ // Douglas-Peucker en metros: conserva la forma real de la calle
+  if(pts.length<3)return pts;
+  const keep=new Uint8Array(pts.length);keep[0]=keep[pts.length-1]=1;const st=[[0,pts.length-1]];
+  const k=111320,cl=Math.cos(17.06*Math.PI/180);
+  while(st.length){const [i0,i1]=st.pop();const A=pts[i0],B=pts[i1];
+    const bx=(B[1]-A[1])*k*cl,by=(B[0]-A[0])*k,L2=bx*bx+by*by;let md=-1,mi=-1;
+    for(let i=i0+1;i<i1;i++){const px=(pts[i][1]-A[1])*k*cl,py=(pts[i][0]-A[0])*k;let t=L2?(px*bx+py*by)/L2:0;t=Math.max(0,Math.min(1,t));const d=Math.hypot(px-t*bx,py-t*by);if(d>md){md=d;mi=i}}
+    if(md>tolM){keep[mi]=1;st.push([i0,mi],[mi,i1])}}
+  return pts.filter((p,i)=>keep[i]);
 }
 async function loadOSM(id){
   if(OSMD[id])return OSMD[id];
@@ -146,31 +149,41 @@ async function loadOSM(id){
   const t=rel.tags;
   const ref=((t.name||"").match(/R[ACT]-\d+/)||[t.ref])[0];
   const stops=rel.members.filter(m=>m.type==="node"&&/platform|stop/.test(m.role)&&nodes[m.ref]).map(m=>{const n=nodes[m.ref];return [n.tags&&n.tags.name||"Parada",+n.lat.toFixed(5),+n.lon.toFixed(5)]});
-  // encadenar calles
-  let line=[];
-  rel.members.filter(m=>m.type==="way"&&!m.role&&ways[m.ref]).forEach(m=>{
-    let pts=ways[m.ref].nodes.map(n=>nodes[n]).filter(Boolean).map(n=>[n.lat,n.lon]);
-    if(!pts.length)return;
-    if(line.length){const end=line[line.length-1];
-      const dS=D(end,pts[0]),dE=D(end,pts[pts.length-1]);
-      if(dE<dS)pts.reverse();
-      else if(line.length>1&&line.length===ways[rel.members.find(x=>x.type==="way").ref].nodes.length){ // primera calle al revés
-        const st=line[0];if(Math.min(D(st,pts[0]),D(st,pts[pts.length-1]))<Math.min(dS,dE)){line.reverse();if(D(line[line.length-1],pts[pts.length-1])<D(line[line.length-1],pts[0]))pts.reverse()}}
-      if(D(line[line.length-1],pts[0])<1)pts=pts.slice(1);
+  // encadenar calles por nodos compartidos (orden real del recorrido)
+  const W=rel.members.filter(m=>m.type==="way"&&!/platform/.test(m.role)&&ways[m.ref]).map(m=>ways[m.ref].nodes.slice());
+  let seq=[];
+  for(let k=0;k<W.length;k++){
+    let w=W[k];
+    if(!seq.length){
+      const nx=W[k+1];
+      if(nx&&(w[0]===nx[0]||w[0]===nx[nx.length-1])&&!(w[w.length-1]===nx[0]||w[w.length-1]===nx[nx.length-1]))w=w.slice().reverse();
+      seq=w.slice();continue;
     }
-    line=line.concat(pts);
-  });
-  line=simplify(line,0.00003).map(p=>[+p[0].toFixed(5),+p[1].toFixed(5)]);
+    const end=seq[seq.length-1];
+    if(w[0]===end){}
+    else if(w[w.length-1]===end)w=w.slice().reverse();
+    else{ // sin nodo compartido: orientar por cercanía
+      const pe=nodes[end],a0=nodes[w[0]],a1=nodes[w[w.length-1]];
+      if(pe&&a0&&a1&&D([pe.lat,pe.lon],[a1.lat,a1.lon])<D([pe.lat,pe.lon],[a0.lat,a0.lon]))w=w.slice().reverse();
+    }
+    seq=seq.concat(w[0]===end?w.slice(1):w);
+  }
+  let line=seq.map(n=>nodes[n]).filter(Boolean).map(n=>[+n.lat.toFixed(6),+n.lon.toFixed(6)]);
+  line=rdp(line,4);
   OSMD[id]={ref,to:(t.to||"").replace(/^Base /,""),from:t.from||"",colour:t.colour||null,stops,line};saveOSM();
   return OSMD[id];
 }
 function addDir(code,to,stops,line,colour){
   stops=stops.map(x=>({name:x[0],ll:x.length>1&&x[1]?[x[1],x[2]]:null}));
   if(!line||line.length<2)line=stops.filter(s=>s.ll).map(s=>s.ll);
-  stops.forEach(s=>{if(!s.ll)return;let bi=0,bd=1e9;line.forEach((p,i)=>{const d=D(s.ll,p);if(d<bd){bd=d;bi=i}});s.i=bi});
-  // asegurar orden creciente
-  let last=0;stops.forEach(s=>{if(s.i==null)return;if(s.i<last)s.i=last;last=s.i});
-  (GEO[code]=GEO[code]||[]).push({to,stops,line});
+  // distancia acumulada sobre la línea
+  const cum=[0];for(let i=1;i<line.length;i++)cum.push(cum[i-1]+D(line[i-1],line[i]));
+  // cada parada se ubica sobre la línea avanzando en el sentido del camión (no regresa)
+  let last=0;
+  stops.forEach(s=>{if(!s.ll)return;let bi=last,bd=1e9;
+    for(let i=last;i<line.length&&cum[i]-cum[last]<6000;i++){const d=D(s.ll,line[i]);if(d<bd){bd=d;bi=i}}
+    s.i=bi;s.off=bd;last=bi});
+  (GEO[code]=GEO[code]||[]).push({to,stops,line,cum});
   if(colour&&!COL[code])COL[code]=colour;
 }
 async function buildRoute(code,raw){ // rutas sin datos en OpenStreetMap (paradas propias)
@@ -197,90 +210,107 @@ function draw(code){
 let origin=null,dest=null,destName="",tripLayer=L.layerGroup().addTo(map),plans=[],active=null;
 function legsFor(code){return (GEO[code]||[]).map(d=>[d.to,d])}
 function nearestStops(dir,pt,maxD){return dir.stops.map((s,k)=>({s,k,d:s.ll?D(pt,s.ll):1e9})).filter(x=>x.d<maxD)}
+const WALK=75,BUS=280,WAIT=8; // m/min caminando, m/min camión (~17 km/h), min de espera
+const wmin=m=>m*1.25/WALK; // la calle real es ~25% más larga que la línea recta
+function rideM(dir,b,a){return Math.max(0,dir.cum[a.s.i]-dir.cum[b.s.i])}
 function plan(W0=1000,W1=900){
   plans=[];
   const codes=Object.keys(GEO);
-  // directas
   for(const c of codes) for(const [dk,dir] of legsFor(c)){
     const B=nearestStops(dir,origin,W0),A=nearestStops(dir,dest,W1);
     let best=null;
-    for(const b of B) for(const a of A){ if(a.k<=b.k) continue;
-      const ride=a.k-b.k,score=b.d+a.d+ride*60;
-      if(!best||score<best.score) best={score,legs:[{c,dk,dir,b,a}],walk:[b.d,a.d]};
+    for(const b of B) for(const a of A){ if(a.k<=b.k||a.s.i==null||b.s.i==null) continue;
+      const rm=rideM(dir,b,a);if(rm<200)continue;
+      const t=wmin(b.d)+WAIT+rm/BUS+wmin(a.d);
+      if(!best||t<best.t) best={t,score:t,legs:[{c,dk,dir,b,a,rm}],walk:[b.d,a.d]};
     }
     if(best) plans.push(best);
   }
-  // un transbordo
   for(const c1 of codes) for(const [k1,d1] of legsFor(c1)){
     const B=nearestStops(d1,origin,W0);if(!B.length)continue;
     for(const c2 of codes){ if(c2===c1)continue; for(const [k2,d2] of legsFor(c2)){
       const A=nearestStops(d2,dest,W1);if(!A.length)continue;
-      for(const b of B) for(let t1=b.k+1;t1<d1.stops.length;t1++){const s1=d1.stops[t1];if(!s1.ll)continue;
-        for(let t2=0;t2<d2.stops.length;t2++){const s2=d2.stops[t2];if(!s2.ll)continue;const tw=D(s1.ll,s2.ll);if(tw>300)continue;
+      for(const b of B) for(let t1=b.k+1;t1<d1.stops.length;t1++){const s1=d1.stops[t1];if(!s1.ll||s1.i==null)continue;
+        for(let t2=0;t2<d2.stops.length;t2++){const s2=d2.stops[t2];if(!s2.ll||s2.i==null)continue;const tw=D(s1.ll,s2.ll);if(tw>400)continue;
           for(const a of A){ if(a.k<=t2)continue;
-            const score=b.d+tw+a.d+((t1-b.k)+(a.k-t2))*60+600;
-            const key=c1+c2;const ex=plans.find(p=>p.key===key);
-            if(!ex||score<ex.score){const np={key,score,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0}},{c:c2,dk:k2,dir:d2,b:{s:s2,k:t2,d:tw},a}],walk:[b.d,a.d],tw};
+            const r1=rideM(d1,b,{s:s1}),r2=rideM(d2,{s:s2},a);if(r1<200||r2<200)continue;
+            const t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a.d);
+            const key=c1+k1+c2+k2;const ex=plans.find(p=>p.key===key);
+            if(!ex||t<ex.t){const np={key,t,score:t,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0},rm:r1},{c:c2,dk:k2,dir:d2,b:{s:s2,k:t2,d:tw},a,rm:r2}],walk:[b.d,a.d],tw};
               if(ex)Object.assign(ex,np);else plans.push(np)}
           }}}
     }}
   }
   if(!plans.length&&W0<2500)return plan(W0+700,W1+700);
-  plans.sort((x,y)=>x.score-y.score);
-  // si hay opción directa, solo muestra transbordos que ahorren bastante caminata
+  plans.sort((x,y)=>x.t-y.t);
+  // transbordos solo si ahorran al menos 5 min frente a la mejor directa
   const direct=plans.filter(p=>p.legs.length===1);
-  if(direct.length){const w=Math.min(...direct.map(p=>p.walk[0]+p.walk[1]));plans=plans.filter(p=>p.legs.length===1||(p.walk[0]+p.walk[1]+(p.tw||0))<w-300)}
-  // quitar duplicados por ruta
-  const seen=new Set();plans=plans.filter(p=>{const k=p.legs.map(l=>l.c+l.dk).join();if(seen.has(k))return false;seen.add(k);return true}).slice(0,4);
+  if(direct.length){const bt=direct[0].t;plans=plans.filter(p=>p.legs.length===1||p.t<bt-5)}
+  const seen=new Set();plans=plans.filter(p=>{const k=p.legs.map(l=>l.c).join();if(seen.has(k))return false;seen.add(k);return true}).slice(0,4);
   renderPlans();
 }
 function badge(c){return `<span class="badge" style="background:${COL[c]||"#0f766e"}">${c}</span>`}
 function renderPlans(){
   const P=$("panel");
   const dd=origin&&dest?D(origin,dest):0;
-  const wd=dd*1.3;
+  const wd=dd*1.25,wt=Math.round(wd/WALK);
+  const walkBest=!plans.length||wt<=plans[0].t+3;
   let h=`<h2>${destName}</h2><div class="muted">${destAddr||""}</div>
-  <div class="opt" style="cursor:default"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${fmt(wd)} · ${mins(wd)} min aprox.</div></div>${wd<1200?'<div class="muted" style="margin-top:4px">Está cerca: te conviene ir a pie.</div>':""}</div>`;
+  <div class="opt" style="cursor:default${walkBest?";border:2px solid var(--ink)":""}"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${walkBest?"⭐ Mejor · ":""}<span id="wd">${fmt(wd)} · ${wt} min</span></div></div>${walkBest&&plans.length?'<div class="muted" style="margin-top:4px">Caminando llegas igual o más rápido que en camión.</div>':""}</div>`;
   if(!plans.length){
     h+=`<p>No encontré un BinniBus que te deje razonablemente cerca de aquí. Puede que no haya ruta por esa zona.</p>`;
   }
   plans.forEach((p,i)=>{
     const L0=p.legs[0],L1=p.legs[p.legs.length-1];
-    const walkT=mins(p.walk[0])+mins(p.walk[1])+(p.tw?mins(p.tw):0);
-    h+=`<div class="opt${i===0?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0?"⭐ Mejor · ":""}~${walkT+p.legs.reduce((a,l)=>a+Math.round((l.a.k-l.b.k)*1.3),0)+(p.legs.length>1?5:0)} min · 🚶 ${walkT} min</div></div>
+    const walkT=Math.round(wmin(p.walk[0])+wmin(p.walk[1])+(p.tw?wmin(p.tw):0));
+    h+=`<div class="opt${i===0&&!walkBest?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0&&!walkBest?"⭐ Mejor · ":""}~${Math.round(p.t)} min · 🚶 ${walkT} min</div></div>
     <ul class="steps">
-      <li class="w">Camina ${fmt(p.walk[0])} a la parada <b>${L0.b.s.name}</b></li>
-      ${p.legs.map((l,j)=>`<li class="b">Toma la <b>${l.c}</b> con letrero <b>${l.dk}</b> · ${l.a.k-l.b.k} paradas</li>
-        <li class="${j<p.legs.length-1?"t":"o"}">Bájate en <b>${l.a.s.name}</b>${j<p.legs.length-1?` y camina ${fmt(p.tw)} a <b>${p.legs[j+1].b.s.name}</b>`:""}</li>`).join("")}
-      <li class="w">Camina ${fmt(p.walk[1])} a tu destino</li>
+      <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
+      ${p.legs.map((l,j)=>`<li class="b">Toma la <b>${l.c}</b> con letrero <b>${l.dk}</b> · ${l.a.k-l.b.k} paradas (${fmt(l.rm)}, ~${Math.round(l.rm/BUS)} min)</li>
+        <li class="${j<p.legs.length-1?"t":"o"}">Bájate en <b>${l.a.s.name}</b>${j<p.legs.length-1?` y camina ${fmt(p.tw*1.25)} a <b>${p.legs[j+1].b.s.name}</b>`:""}</li>`).join("")}
+      <li class="w">Camina <span data-w="${i}-1">${fmt(p.walk[1]*1.25)}</span> a tu destino</li>
     </ul>${i===0?`<button class="go" data-go="${i}">Iniciar viaje · te aviso dónde bajar</button>`:""}</div>`;
   });
+  if(plans.length)h+=`<p class="muted">Tiempos aproximados: incluyen ~${WAIT} min de espera por camión; el tráfico puede cambiarlos.</p>`;
   P.innerHTML=h;setSheet(false);logSearch();
   P.querySelectorAll(".opt").forEach(o=>o.onclick=e=>{if(e.target.dataset.go)return;P.querySelectorAll(".opt").forEach(x=>x.classList.remove("on"));o.classList.add("on");
     const old=P.querySelector(".go");if(old)old.remove();o.insertAdjacentHTML("beforeend",`<button class="go" data-go="${o.dataset.i}">Iniciar viaje · te aviso dónde bajar</button>`);bindGo();showPlan(plans[o.dataset.i])});
   bindGo();
-  if(plans[0])showPlan(plans[0]);else{tripLayer.clearLayers();drawEnds();map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
+  walkRoute(origin,dest).then(w=>{const e=$("wd");if(w&&e)e.textContent=fmt(w.m)+" · "+Math.round(w.m/WALK)+" min"});
+  plans.forEach((p,i)=>{if(i===0)return;walkRoute(origin,p.legs[0].b.s.ll).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-0"]`).forEach(e=>e.textContent=fmt(w.m))});walkRoute(p.legs[p.legs.length-1].a.s.ll,dest).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-1"]`).forEach(e=>e.textContent=fmt(w.m))})});
+  if(plans[0])showPlan(plans[0]);else{tripLayer.clearLayers();drawEnds();walkLine(origin,dest);map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
 }
 function bindGo(){document.querySelectorAll(".go").forEach(b=>b.onclick=()=>startTrip(plans[b.dataset.go]))}
 function drawEnds(){
   L.circleMarker(dest,{radius:9,color:"#fff",weight:3,fillColor:"#111",fillOpacity:1}).addTo(tripLayer).bindTooltip("🏁 "+destName,{permanent:true,direction:"top",className:"lbl"});
+}
+const WC={};
+async function walkRoute(a,b){
+  const k=a.map(x=>x.toFixed(5))+";"+b.map(x=>x.toFixed(5));if(WC[k])return WC[k];
+  try{const r=await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`);
+    const j=await r.json();if(!j.routes||!j.routes[0])return null;
+    return WC[k]={m:j.routes[0].distance,line:j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]])};}catch(e){return null}
+}
+function walkLine(a,b,tag){
+  const pl=L.polyline([a,b],{color:"#fff",weight:4,dashArray:"2 8"}).addTo(tripLayer);
+  walkRoute(a,b).then(w=>{if(!w)return;pl.setLatLngs(w.line);if(tag){document.querySelectorAll(`[data-w="${tag}"]`).forEach(e=>e.textContent=fmt(w.m))}});
 }
 function showPlan(p){
   tripLayer.clearLayers();drawEnds();
   const pts=[origin];
   p.legs.forEach((l,j)=>{
     const from=l.b.s,to=l.a.s;
-    if(j===0) L.polyline([origin,from.ll],{color:"#fff",weight:4,dashArray:"2 8"}).addTo(tripLayer);
+    if(j===0) walkLine(origin,from.ll,plans.indexOf(p)+"-0");
     const seg=l.dir.line.slice(Math.min(from.i,to.i),Math.max(from.i,to.i)+1);
     L.polyline(seg,{color:"#000",weight:10,opacity:.35}).addTo(tripLayer);
     L.polyline(seg,{color:COL[l.c]||"#0f766e",weight:7}).addTo(tripLayer);
     L.circleMarker(from.ll,{radius:8,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1}).addTo(tripLayer).bindTooltip("Sube: "+from.name+" ("+l.c+")",{permanent:true,direction:"right",className:"lbl"});
     L.circleMarker(to.ll,{radius:8,color:"#fff",weight:3,fillColor:"#dc2626",fillOpacity:1}).addTo(tripLayer).bindTooltip("Bájate: "+to.name,{permanent:true,direction:"right",className:"lbl"});
-    if(j<p.legs.length-1) L.polyline([to.ll,p.legs[j+1].b.s.ll],{color:"#fff",weight:4,dashArray:"2 8"}).addTo(tripLayer);
+    if(j<p.legs.length-1) walkLine(to.ll,p.legs[j+1].b.s.ll);
     pts.push(from.ll,to.ll);
   });
   const last=p.legs[p.legs.length-1].a.s.ll;
-  L.polyline([last,dest],{color:"#fff",weight:4,dashArray:"2 8"}).addTo(tripLayer);
+  walkLine(last,dest,plans.indexOf(p)+"-1");
   pts.push(dest);
   map.fitBounds(L.latLngBounds(pts),{padding:[40,40],paddingBottomRight:[0,window.innerHeight*.5]});
 }
