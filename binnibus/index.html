@@ -101,7 +101,7 @@ body.mopen .msec{opacity:1;transform:none}
 #topmini #showtop{position:static;transform:none;display:block}
 #clearbtn{border:0;border-radius:999px;background:#1d1a16;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:9px 14px;font:700 14px Inter;cursor:pointer;display:none}
 body.hasdest #clearbtn{display:block}
-.seen{position:fixed;right:12px;z-index:1000;border:0;border-radius:14px;padding:11px 12px;background:#facc15;color:#1d1a16;font:800 13px Inter;box-shadow:0 2px 10px rgba(0,0,0,.3);bottom:calc(58vh + 68px);transition:bottom .28s;cursor:pointer}
+.seen{position:fixed;right:70px;z-index:1000;border:0;border-radius:14px;padding:11px 12px;background:#facc15;color:#1d1a16;font:800 13px Inter;box-shadow:0 2px 10px rgba(0,0,0,.3);bottom:calc(58vh + 68px);transition:bottom .28s;cursor:pointer}
 .dlg{position:fixed;inset:0;z-index:2500;background:rgba(10,8,6,.45);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
 .dlg.on{opacity:1;pointer-events:auto}
 .dlgbox{background:var(--card);width:100%;border-radius:20px 20px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));max-height:75vh;overflow:auto;transform:translateY(40px);transition:transform .35s cubic-bezier(.22,1,.36,1)}
@@ -137,6 +137,9 @@ body.hasdest .clear2{display:block}
 .mdet .chev{font-size:16px;color:var(--muted);transition:transform .25s}
 .mdet[open] .chev{transform:rotate(180deg)}
 .mdet[open] summary{margin-bottom:8px}
+.compass{display:none;font-size:18px;transition:bottom .28s,opacity .2s}
+.compass.on{display:block}
+#needle{display:inline-block;color:#dc2626;transform:rotate(-90deg);transition:transform .1s linear}
 </style>
 </head>
 <body>
@@ -155,6 +158,7 @@ body.hasdest .clear2{display:block}
 </div>
 <div id="topmini"><button id="showtop">🔍 ¿A dónde vas?</button><button id="clearbtn" title="Limpiar">✕ Limpiar</button></div>
 
+<button class="fab compass" id="compass" title="Norte" aria-label="Apuntar al norte"><span id="needle">➤</span></button>
 <button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
 <button class="seen" id="seenbtn">👀 Vi un Binni</button>
 <div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b>👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><p class="muted" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div class="chips" id="seenroutes"></div><div id="seendirs"></div></div></div>
@@ -190,6 +194,7 @@ body.hasdest .clear2{display:block}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="leaflet-rotate.js"></script>
 <script src="routes.js"></script>
 <script src="stops.js"></script>
 <script>
@@ -197,7 +202,7 @@ const COL={"RA-16":"#dc2626"};
 const BBOX="16.95,-96.85,17.16,-96.60"; // s,w,n,e
 const CACHE="bb-lines-v2";
 const $=id=>document.getElementById(id);
-const map=L.map("map",{zoomControl:false,preferCanvas:true,renderer:L.canvas({padding:.3,tolerance:6}),zoomSnap:0,wheelPxPerZoomLevel:90,inertia:true,inertiaDeceleration:2500,fadeAnimation:true,zoomAnimation:true,markerZoomAnimation:true}).setView([17.065,-96.72],13);
+const map=L.map("map",{zoomControl:false,rotate:true,touchRotate:true,rotateControl:false,shiftKeyRotate:true,bearing:0,preferCanvas:true,renderer:L.canvas({padding:.3,tolerance:6}),zoomSnap:0,wheelPxPerZoomLevel:90,inertia:true,inertiaDeceleration:2500,fadeAnimation:true,zoomAnimation:true,markerZoomAnimation:true}).setView([17.065,-96.72],13);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,keepBuffer:4,updateWhenZooming:false,attribution:"Imágenes © Esri · Calles © OpenStreetMap"}).addTo(map);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,opacity:.75}).addTo(map);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19}).addTo(map);
@@ -623,7 +628,7 @@ map.on("click",e=>{destAddr="";const c=[e.latlng.lat,e.latlng.lng];
 const sheet=$("sheet"),fab=$("me");
 function setSheet(min){
   sheet.classList.toggle("min",min);sheet.style.transform="";
-  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
+  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("compass").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";$("seenbtn").style.right=min?"70px":"70px";$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
   if(min)sheet.scrollTop=0;
   $("peek").textContent=trip?`🟢 Viaje en curso · Bájate en ${trip.legs[trip.legs.length-1].a.s.name} ⌃`:plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
 }
@@ -831,6 +836,14 @@ function drawSeen(){seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<900);SEEN.fo
 async function pollSeen(){if(document.visibilityState!=="visible")return;
   try{const r=await fetch(SBR+"bb_vistos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){SEEN=await r.json();drawSeen();updateLiveEta()}}catch(e){}}
 setInterval(pollSeen,20000);setInterval(()=>{SEEN.forEach(x=>x.s+=30);drawSeen()},30000);setTimeout(pollSeen,2000);
+
+/* ---------- Girar el mapa 360° ---------- */
+function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;
+  $("compass").classList.toggle("on",n>1&&n<359);$("needle").style.transform=`rotate(${-90-b}deg)`}
+map.on("rotate",upCompass);
+$("compass").onclick=()=>{const b0=map.getBearing(),t0=performance.now();const target=Math.abs(b0)>180?(b0>0?360:-360):0;
+  const st=t=>{const k=Math.min(1,(t-t0)/350),e=1-Math.pow(1-k,3);map.setBearing(b0+(target-b0)*e);if(k<1)requestAnimationFrame(st);else map.setBearing(0)};requestAnimationFrame(st)};
+upCompass();
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
