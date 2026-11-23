@@ -493,7 +493,7 @@ function glide(to,heading,speed){ // desliza el punto suavemente a la nueva posi
   const step=t=>{const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);
     me.setLatLng([from.lat+(to[0]-from.lat)*e,from.lng+(to[1]-from.lng)*e]);if(k<1)glideRAF=requestAnimationFrame(step)};
   glideRAF=requestAnimationFrame(step);
-  if(heading!=null&&!isNaN(heading)&&speed>1.2&&!compassOK)setHeading(heading);
+  if(heading!=null&&!isNaN(heading)&&speed>0.5&&!compassOK)setHeading(heading);
 }
 /* ---------- Hacia dónde ves / vas (cono como Apple Maps) ---------- */
 let HDG=null,HDGshow=null,compassOK=false,hdgRAF=null,FOLLOW=true;
@@ -509,13 +509,19 @@ function onOrient(e){let h=null;
   else if(e.absolute&&e.alpha!=null)h=360-e.alpha;
   if(h==null||isNaN(h))return;
   const so=screen.orientation&&screen.orientation.angle||window.orientation||0;compassOK=true;setHeading(h+so)}
+let compState="";
 function startCompass(){
-  const go=()=>{addEventListener("deviceorientationabsolute",onOrient,true);addEventListener("deviceorientation",onOrient,true)};
+  if(compState==="granted"||compState==="asking")return;
   if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==="function"){
-    DeviceOrientationEvent.requestPermission().then(r=>{if(r==="granted")go()}).catch(()=>{})}else go();
+    compState="asking";
+    DeviceOrientationEvent.requestPermission().then(r=>{compState=r;
+      if(r==="granted"){addEventListener("deviceorientation",onOrient,true);toast("🧭 Listo: el cono azul te muestra hacia dónde ves.")}
+      else toast("Para ver hacia dónde ves, permite «Movimiento y orientación» en Safari.")})
+    .catch(()=>{compState=""});
+  }else compState="granted";
 }
-// iPhone pide permiso de brújula con un toque: se pide en el primer toque a la pantalla
-let compAsked=false;addEventListener("pointerup",()=>{if(compAsked)return;compAsked=true;startCompass()},{capture:true});
+// en iPhone el permiso solo se puede pedir con un toque
+["touchend","click"].forEach(ev=>addEventListener(ev,()=>startCompass(),{capture:true}));
 addEventListener("deviceorientationabsolute",onOrient,true);addEventListener("deviceorientation",onOrient,true);
 
 let me=null,acc=null,trip=null,warned={};
