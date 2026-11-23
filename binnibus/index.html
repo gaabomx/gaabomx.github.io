@@ -173,6 +173,9 @@ function plan(){
     }}
   }
   plans.sort((x,y)=>x.score-y.score);
+  // si hay opción directa, solo muestra transbordos que ahorren bastante caminata
+  const direct=plans.filter(p=>p.legs.length===1);
+  if(direct.length){const w=Math.min(...direct.map(p=>p.walk[0]+p.walk[1]));plans=plans.filter(p=>p.legs.length===1||(p.walk[0]+p.walk[1]+(p.tw||0))<w-300)}
   // quitar duplicados por ruta
   const seen=new Set();plans=plans.filter(p=>{const k=p.legs.map(l=>l.c+l.dk).join();if(seen.has(k))return false;seen.add(k);return true}).slice(0,4);
   renderPlans();
