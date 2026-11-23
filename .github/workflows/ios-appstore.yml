@@ -1,0 +1,90 @@
+# Compila la app de iPhone "Binni Rutas Oax" y la sube a App Store Connect (TestFlight).
+# Se corre a mano: GitHub > Actions > "App iPhone" > Run workflow.
+# Necesita estos secretos en GitHub (Settings > Secrets and variables > Actions):
+#   APPLE_TEAM_ID       -> tu Team ID de Apple Developer (10 letras/números)
+#   ASC_KEY_ID          -> Key ID de la llave de App Store Connect
+#   ASC_ISSUER_ID       -> Issuer ID de App Store Connect
+#   ASC_KEY_P8          -> contenido completo del archivo AuthKey_XXXX.p8
+name: App iPhone
+
+on:
+  workflow_dispatch:
+    inputs:
+      solo_probar:
+        description: "Solo probar que compile (sin firmar ni subir)"
+        type: boolean
+        default: false
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: binni-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Copiar la página y preparar el proyecto
+        run: npm run build
+
+      - name: Elegir Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)" && xcodebuild -version
+
+      - name: Prueba de compilación sin firmar
+        if: ${{ inputs.solo_probar }}
+        run: |
+          xcodebuild build -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO | tail -40
+
+      - name: Guardar la llave de App Store Connect
+        if: ${{ !inputs.solo_probar }}
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
+
+      - name: Compilar (archive)
+        if: ${{ !inputs.solo_probar }}
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}"
+
+      - name: Subir a App Store Connect
+        if: ${{ !inputs.solo_probar }}
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          sed "s/TEAM_ID_AQUI/$TEAM/" ExportOptions.plist > "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Borrar la llave
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"

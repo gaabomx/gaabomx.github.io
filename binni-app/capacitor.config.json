@@ -1,0 +1,13 @@
+{
+  "appId": "mx.gaabomx.binnirutas",
+  "appName": "Binni Rutas Oax",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "scheme": "Binni Rutas Oax",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "LocalNotifications": { "iconColor": "#0f766e" }
+  }
+}

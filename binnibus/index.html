@@ -157,7 +157,7 @@ body.hasdest .clear2{display:block}
 <aside class="menu" id="menu" aria-hidden="true">
   <div class="mhead"><b>Menú</b><button id="mclose" class="mclose" aria-label="Cerrar">✕</button></div>
   <div class="mbody">
-    <section class="msec credit" style="--d:0"><p>Página hecha por <a href="https://www.instagram.com/gaabomx/" target="_blank" rel="noopener"><b>@gaabomx</b></a></p></section>
+    <section class="msec credit" style="--d:0"><p>Página hecha por <a href="https://www.instagram.com/gaabomx/" target="_blank" rel="noopener"><b>@gaabomx</b></a></p><p style="margin-top:4px;font-size:12px"><a href="privacidad.html" target="_blank" style="color:var(--muted);text-decoration:underline">Aviso de privacidad</a> · No es la app oficial de BinniBus</p></section>
     <section class="msec" style="--d:0">
       <h3>¿Cómo funciona?</h3>
       <ol class="how">
@@ -462,6 +462,7 @@ let originIsMe=true;
 $("me").onclick=()=>{if(me)map.setView(me.getLatLng(),16)};
 
 /* ---------- Datos en vivo del viaje ---------- */
+const nat=(e,d)=>{try{window.bbNative&&window.bbNative(e,d||{})}catch(x){}};
 setInterval(()=>{if(trip&&me)liveRender([me.getLatLng().lat,me.getLatLng().lng])},30000);
 let TS=null; // estado del viaje
 const hora=m=>{const d=new Date(Date.now()+m*60000);return d.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})};
@@ -497,6 +498,7 @@ function liveCalc(c){
 function liveRender(c){
   const bar=$("tripbar");if(!bar||!trip)return;
   const r=liveCalc(c);
+  {const la=trip.legs[trip.legs.length-1].a.s;const fw=D(la.ll,dest)*1.25/WALK;nat("eta",{min:r.min,alight:Math.max(0,r.min-fw),stop:la.name,eta:hora(r.min)})}
   bar.querySelector(".live").innerHTML=`<div class="lv"><div><b>${fmt(r.m)}</b><span>faltan</span></div><div><b>${r.min} min</b><span>restantes</span></div><div><b>${hora(r.min)}</b><span>llegada</span></div></div><div class="muted" style="margin-top:6px">${r.step}</div>`;
   $("peek").innerHTML=`🟢 ${r.min} min · llegas ${hora(r.min)} · ${fmt(r.m)} ⌃`;
 }
@@ -509,7 +511,7 @@ function tripBar(){
   bar.innerHTML=html+'<button class="go share" id="sharebtn"></button><div class="live"><div class="muted" style="margin-top:6px">📍 Esperando tu ubicación para calcular en vivo…</div></div>';$("cancelTrip").onclick=cancelTrip;$("sharebtn").onclick=()=>{if(SHARE)stopShare();else{const L=trip.legs[TS?TS.leg:0];if(TS)TS.onBus=true;startShare(L.c,L.dk)}};shareUI();if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
 function startTrip(p){
-  trip=p;warned={};TS=null;
+  trip=p;warned={};TS=null;nat("start",{stop:p.legs[p.legs.length-1].a.s.name,route:p.legs.map(l=>l.c).join(" → ")});
   tripBar();
   document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="✓ Viaje iniciado · Cancelar";b.style.background="#b91c1c";b.onclick=e=>{e.stopPropagation();cancelTrip()}});
   if(me)map.setView(me.getLatLng(),16);else $("from").textContent="📍 Activa tu ubicación para que te avise dónde bajar";
@@ -518,7 +520,7 @@ function startTrip(p){
   if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
 function cancelTrip(){
-  stopShare(true);
+  nat("end");stopShare(true);
   trip=null;warned={};$("alert").style.display="none";tripBar();
   document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="Iniciar viaje · te aviso dónde bajar";b.style.background="";bindGo()});
   setSheet(false);
@@ -530,7 +532,7 @@ function checkTrip(c,sp){
   if(TS&&sp!=null&&sp>=0){TS.v=TS.v?TS.v*.7+sp*60*.3:sp*60}
   liveRender(c);
   trip.legs.forEach((l,j)=>{const s=l.a.s;const d=D(c,s.ll);
-    if(d<450&&!warned[j]){warned[j]=1;const a=$("alert");a.innerHTML=`🔔 ¡Prepárate!<br>Bájate en <u>${s.name}</u><br><small style="font:600 14px Inter">${j<trip.legs.length-1?"ahí cambias a la "+trip.legs[j+1].c:"ya casi llegas"}</small>`;a.style.display="block";
+    if(d<450&&!warned[j]){warned[j]=1;nat("warn",{stop:s.name,change:j<trip.legs.length-1?trip.legs[j+1].c:null});const a=$("alert");a.innerHTML=`🔔 ¡Prepárate!<br>Bájate en <u>${s.name}</u><br><small style="font:600 14px Inter">${j<trip.legs.length-1?"ahí cambias a la "+trip.legs[j+1].c:"ya casi llegas"}</small>`;a.style.display="block";
       try{navigator.vibrate&&navigator.vibrate([400,150,400,150,600])}catch(e){}
       setTimeout(()=>a.style.display="none",9000)}});
   if(trip&&D(c,dest)<60)arrived();
