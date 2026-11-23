@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Guía de rutas BinniBus Oaxaca</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -71,6 +72,11 @@ section.info li{margin:3px 0}
 .rc-chip{border:0;border-radius:7px;padding:5px 7px;font:700 12px Archivo;color:#fff;cursor:pointer;opacity:.85}
 .rc-chip.on{outline:3px solid #1d1a16;opacity:1}
 .warn{font-size:12px;color:var(--muted);margin:10px 2px 0}
+#lmap{height:70vh;min-height:430px;border-radius:10px;background:#222}
+.locbtn{position:absolute;left:10px;bottom:10px;z-index:500;border:0;border-radius:10px;padding:9px 12px;font:600 13px Inter;background:#fffdf8;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer}
+.leaflet-tooltip.lbl{background:rgba(29,26,22,.82);color:#fff;border:0;box-shadow:none;font:600 11px Inter;padding:2px 6px}
+.leaflet-tooltip.lbl:before{display:none}
+.leaflet-popup-content{font:13px Inter}
 </style>
 </head>
 <body>
@@ -95,10 +101,10 @@ section.info li{margin:3px 0}
 
   <div class="mapbox">
     <div class="maphead"><b>Mapa simplificado</b><span id="sel">Toca una ruta</span></div>
-    <div class="mapwrap"><svg id="map" viewBox="0 0 400 470" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Esquema de rutas BinniBus"></svg><div class="zbtns"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button><button id="zreset" aria-label="Centrar" style="font-size:15px">⟲</button></div><div class="hint" id="hint">Arrastra con un dedo · pellizca para hacer zoom · toca una parada</div></div>
+    <div class="mapwrap"><div id="lmap"></div><button id="locbtn" class="locbtn">📍 Dónde estoy</button></div>
     <div class="legend"><span><i class="lg rt"></i>Troncal</span><span><i class="lg ra"></i>Alimentadora</span><span><i class="lg rc"></i>Colectora</span><span>⚾ Estadio Yu'va</span><button id="allbtn" class="chip">Ver todas</button></div>
     <div class="routechips" id="rchips"></div>
-    <p class="warn">Esquema aproximado: cada línea une el inicio, el final y los puntos clave conocidos de la ruta. No sigue las calles exactas; para eso abre el mapa oficial de cada ruta abajo.</p>
+    <p class="warn">Mapa aproximado: al tocar una ruta la línea se ajusta a las calles entre sus puntos clave, pero el recorrido real del camión puede ser distinto. Para el trayecto exacto abre el mapa oficial de cada ruta abajo.</p>
   </div>
 
   <div class="sticky">
@@ -130,6 +136,7 @@ section.info li{margin:3px 0}
   <p class="note">Fuentes: oaxaca.gob.mx/citybus (mapas oficiales), El Heraldo de Oaxaca y El Imparcial (rutas con bajada cerca del Estadio Yu'va). Las rutas cambian seguido: si algo no cuadra, confírmalo en la app o en el canal oficial. ★ guarda tus rutas en este teléfono.</p>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const IMG="https://www.oaxaca.gob.mx/citybus/wp-content/uploads/sites/94/";
 const R=[
@@ -214,7 +221,7 @@ const N={
  modazul:["Módulo Azul",17.022,-96.722,1], cdadmin:["Cd. Administrativa",17.071,-96.663,1],
  mexicapam:["San Martín Mexicapam",17.068,-96.740], primera:["Primera Etapa",17.077,-96.700],
  etla:["San Pablo Etla",17.150,-96.765], scetla:["Sta. Cruz Etla",17.160,-96.790],
- huitzo:["↑ Huitzo / Telixtlahuaca",17.170,-96.800], atzompa:["Atzompa",17.095,-96.785],
+ huitzo:["Huitzo",17.272,-96.876], atzompa:["Atzompa",17.095,-96.785],
  guadv:["Guadalupe Victoria",17.085,-96.733], moctezuma:["Col. Moctezuma",17.058,-96.712],
  monjas:["San Isidro Monjas",17.000,-96.738], esquipulas:["Esquipulas",17.015,-96.742],
  tecno:["Tecnológico",17.078,-96.744], scamilpas:["Sta. Cruz Amilpas",17.066,-96.676],
@@ -224,7 +231,7 @@ const N={
  cuevita:["La Cuevita",17.076,-96.733], rosario:["El Rosario",17.044,-96.684],
  montoya:["Montoya",17.074,-96.757], soledad:["La Soledad",17.064,-96.733],
  montealban:["Col. Monte Albán",17.058,-96.755], tule:["El Tule",17.047,-96.636],
- tomaltepec:["Tomaltepec →",17.060,-96.610], guelaguetza:["Col. Guelaguetza",17.095,-96.730],
+ tomaltepec:["Tomaltepec",17.062,-96.598], guelaguetza:["Col. Guelaguetza",17.095,-96.730],
  simbolos:["Símbolos Patrios",17.040,-96.718], dif:["CRI DIF",17.045,-96.735],
  joya:["La Joya",17.083,-96.765], sfelipe:["San Felipe del Agua",17.103,-96.708],
  experimental:["La Experimental",17.030,-96.700], yahuiche:["Yahuiche",17.100,-96.775],
@@ -275,99 +282,78 @@ const P={
  "RC-15":["hmujer","simbolos","modazul"]
 };
 const COL={RT:"#c2410c",RA:"#0f766e",RC:"#7c3aed"};
-const LAT0=17.172,LAT1=16.985,LON0=-96.805,LON1=-96.600,W=400,H=470,PAD=14;
-const XY={"centro": [190, 250], "yuva": [240, 215], "mexicapam": [130, 240], "soledad": [150, 265], "moctezuma": [225, 278], "jardin": [212, 188], "cuevita": [168, 208], "tecno": [150, 180], "guadv": [178, 150], "donaji": [130, 152], "montebello": [102, 178], "montoya": [80, 215], "joya": [72, 160], "montealban": [92, 272], "issste": [272, 240], "primera": [285, 192], "satelite": [310, 222], "alamos": [292, 160], "anahuac": [238, 148], "guelaguetza": [205, 118], "sfelipe": [255, 105], "sluis": [318, 118], "huayapam": [350, 90], "bugambilias": [160, 100], "viguera": [110, 110], "yahuiche": [62, 112], "atzompa": [38, 140], "etla": [92, 55], "scetla": [48, 42], "huitzo": [28, 14], "pvalle": [318, 265], "amor": [290, 302], "pjardin": [262, 290], "scamilpas": [348, 250], "cdadmin": [365, 215], "tlalixtac": [386, 190], "tutla": [335, 322], "rosario": [302, 348], "tule": [372, 335], "tomaltepec": [390, 292], "heladio": [285, 388], "experimental": [252, 372], "simbolos": [205, 332], "dif": [140, 312], "xoxo": [160, 365], "modazul": [210, 388], "manzanal": [165, 412], "esquipulas": [118, 400], "monjas": [108, 440], "raya": [222, 428], "animas": [255, 455], "crit": [292, 430], "hmujer": [172, 456]};
-const xy=k=>{const p=XY[k];return[p[0]*0.92+16,p[1]*0.94+14]};
-const svg=document.getElementById("map"),NS="http://www.w3.org/2000/svg";
-const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e};
-let sel="RA-06";
-const lines={};
-// small per-route offset so overlapping lines stay visible
-Object.keys(P).forEach((code,i)=>{
-  const off=((i%5)-2)*1.4;
-  const pts=P[code].map(k=>{const[a,b]=xy(k);return(a+off)+","+(b+off)}).join(" ");
-  const pl=el("polyline",{points:pts,class:"rl",stroke:COL[code.slice(0,2)]});
-  pl.addEventListener("click",()=>{if(!moved)pick(code)});
-  svg.appendChild(pl);lines[code]=pl;
+
+const map=L.map("lmap",{zoomControl:true,attributionControl:true}).setView([17.065,-96.72],13);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imágenes © Esri, Maxar, Earthstar Geographics"}).addTo(map);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,opacity:.7}).addTo(map);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19}).addTo(map);
+const ll=k=>[N[k][1],N[k][2]];
+const lines={},street={};let sel="RA-06";
+Object.keys(P).forEach(code=>{
+  const pl=L.polyline(P[code].map(ll),{color:COL[code.slice(0,2)],weight:3,opacity:.6}).addTo(map);
+  pl.on("click",()=>pick(code));lines[code]=pl;
 });
-const labels={},dots={};
+const dots={};
 Object.keys(N).forEach(k=>{
-  const[x,y]=xy(k),n=N[k];
-  const c=el("circle",{cx:x,cy:y,r:n[3]?4.2:2.6,class:"nd"+(n[3]?" hub":"")});c.addEventListener("click",()=>{if(!moved)nodeInfo(k)});svg.appendChild(c);dots[k]=c;
-  const t=el("text",{x:x+5,y:y-4});t.textContent=n[0];
-  if(x>W-70){t.setAttribute("text-anchor","end");t.setAttribute("x",x-5)}
-  if(k==="yuva"){t.setAttribute("text-anchor","end");t.setAttribute("x",x-6);t.setAttribute("y",y-6)}
-  svg.appendChild(t);labels[k]=t;
+  const n=N[k];
+  const m=L.circleMarker(ll(k),{radius:n[3]?7:4.5,color:"#fff",weight:2,fillColor:n[3]?"#1d1a16":"#fffdf8",fillOpacity:1}).addTo(map);
+  const rs=Object.keys(P).filter(c=>P[c].includes(k));
+  m.bindPopup(`<b>${n[0].replace(/[↑→] ?/g,"")}</b><br>Pasan: ${rs.join(", ")}`);
+  m.bindTooltip(n[0].replace(/[↑→] ?/g,""),{permanent:true,direction:"right",offset:[6,0],className:"lbl"});
+  dots[k]=m;
 });
+function refreshLabels(){
+  const z=map.getZoom(),used=sel?new Set(P[sel]):null;
+  Object.entries(dots).forEach(([k,m])=>{
+    const show=N[k][3]||(used&&used.has(k))||z>=14;
+    const t=m.getTooltip();if(show)m.openTooltip();else m.closeTooltip();
+  });
+}
+map.on("zoomend",refreshLabels);
+async function streetLine(code){
+  if(street[code]!==undefined)return street[code];
+  try{
+    const q=P[code].map(k=>N[k][2]+","+N[k][1]).join(";");
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${q}?overview=full&geometries=geojson`);
+    const j=await r.json();
+    street[code]=j.routes&&j.routes[0]?j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]):null;
+  }catch(e){street[code]=null}
+  return street[code];
+}
 const rch=document.getElementById("rchips");
 Object.keys(P).forEach(code=>{
   const b=document.createElement("button");b.className="rc-chip";b.textContent=code;
   b.style.background=COL[code.slice(0,2)];b.dataset.c=code;b.onclick=()=>pick(code);rch.appendChild(b);
 });
 document.getElementById("allbtn").onclick=()=>pick(null);
-function pick(code){
+async function pick(code){
   sel=code;
-  const used=code?new Set(P[code]):null;
   Object.entries(lines).forEach(([c,pl])=>{
     const on=!code||c===code;
-    pl.style.opacity=code?(on?1:.08):.55;
-    
-    if(on&&code)svg.insertBefore(pl,svg.querySelector("circle"));
+    pl.setStyle({opacity:code?(on?1:.12):.75,weight:code&&on?6:3});
+    if(code&&on)pl.bringToFront();
   });
-  curUsed=used;if(typeof applyVB==='function'&&svg.getAttribute('viewBox'))applyVB();
   [...rch.children].forEach(b=>b.classList.toggle("on",b.dataset.c===code));
   const r=code&&R.find(x=>x[0]===code);
   document.getElementById("sel").textContent=r?`${r[0]} ${r[1]}: ${r[3]}`:"Todas las rutas";
-}
-let curUsed=null,moved=false;
-function nodeInfo(k){
-  const rs=Object.keys(P).filter(c=>P[c].includes(k));
-  document.getElementById("sel").textContent=`${N[k][0].replace(/[↑→⚾] ?/g,"")}: pasan ${rs.join(", ")}`;
-}
-/* --- zoom y arrastre con dedos --- */
-const VB0={x:0,y:0,w:400,h:470};let vb={...VB0};
-function clampVB(){vb.w=Math.min(Math.max(vb.w,60),400);vb.h=vb.w*470/400;vb.x=Math.min(Math.max(vb.x,-vb.w*.5),400-vb.w*.5);vb.y=Math.min(Math.max(vb.y,-vb.h*.5),470-vb.h*.5)}
-function applyVB(){
-  clampVB();svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
-  const k=vb.w/400;
-  svg.querySelectorAll("text").forEach(t=>{t.style.fontSize=(9.5*k)+"px";t.style.strokeWidth=(3*k)+"px"});
-  Object.entries(dots).forEach(([n,c])=>{c.setAttribute("r",(N[n][3]?4.6:3)*Math.max(k,.45));c.style.strokeWidth=1.2*k});
-  Object.entries(lines).forEach(([c,pl])=>{const on=sel&&c===sel;pl.style.strokeWidth=((on?5:2.4)*Math.max(k,.5))+"px"});
   refreshLabels();
+  if(code){
+    map.fitBounds(lines[code].getBounds(),{padding:[40,40],maxZoom:15});
+    const g=await streetLine(code);
+    if(g&&sel===code){lines[code].setLatLngs(g)}
+  }else map.setView([17.065,-96.72],12);
 }
-function refreshLabels(){
-  const zoomed=vb.w<=260;
-  Object.entries(labels).forEach(([k,t])=>{
-    const inRoute=curUsed&&curUsed.has(k);
-    const show=N[k][3]||inRoute||zoomed;
-    t.style.display=show?"":"none";t.style.fontWeight=inRoute?"700":"600";
-    t.style.opacity=curUsed&&!inRoute&&!N[k][3]?.45:1;
-  });
-}
-function toSvg(cx,cy){const r=svg.getBoundingClientRect();const s=Math.max(vb.w/r.width,vb.h/r.height);const ox=(r.width*s-vb.w)/2,oy=(r.height*s-vb.h)/2;return[vb.x+(cx-r.left)*s-ox,vb.y+(cy-r.top)*s-oy,s]}
-function zoomAt(f,cx,cy){const[px,py]=toSvg(cx,cy);const nw=Math.min(Math.max(vb.w*f,60),400);const r=nw/vb.w;vb.x=px-(px-vb.x)*r;vb.y=py-(py-vb.y)*r;vb.w=nw;vb.h=nw*470/400;applyVB()}
-const ptr=new Map();let last=null,startPt=null;
-svg.addEventListener("pointerdown",e=>{ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});startPt={x:e.clientX,y:e.clientY};moved=false;last=null;document.getElementById("hint").style.opacity=0});
-svg.addEventListener("pointermove",e=>{
-  if(!ptr.has(e.pointerId))return;
-  const prev=ptr.get(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(startPt&&Math.hypot(e.clientX-startPt.x,e.clientY-startPt.y)>6)moved=true;
-  if(!moved)return;
-  if(ptr.size===1){const[, ,s]=toSvg(0,0);vb.x-=(e.clientX-prev.x)*s;vb.y-=(e.clientY-prev.y)*s;applyVB()}
-  else if(ptr.size===2){
-    const[a,b]=[...ptr.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
-    if(last){zoomAt(last.d/d,mx,my);const[, ,s]=toSvg(0,0);vb.x-=(mx-last.mx)*s;vb.y-=(my-last.my)*s;applyVB()}
-    last={d,mx,my};
-  }
-});
-const up=e=>{ptr.delete(e.pointerId);last=null;if(ptr.size===0)setTimeout(()=>{moved=false},0)};
-svg.addEventListener("pointerup",up);svg.addEventListener("pointercancel",up);svg.addEventListener("pointerleave",up);
-svg.addEventListener("wheel",e=>{e.preventDefault();zoomAt(e.deltaY>0?1.15:1/1.15,e.clientX,e.clientY)},{passive:false});
-const ctr=()=>{const r=svg.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]};
-document.getElementById("zin").onclick=()=>zoomAt(1/1.5,...ctr());
-document.getElementById("zout").onclick=()=>zoomAt(1.5,...ctr());
-document.getElementById("zreset").onclick=()=>{vb={...VB0};applyVB()};
-pick(sel);applyVB();
+let me=null;
+document.getElementById("locbtn").onclick=()=>{
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(p=>{
+    const c=[p.coords.latitude,p.coords.longitude];
+    if(me)me.setLatLng(c);else me=L.circleMarker(c,{radius:8,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map).bindPopup("Estás aquí");
+    map.setView(c,16);me.openPopup();
+  },()=>{document.getElementById("sel").textContent="No se pudo obtener tu ubicación"});
+};
+pick(sel);
+
 </script>
 </body>
 </html>
