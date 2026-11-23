@@ -96,11 +96,6 @@ body.mopen .msec{opacity:1;transform:none}
 #livecount:empty{display:none}
 #toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#1d1a16;color:#fff;padding:10px 14px;border-radius:12px;font:600 13px Inter;z-index:3000;opacity:0;transition:.3s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
-.sonar{position:relative;width:22px;height:22px}
-.sonar b{position:absolute;inset:3px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45)}
-.sonar i{position:absolute;inset:0;border-radius:50%;background:rgba(37,99,235,.45);animation:sonar 2s ease-out infinite}
-.sonar i+i{animation-delay:1s}
-@keyframes sonar{0%{transform:scale(.6);opacity:.9}100%{transform:scale(3.6);opacity:0}}
 #topmini{position:fixed;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));z-index:1001;display:none;gap:8px}
 .top.hide~#topmini{display:flex}
 #topmini #showtop{position:static;transform:none;display:block}
@@ -116,6 +111,15 @@ body.hasdest #clearbtn{display:block}
 .vis{display:inline-block;white-space:nowrap;background:#facc15;color:#1d1a16;font:800 11px Inter;padding:3px 7px;border-radius:10px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 .clear2{display:none;border:0;background:#efe8dc!important;color:var(--ink)!important;border-radius:12px;width:40px;font-size:16px;cursor:pointer}
 body.hasdest .clear2{display:block}
+.sonar{position:relative;width:24px;height:24px;transform:translateZ(0)}
+.sonar b{position:absolute;inset:4px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#60a5fa,#1d4ed8 70%);border:3px solid #fff;box-shadow:0 0 0 1px rgba(29,78,216,.35),0 2px 8px rgba(0,0,0,.45);animation:core 1.6s ease-in-out infinite;will-change:transform}
+.sonar i{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(59,130,246,.9);background:rgba(59,130,246,.28);animation:sonar 2.4s cubic-bezier(.15,.6,.35,1) infinite;will-change:transform,opacity;transform:translateZ(0)}
+.sonar i:nth-child(2){animation-delay:.8s}
+.sonar i:nth-child(3){animation-delay:1.6s}
+@keyframes sonar{0%{transform:scale(.5);opacity:.95}80%{opacity:.08}100%{transform:scale(4.2);opacity:0}}
+@keyframes core{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+.sonar .hd{position:absolute;left:50%;top:50%;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:14px solid rgba(37,99,235,.85);transform-origin:50% 100%;margin:-26px 0 0 -7px;opacity:0;transition:opacity .3s}
+.sonar.dir .hd{opacity:1}
 </style>
 </head>
 <body>
@@ -399,14 +403,25 @@ function showPlan(p){
 }
 
 /* ---------- 4. Ubicación en vivo y aviso de bajada ---------- */
+let glideRAF=null;
+function glide(to,heading,speed){ // desliza el punto suavemente a la nueva posición
+  const from=me.getLatLng(),t0=performance.now(),dur=Math.min(1200,Math.max(350,D([from.lat,from.lng],to)*25));
+  cancelAnimationFrame(glideRAF);
+  const step=t=>{const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);
+    me.setLatLng([from.lat+(to[0]-from.lat)*e,from.lng+(to[1]-from.lng)*e]);if(k<1)glideRAF=requestAnimationFrame(step)};
+  glideRAF=requestAnimationFrame(step);
+  const el=me.getElement&&me.getElement();const so=el&&el.querySelector(".sonar");
+  if(so){const moving=heading!=null&&!isNaN(heading)&&speed>0.7;so.classList.toggle("dir",moving);if(moving)so.querySelector(".hd").style.transform=`rotate(${heading}deg)`}
+}
+
 let me=null,acc=null,trip=null,warned={};
 function setOrigin(c,label){origin=c;$("from").textContent="📍 Desde: "+label;if(dest&&ready)plan()}
 navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
   const c=[p.coords.latitude,p.coords.longitude];
   if(!me){acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
-    me=L.marker(c,{icon:L.divIcon({className:"",iconSize:[22,22],iconAnchor:[11,11],html:'<div class="sonar"><i></i><i></i><b></b></div>'}),zIndexOffset:2000,keyboard:false}).addTo(map).bindPopup("Estás aquí · en vivo");
+    me=L.marker(c,{icon:L.divIcon({className:"",iconSize:[24,24],iconAnchor:[12,12],html:'<div class="sonar"><i></i><i></i><i></i><span class="hd"></span><b></b></div>'}),zIndexOffset:2000,keyboard:false}).addTo(map).bindPopup("Estás aquí · en vivo");
     if(!origin){setOrigin(c,"tu ubicación");map.setView(c,15)}}
-  else{me.setLatLng(c);acc.setLatLng(c).setRadius(p.coords.accuracy)}
+  else{glide(c,p.coords.heading,p.coords.speed);acc.setLatLng(c).setRadius(p.coords.accuracy)}
   if(originIsMe) origin=c;
   if(trip) checkTrip(c,p.coords.speed);
   if(SHARE) pingShare(c,p.coords.speed);
