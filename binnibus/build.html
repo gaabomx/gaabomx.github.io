@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>Constructor de rutas BinniBus</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{font:13px monospace;margin:10px}#log{white-space:pre-wrap;color:#555}#out{white-space:pre-wrap;word-break:break-all}</style></head>
+<body>
+<b>Constructor de rutas (uso interno)</b>
+<div id="log"></div>
+<div id="out"></div>
+<script src="stops.js"></script>
+<script>
+const VIEW="-96.86,17.17,-96.58,16.94";
+const log=t=>{document.getElementById("log").textContent+=t+"\n"};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const R=6371000,rad=x=>x*Math.PI/180;
+const D=(a,b)=>{const dl=rad(b[0]-a[0]),dn=rad(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+const ALIAS={"Esc. Sec. Téc. N°6":"Escuela Secundaria Técnica 6","Prepa 2":"Preparatoria 2","GYM Universitario":"Gimnasio Universitario","Central del Abasto":"Central de Abasto","Monte Albám":"Monte Albán","Huajuapam":"Huajuapan","Av. Mexicapam":"Mexicapan"};
+const cache={};
+async function nom(q){
+  if(cache[q])return cache[q];
+  await sleep(1100);
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=15&viewbox=${VIEW}&bounded=1&q=${encodeURIComponent(q)}`);
+    const j=r.ok?await r.json():[];cache[q]=j;return j;
+  }catch(e){cache[q]=[];return []}
+}
+function clean(n){return (ALIAS[n]||n).replace(/^(Yubez|Base|Crucero (de la|al|de)|Puente( del)?|Entrada Principal) /i,"").replace(/ \(.*\)$/,"")}
+async function locateStop(n,prev){
+  const qs=[clean(n)];const pick=(res,onlyStops)=>{let best=null,bd=1e9;
+    for(const x of res){const c=[+x.lat,+x.lon];const isStop=x.type==="bus_stop"||x.type==="platform";if(onlyStops&&!isStop)continue;
+      const d=D(prev,c)-(isStop?250:0);if(d<bd){bd=d;best={ll:c,src:isStop?"stop":x.class+"/"+x.type,name:x.name}}}
+    return best&&bd<2000?best:null};
+  const res=await nom(qs[0]);
+  return pick(res,true)||pick(res,false);
+}
+async function osrm(pts){
+  let out=[];
+  for(let i=0;i<pts.length-1;i+=80){
+    const ch=pts.slice(i,i+81);
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${ch.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";")}?overview=full&geometries=geojson`);
+    const j=await r.json();if(!j.routes)throw new Error("osrm "+j.code);
+    const c=j.routes[0].geometry.coordinates.map(x=>[+x[1].toFixed(5),+x[0].toFixed(5)]);
+    out=out.concat(i?c.slice(1):c);
+  }
+  return out;
+}
+(async()=>{
+  const only=(location.hash||"").slice(1);
+  const OUT={};
+  for(const code of Object.keys(STOPS)){
+    if(only&&only!==code)continue;
+    const S=STOPS[code];let seed=S.seed;
+    if(!seed){const r=await nom(S.seedQ);seed=r[0]?[+r[0].lat,+r[0].lon]:[17.065,-96.72]}
+    OUT[code]={};
+    let prev=seed;
+    for(const k of ["ida","vuelta"]){
+      const st=[];
+      for(const n of S[k]){
+        const f=await locateStop(n,prev);
+        if(f){prev=f.ll;st.push({n,ll:f.ll,src:f.src})}else st.push({n,ll:null});
+        log(`${code} ${k} ${n}: ${f?f.src+" "+f.ll.join(","):"—"}`);
+      }
+      OUT[code][k]=st.map(x=>x.ll?[x.n,+x.ll[0].toFixed(5),+x.ll[1].toFixed(5),x.src==='stop'?1:0]:[x.n]);
+    }
+  }
+  document.getElementById("out").textContent="BEGIN"+JSON.stringify(OUT)+"END";
+  log("LISTO");
+})();
+</script></body></html>
