@@ -131,6 +131,12 @@ body.hasdest .clear2{display:block}
 .credit{border-bottom:1px solid var(--line);text-align:left;padding:2px 0 12px}
 .credit p{margin:0;font-size:14px;color:var(--muted)}
 .credit a{color:var(--ink);text-decoration:none}
+.mdet summary{list-style:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.mdet summary::-webkit-details-marker{display:none}
+.mdet summary h3{margin:0}
+.mdet .chev{font-size:16px;color:var(--muted);transition:transform .25s}
+.mdet[open] .chev{transform:rotate(180deg)}
+.mdet[open] summary{margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -168,10 +174,9 @@ body.hasdest .clear2{display:block}
         <li><span>5</span><div>¿No sale tu casa o privada? Toca el mapa ahí y elige <b>📌 Guardar este lugar</b>.</div></li>
       </ol>
     </section>
-    <section class="msec" style="--d:1"><h3>📡 Ya voy en un BinniBus</h3><div id="mshare"></div></section>
     <section class="msec" style="--d:1"><h3>⭐ Mis lugares</h3><div id="mmis"></div></section>
-    <section class="msec" style="--d:2"><h3>Rutas en el mapa</h3><p class="muted">Toca una ruta para mostrarla u ocultarla.</p><div class="chips" id="chips"></div>
-      <div style="display:flex;gap:8px;margin-top:8px"><button class="mbtn" id="allon">Mostrar todas</button><button class="mbtn" id="alloff">Ocultar todas</button></div></section>
+    <section class="msec" style="--d:2"><details class="mdet"><summary><h3>Rutas en el mapa</h3><span class="chev">▾</span></summary><p class="muted">Toca una ruta para mostrarla u ocultarla.</p><div class="chips" id="chips"></div>
+      <div style="display:flex;gap:8px;margin-top:8px"><button class="mbtn" id="allon">Mostrar todas</button><button class="mbtn" id="alloff">Ocultar todas</button></div></details></section>
     <section class="msec" style="--d:3"><h3>Las 35 rutas</h3><div id="all"></div></section>
     <section class="msec" style="--d:4"><h3>Tarifas y horario</h3><p class="muted">$8 con tarjeta · $10 en efectivo · $4 estudiantes y adultos mayores · Personas con discapacidad: gratis. Horario 6:00–22:00.</p>
       <p class="muted">Recorridos y paradas de OpenStreetMap (© colaboradores de OpenStreetMap). Los tiempos son aproximados; confirma con el chofer si algo no cuadra.</p></section>
