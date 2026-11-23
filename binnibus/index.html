@@ -127,7 +127,7 @@ async function nominatim(q){
 let GEO={},LINES={};try{LINES=JSON.parse(localStorage.getItem(CACHE)||"{}")}catch(e){}
 function save(){try{localStorage.setItem(CACHE,JSON.stringify(LINES))}catch(e){}}
 const OSM_REL=[20215875,20215876,20276840,20276841,19736820,19736821,20509255,20509256,21031480,21031481,20781030,20781031,20258125,20258126,20325722,20325723,21032371,21032372,20658960,20658961,20325039,20325040,19895385,19895386,19847172,19847173,19847174,19847175,21011321,21011322,20324827,20324828,20449256,20449257,19895381,19895384,19732593,19733118,21011355,21031572,19895382,19895383,19962635,19962636,19851160,19851161,19847176,19847177,20339963,20339964,19847170,19847171,19829299,19829310,19825137,19825138,21217622,21217623];
-const OSMC="bb-osm-v2";let OSMD={};try{OSMD=JSON.parse(localStorage.getItem(OSMC)||"{}")}catch(e){}
+const OSMC="bb-osm-v3";let OSMD={};try{OSMD=JSON.parse(localStorage.getItem(OSMC)||"{}")}catch(e){}
 function saveOSM(){try{localStorage.setItem(OSMC,JSON.stringify(OSMD))}catch(e){}}
 function rdp(pts,tolM){ // Douglas-Peucker en metros: conserva la forma real de la calle
   if(pts.length<3)return pts;
@@ -151,7 +151,7 @@ async function loadOSM(id){
   const stops=rel.members.filter(m=>m.type==="node"&&/platform|stop/.test(m.role)&&nodes[m.ref]).map(m=>{const n=nodes[m.ref];return [n.tags&&n.tags.name||"Parada",+n.lat.toFixed(5),+n.lon.toFixed(5)]});
   // encadenar calles por nodos compartidos (orden real del recorrido)
   const W=rel.members.filter(m=>m.type==="way"&&!/platform/.test(m.role)&&ways[m.ref]).map(m=>ways[m.ref].nodes.slice());
-  let seq=[];
+  let seq=[],breaks=0;
   for(let k=0;k<W.length;k++){
     let w=W[k];
     if(!seq.length){
@@ -162,20 +162,22 @@ async function loadOSM(id){
     const end=seq[seq.length-1];
     if(w[0]===end){}
     else if(w[w.length-1]===end)w=w.slice().reverse();
-    else{ // sin nodo compartido: orientar por cercanía
+    else{ breaks++; // sin nodo compartido: orientar por cercanía
       const pe=nodes[end],a0=nodes[w[0]],a1=nodes[w[w.length-1]];
       if(pe&&a0&&a1&&D([pe.lat,pe.lon],[a1.lat,a1.lon])<D([pe.lat,pe.lon],[a0.lat,a0.lon]))w=w.slice().reverse();
     }
     seq=seq.concat(w[0]===end?w.slice(1):w);
   }
   let line=seq.map(n=>nodes[n]).filter(Boolean).map(n=>[+n.lat.toFixed(6),+n.lon.toFixed(6)]);
-  line=rdp(line,4);
-  OSMD[id]={ref,to:(t.to||"").replace(/^Base /,""),from:t.from||"",colour:t.colour||null,stops,line};saveOSM();
+  const rawN=line.length;line=rdp(line,2);
+  OSMD[id]={ref,to:(t.to||"").replace(/^Base /,""),from:t.from||"",colour:t.colour||null,stops,line,breaks,rawN};saveOSM();
   return OSMD[id];
 }
 function addDir(code,to,stops,line,colour){
   stops=stops.map(x=>({name:x[0],ll:x.length>1&&x[1]?[x[1],x[2]]:null}));
   if(!line||line.length<2)line=stops.filter(s=>s.ll).map(s=>s.ll);
+  // densificar: un punto cada ~40 m para ubicar paradas con precisión
+  const dl=[line[0]];for(let i=1;i<line.length;i++){const a=line[i-1],b=line[i],n=Math.floor(D(a,b)/40);for(let k=1;k<=n;k++)dl.push([a[0]+(b[0]-a[0])*k/(n+1),a[1]+(b[1]-a[1])*k/(n+1)]);dl.push(b)}line=dl;
   // distancia acumulada sobre la línea
   const cum=[0];for(let i=1;i<line.length;i++)cum.push(cum[i-1]+D(line[i-1],line[i]));
   // cada parada se ubica sobre la línea avanzando en el sentido del camión (no regresa)
@@ -447,7 +449,7 @@ function debugReport(){
     d.stops.forEach(s=>{if(!s.ll){noll++;return}if(s.off>off){off=s.off;offN=s.name}});
     const len=d.line.reduce((a,p,i)=>i?a+D(d.line[i-1],p):0,0);
     const st=d.stops.filter(s=>s.ll);const sd=st.length>1?D(st[0].ll,d.line[0])+D(st[st.length-1].ll,d.line[d.line.length-1]):0;
-    out.push(`${c}→${d.to}|stops ${d.stops.length} sin_coord ${noll}|len ${(len/1000).toFixed(1)}km|maxgap ${Math.round(gap)}m@${gi}/${d.line.length}|maxoff ${Math.round(off)}m ${offN}|retro ${back}|ends ${Math.round(sd)}m`);
+    out.push(`${c}→${d.to}|br ${d.breaks} raw ${d.rawN}|stops ${d.stops.length} sin_coord ${noll}|len ${(len/1000).toFixed(1)}km|maxgap ${Math.round(gap)}m@${gi}/${d.line.length}|maxoff ${Math.round(off)}m ${offN}|retro ${back}|ends ${Math.round(sd)}m`);
   });
   $("panel").innerHTML="<pre style='white-space:pre-wrap;font-size:11px'>"+out.join("\n")+"</pre>";
 }
@@ -461,7 +463,7 @@ $("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Escribe un lugar,
   // 1) rutas oficiales cargadas de OpenStreetMap (de 6 en 6)
   for(let i=0;i<OSM_REL.length;i+=6){
     const res=await Promise.all(OSM_REL.slice(i,i+6).map(id=>loadOSM(id).catch(e=>null)));
-    res.forEach(r=>{if(r)addDir(r.ref,r.to,r.stops,r.line,r.colour)});
+    res.forEach(r=>{if(r){addDir(r.ref,r.to,r.stops,r.line,r.colour);const g=GEO[r.ref];g[g.length-1].breaks=r.breaks;g[g.length-1].rawN=r.rawN}});
     n+=6;st(`Cargando rutas… ${Math.min(n,tot)}/${tot}`);const pb=$("pb");if(pb)pb.style.width=(Math.min(n,tot)/tot*90)+"%";
   }
   // 2) las que faltan en OpenStreetMap, con paradas propias
