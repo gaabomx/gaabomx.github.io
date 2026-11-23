@@ -711,8 +711,8 @@ function init3D(){
     skin:new T.MeshStandardMaterial({color:col("#4a2918"),roughness:.4,metalness:.03}),
     shirt:new T.MeshStandardMaterial({color:col("#111316"),roughness:.62}),
     shorts:new T.MeshStandardMaterial({color:col("#0d0e10"),roughness:.75}),
-    shoe:new T.MeshStandardMaterial({color:col("#17181b"),roughness:.6}),
-    sole:new T.MeshStandardMaterial({color:col("#f2efe9"),roughness:.6}),
+    shoe:new T.MeshStandardMaterial({color:col("#141416"),roughness:.5}),
+    sole:new T.MeshStandardMaterial({color:col("#101012"),roughness:.6}),
     hair:new T.MeshStandardMaterial({color:col("#0c0908"),roughness:.95}),
     eye:new T.MeshStandardMaterial({color:col("#0a0a0a"),roughness:.2}),
     metal:new T.MeshStandardMaterial({color:col("#8d939a"),roughness:.3,metalness:.85}),
@@ -925,7 +925,7 @@ function poseModel(J){
 /* ---------- Cuerpo continuo (una sola piel) ---------- */
 function buildBody(){
   const T=T3.T, col=h=>new T.Color(h).convertSRGBToLinear();
-  const SK=col("#4a2918"), BK=col("#0d0e10"), HR=col("#0b0807");
+  const SK=col("#141416"), BK=col("#141416"), HR=col("#141416");
   const lerpC=(a,b,k)=>a.clone().lerp(b,Math.max(0,Math.min(1,k)));
   function interp(tab,y,i){ // tab: [[y,v...]] lineal suave
     if(y<=tab[0][0]) return tab[0][i]; for(let k=1;k<tab.length;k++){ if(y<=tab[k][0]){const a=tab[k-1],b=tab[k],t=(y-a[0])/(b[0]-a[0]),s=t*t*(3-2*t); return a[i]+(b[i]-a[i])*s;} } return tab[tab.length-1][i];}
@@ -948,8 +948,8 @@ function buildBody(){
     const c=y<13.5?BK:(y<15?lerpC(BK,SK,(y-13.5)/1.5):SK);
     return {p:[x,y,z],c};
   });
-  const mat=new T.MeshStandardMaterial({vertexColors:true,roughness:.42,metalness:.03});
-  const smat=new T.MeshStandardMaterial({vertexColors:true,roughness:.42,metalness:.03,skinning:true});
+  const mat=new T.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.05});
+  const smat=new T.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.05,skinning:true});
   const torsoMesh=new T.Mesh(torso.g,mat); torsoMesh.castShadow=true; torsoMesh.receiveShadow=true; T3.scene.add(torsoMesh);
   // Extremidades con piel continua y dos huesos
   function limb(prof,L1,blend,colorFn,flat){
@@ -971,8 +971,6 @@ function buildBody(){
     const th=v*Math.PI, ph=u*Math.PI*2, dy=Math.cos(th), sr=Math.sin(th), dx=sr*Math.cos(ph), dz=sr*Math.sin(ph);
     let x=dx*11, y=dy*12.6, z=dz*9.9;
     if(dy<0){const k=-dy; z*=1-.28*k; x+= (dx>0? 3.4*k*dx : -2*k*(-dx)); y-=1.2*k;}
-    x+=3.2*Math.exp(-(Math.pow(dy+.05,2)/.012+dz*dz/.012))*Math.max(0,dx);
-    x+=1.1*Math.exp(-(Math.pow(dy-.28,2)/.006+dz*dz/.09))*Math.max(0,dx);
     z+=Math.sign(dz)*2.4*Math.exp(-(Math.pow(dx+.12,2)/.012+Math.pow(dy+.02,2)/.03));
     x-=1; y+=1.4;
     let c=SK;
@@ -982,7 +980,6 @@ function buildBody(){
   });
   const headMesh=new T.Mesh(head.g,mat); headMesh.castShadow=true; T3.scene.add(headMesh);
   const eyeM=new T.MeshStandardMaterial({color:col("#0a0a0a"),roughness:.15});
-  [-1,1].forEach(s=>{const e=new T.Mesh(new T.SphereGeometry(1,14,10),eyeM); e.scale.set(.7,1,1.2); e.position.set(9.3,2.4,s*3.8); headMesh.add(e);});
   T3.H={torsoMesh,headMesh,A1,A2,L1,L2};
   ["ua1","la1","hand1","ua2","la2","hand2","th1","sh1","th2","sh2","sht1","sht2","torso","hips","neck","head","delt1","delt2","elb1","elb2","knee1","knee2"].forEach(k=>{if(T3.B[k]) T3.B[k].visible=false;});
 }
