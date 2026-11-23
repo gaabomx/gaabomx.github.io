@@ -65,7 +65,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .sheet,.top{transform:translateZ(0)}
 .menubtn{border:0;background:transparent;font-size:22px;width:40px;color:var(--ink);padding:0;cursor:pointer}
 #showtop{color:var(--ink)}
-.mscrim{position:fixed;inset:0;z-index:1500;background:rgba(10,8,6,.45);opacity:0;pointer-events:none;transition:opacity .3s ease;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.mscrim{position:fixed;inset:0;z-index:1500;background:rgba(10,8,6,.45);opacity:0;pointer-events:none;transition:opacity .3s ease;}
 .menu{position:fixed;top:0;left:0;bottom:0;width:min(86vw,380px);z-index:1600;background:var(--card);box-shadow:8px 0 30px rgba(0,0,0,.3);transform:translateX(-105%);transition:transform .38s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;border-radius:0 22px 22px 0;padding-top:env(safe-area-inset-top);will-change:transform}
 body.mopen .menu{transform:none}
 body.mopen .mscrim{opacity:1;pointer-events:auto}
@@ -350,7 +350,8 @@ function nearestStops(dir,pt,maxD){return dir.stops.map((s,k)=>({s,k,d:s.ll&&!s.
 const WALK=75,BUS=280,WAIT=8; // m/min caminando, m/min camión (~17 km/h), min de espera
 const wmin=m=>m*1.25/WALK; // la calle real es ~25% más larga que la línea recta
 function rideM(dir,b,a){return Math.max(0,dir.cum[a.s.i]-dir.cum[b.s.i])}
-function plan(W0=1000,W1=900){
+function plan(W0=1000,W1=900,now){
+  if(!now&&W0===1000){$("panel").innerHTML=`<h2>${esc(destName||"")}</h2><p class="muted">Buscando las mejores rutas…</p><div class="prog"><i style="width:70%"></i></div>`;setSheet(false);return setTimeout(()=>plan(W0,W1,true),30)}
   if(trip&&W0===1000)cancelTrip();
   plans=[];
   const codes=Object.keys(GEO);
@@ -364,22 +365,32 @@ function plan(W0=1000,W1=900){
     }
     if(best) plans.push(best);
   }
-  for(const c1 of codes) for(const [k1,d1] of legsFor(c1)){
-    const B=nearestStops(d1,origin,W0);if(!B.length)continue;
-    for(const c2 of codes){ if(c2===c1)continue; for(const [k2,d2] of legsFor(c2)){
-      const A=nearestStops(d2,dest,W1);if(!A.length)continue;
-      for(const b of B) for(let t1=b.k+1;t1<d1.stops.length;t1++){const s1=d1.stops[t1];if(!s1.ll||s1.i==null||s1.bad)continue;
-        for(let t2=0;t2<d2.stops.length;t2++){const s2=d2.stops[t2];if(!s2.ll||s2.i==null||s2.bad)continue;const tw=D(s1.ll,s2.ll);if(tw>400)continue;
-          for(const a of A){ if(a.k<=t2)continue;
-            const r1=rideM(d1,b,{s:s1}),r2=rideM(d2,{s:s2},a);if(r1<200||r2<200)continue;
-            const t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a.d);
-            const key=c1+k1+c2+k2;const ex=plans.find(p=>p.key===key);
-            if(!ex||t<ex.t){const np={key,t,score:t,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0},rm:r1},{c:c2,dk:k2,dir:d2,b:{s:s2,k:t2,d:tw},a,rm:r2}],walk:[b.d,a.d],tw};
-              if(ex)Object.assign(ex,np);else plans.push(np)}
-          }}}
-    }}
+  // transbordos (rápido: rejilla de paradas cercanas)
+  const top=(arr,n)=>arr.sort((x,y)=>x.d-y.d).slice(0,n);
+  const cell=(ll)=>Math.floor(ll[0]/0.004)+"_"+Math.floor(ll[1]/0.004);
+  const G=new Map(),Aof=new Map();
+  for(const c2 of codes) for(const [k2,d2] of legsFor(c2)){
+    const A=top(nearestStops(d2,dest,W1),4);if(!A.length)continue;Aof.set(d2,A);
+    const maxK=Math.max(...A.map(x=>x.k));
+    d2.stops.forEach((s2,t2)=>{if(t2>=maxK||!s2.ll||s2.i==null||s2.bad)return;const k=cell(s2.ll);if(!G.has(k))G.set(k,[]);G.get(k).push({c2,k2,d2,s2,t2})});
   }
-  if(!plans.length&&W0<2500)return plan(W0+700,W1+700);
+  const TB=new Map();
+  for(const c1 of codes) for(const [k1,d1] of legsFor(c1)){
+    const B=top(nearestStops(d1,origin,W0),4);if(!B.length)continue;
+    const minK=Math.min(...B.map(x=>x.k));
+    for(let t1=minK+1;t1<d1.stops.length;t1++){const s1=d1.stops[t1];if(!s1.ll||s1.i==null||s1.bad)continue;
+      const la=Math.floor(s1.ll[0]/0.004),lo=Math.floor(s1.ll[1]/0.004);
+      for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const L2=G.get((la+i)+"_"+(lo+j));if(!L2)continue;
+        for(const q of L2){if(q.c2===c1)continue;const tw=D(s1.ll,q.s2.ll);if(tw>400)continue;
+          for(const b of B){if(t1<=b.k)continue;const r1=rideM(d1,b,{s:s1});if(r1<200)continue;
+            for(const a2 of Aof.get(q.d2)){if(a2.k<=q.t2)continue;const r2=rideM(q.d2,{s:q.s2},a2);if(r2<200)continue;
+              const t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a2.d);
+              const key=c1+k1+q.c2+q.k2;const ex=TB.get(key);
+              if(!ex||t<ex.t)TB.set(key,{key,t,score:t,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0},rm:r1},{c:q.c2,dk:q.k2,dir:q.d2,b:{s:q.s2,k:q.t2,d:tw},a:a2,rm:r2}],walk:[b.d,a2.d],tw});
+            }}}}}
+  }
+  TB.forEach(v=>plans.push(v));
+  if(!plans.length&&W0<2500)return plan(W0+700,W1+700,true);
   plans.sort((x,y)=>x.t-y.t);
   // transbordos solo si ahorran al menos 5 min frente a la mejor directa
   const direct=plans.filter(p=>p.legs.length===1);
@@ -521,7 +532,7 @@ function startCompass(){
   }else compState="granted";
 }
 // en iPhone el permiso solo se puede pedir con un toque
-["touchend","click"].forEach(ev=>addEventListener(ev,()=>startCompass(),{capture:true}));
+$("me").addEventListener("click",startCompass);map.on("click",()=>startCompass());
 addEventListener("deviceorientationabsolute",onOrient,true);addEventListener("deviceorientation",onOrient,true);
 
 let me=null,acc=null,trip=null,warned={};
@@ -532,7 +543,7 @@ navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
     me=L.marker(c,{icon:L.divIcon({className:"",iconSize:[24,24],iconAnchor:[12,12],html:'<div class="sonar"><i></i><i></i><i></i><span class="cone"></span><b></b></div>'}),zIndexOffset:2000,keyboard:false}).addTo(map).bindPopup("Estás aquí · en vivo");
     if(!origin){setOrigin(c,"tu ubicación");map.setView(c,15)}}
   else{glide(c,p.coords.heading,p.coords.speed);acc.setLatLng(c).setRadius(p.coords.accuracy)}
-  if(FOLLOW)map.panTo(c,{animate:true,duration:.8,easeLinearity:.5});
+  if(FOLLOW){const pt=map.latLngToContainerPoint(c),sz=map.getSize();if(Math.abs(pt.x-sz.x/2)>sz.x*.12||Math.abs(pt.y-sz.y*.38)>sz.y*.12)map.panTo(c,{animate:true,duration:.6})}
   if(originIsMe) origin=c;
   if(trip) checkTrip(c,p.coords.speed);
   if(SHARE) pingShare(c,p.coords.speed);
@@ -933,8 +944,12 @@ let STOPIDX=null,stopOn=true,lastNear=0;const warnedStops={};
 try{stopOn=localStorage.getItem("bb-stopwarn")!=="0"}catch(e){}
 $("stopwarn").checked=stopOn;$("stopwarn").onchange=e=>{stopOn=e.target.checked;try{localStorage.setItem("bb-stopwarn",stopOn?"1":"0")}catch(x){}toast(stopOn?"🚏 Te aviso cuando pases cerca de una parada.":"Avisos de paradas apagados.")};
 function buildStopIdx(){ // junta paradas de todas las rutas (las del mismo punto se agrupan)
-  STOPIDX=[];Object.keys(GEO).forEach(code=>GEO[code].forEach(d=>d.stops.forEach(st=>{if(!st.ll||st.bad)return;
-    let g=STOPIDX.find(x=>D(x.ll,st.ll)<30);if(!g){g={ll:st.ll,name:st.name,r:new Set()};STOPIDX.push(g)}g.r.add(code)})));
+  STOPIDX=[];const g=new Map();
+  Object.keys(GEO).forEach(code=>GEO[code].forEach(d=>d.stops.forEach(st=>{if(!st.ll||st.bad)return;
+    const la=Math.floor(st.ll[0]/0.0005),lo=Math.floor(st.ll[1]/0.0005);let f=null;
+    for(let i=-1;i<=1&&!f;i++)for(let j=-1;j<=1&&!f;j++){const L=g.get((la+i)+"_"+(lo+j));if(L)f=L.find(x=>D(x.ll,st.ll)<30)}
+    if(!f){f={ll:st.ll,name:st.name,r:new Set()};STOPIDX.push(f);const k=la+"_"+lo;if(!g.has(k))g.set(k,[]);g.get(k).push(f)}
+    f.r.add(code)})));
 }
 function nearStop(c){
   if(!stopOn||!ready)return;const now=Date.now();if(now-lastNear<3000)return;lastNear=now;
@@ -994,6 +1009,7 @@ try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");s
   if(U.get("a")==="estadio")setDest([17.0700,-96.7130],"Estadio Yu'va");
   if(pending&&dest&&origin)plan();
   if(U.get("debug"))debugReport();
+  if(U.get("bench")){origin=[17.0632,-96.7517];dest=[17.0478,-96.7139];let t=performance.now();plan(1000,900,true);const a=performance.now()-t;t=performance.now();buildStopIdx();const b2=performance.now()-t;$("panel").insertAdjacentHTML("afterbegin",`<p id="bench">BENCH plan ${a.toFixed(0)}ms stops ${b2.toFixed(0)}ms opciones ${plans.length}</p>`)}
 })();
 function renderAll(){$("all").innerHTML=R.map(r=>`<div class="rl"><b>${r[0]}</b> ${r[1]} · ${r[3]}${GEO[r[0]]?" · <b style='color:#0f766e'>en el mapa</b>":" · <i>sin trazo</i>"}<br><a href="${IMG+r[4]}">Mapa oficial</a></div>`).join("")}
 </script>
