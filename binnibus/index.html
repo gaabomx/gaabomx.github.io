@@ -2,292 +2,350 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Guía de rutas BinniBus Oaxaca</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>BinniBus Oaxaca · ¿A dónde vas?</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#f6f2ea; --ink:#1d1a16; --muted:#6b6358; --card:#fffdf8; --line:#e4dccf;
-  --rt:#c2410c; --ra:#0f766e; --rc:#7c3aed; --night:#1e3a8a; --gold:#b45309;
-}
+:root{--ink:#1d1a16;--muted:#6b6358;--bg:#f6f2ea;--card:#fffdf8;--line:#e4dccf;--blue:#2563eb;--ok:#0f766e}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,sans-serif}
-header{padding:28px 18px 18px;background:var(--ink);color:#f6f2ea}
-header h1{font:900 30px/1.05 Archivo,sans-serif;margin:0 0 6px;letter-spacing:-.5px}
-header p{margin:0;color:#cfc6b8;font-size:14px}
-.wrap{max-width:760px;margin:0 auto;padding:0 14px 60px}
-.mine{margin:16px 0;background:var(--card);border:2px solid var(--ra);border-radius:14px;padding:14px}
-.mine b{font-family:Archivo;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ra)}
-.mine h2{margin:4px 0 4px;font:800 22px Archivo}
-.mine p{margin:0 0 10px;color:var(--muted)}
-.btns{display:flex;flex-wrap:wrap;gap:8px}
-.btn{display:inline-block;padding:9px 12px;border-radius:10px;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;font-size:13px}
-.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
-.sticky{position:sticky;top:0;background:var(--bg);padding:10px 0 8px;z-index:5}
-input[type=search]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);font:inherit;background:#fff}
-.chips{display:flex;gap:6px;overflow-x:auto;padding-top:8px;scrollbar-width:none}
-.chip{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 11px;font:600 13px Inter;cursor:pointer;color:var(--ink)}
-.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.count{color:var(--muted);font-size:13px;margin:6px 2px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:start}
-.code{font:900 15px Archivo;color:#fff;border-radius:8px;padding:6px 7px;min-width:58px;text-align:center}
-.t-RT{background:var(--rt)}.t-RA{background:var(--ra)}.t-RC{background:var(--rc)}
-.name{font:800 16px Archivo}
-.name small{font:500 12px Inter;color:var(--muted)}
-.od{grid-column:2/4;color:var(--ink)}
-.tags{grid-column:2/4;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.tag{font-size:11px;font-weight:600;border-radius:6px;padding:2px 7px;background:#efe8dc;color:var(--muted)}
-.tag.yuva{background:#fde7c7;color:var(--gold)}
-.tag.night{background:#dbe4ff;color:var(--night)}
-.links{grid-column:2/4;margin-top:6px}
-.links a{color:var(--ra);font-weight:600;font-size:13px}
-.star{background:none;border:0;font-size:22px;cursor:pointer;color:#c9bfae;line-height:1;padding:0}
-.star.on{color:var(--gold)}
-section.info{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-section.info h3{font:800 17px Archivo;margin:0 0 8px}
-section.info ul{margin:0;padding-left:18px}
-section.info li{margin:3px 0}
-.note{font-size:12px;color:var(--muted);margin-top:18px}
-.mapbox{background:#fffdf8;border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0}
-.maphead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.maphead b{font:800 17px Archivo}
-#sel{font-size:13px;color:var(--muted);text-align:right}
-.mapwrap{position:relative;margin-top:8px}
-#map{width:100%;height:68vh;min-height:420px;display:block;background:#f3ede2;border-radius:10px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
-.zbtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
-.zbtns button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fffdf8;font:700 20px Inter;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12);cursor:pointer}
-.hint{position:absolute;left:8px;bottom:8px;background:rgba(29,26,22,.78);color:#fff;font-size:11px;padding:4px 8px;border-radius:8px;pointer-events:none;transition:opacity .4s}
-#map .nd{cursor:pointer}
-#map .rl{fill:none;stroke-linecap:round;stroke-linejoin:round;cursor:pointer;transition:opacity .2s,stroke-width .2s}
-#map .nd{fill:#fff;stroke:#1d1a16;stroke-width:1.2}
-#map .nd.hub{fill:#1d1a16}
-#map text{font:600 8.5px Inter;fill:#1d1a16;paint-order:stroke;stroke:#f3ede2;stroke-width:3px;pointer-events:none}
-#map text.dim{opacity:.35}
-.legend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12px;color:var(--muted);margin-top:8px}
-.lg{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:4px;vertical-align:middle}
-.lg.rt{background:var(--rt)}.lg.ra{background:var(--ra)}.lg.rc{background:var(--rc)}
-.routechips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
-.rc-chip{border:0;border-radius:7px;padding:5px 7px;font:700 12px Archivo;color:#fff;cursor:pointer;opacity:.85}
-.rc-chip.on{outline:3px solid #1d1a16;opacity:1}
-.warn{font-size:12px;color:var(--muted);margin:10px 2px 0}
-#gm{width:100%;height:65vh;min-height:420px;border:0;border-radius:10px;margin-top:8px;background:#eee}
-.dest{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-#destout{margin-top:10px}
-#destout .step{background:#f3ede2;border-radius:10px;padding:10px 12px;margin:6px 0}
-#lmap{height:45vh;min-height:300px;border-radius:10px;background:#222}
-.locbtn{position:absolute;left:10px;bottom:10px;z-index:500;border:0;border-radius:10px;padding:9px 12px;font:600 13px Inter;background:#fffdf8;box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer}
-.leaflet-tooltip.lbl{background:rgba(29,26,22,.82);color:#fff;border:0;box-shadow:none;font:600 11px Inter;padding:2px 6px}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 Inter,system-ui,sans-serif}
+#map{position:fixed;inset:0;z-index:1;background:#1b1b1b}
+.top{position:fixed;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));z-index:1000}
+.search{display:flex;gap:8px;background:var(--card);border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.25);padding:6px}
+.search input{flex:1;border:0;outline:0;font:600 16px Inter;padding:10px;background:transparent;min-width:0}
+.search button{border:0;background:var(--ink);color:#fff;border-radius:12px;padding:0 14px;font:700 14px Inter}
+.from{margin-top:6px;display:inline-flex;gap:6px;align-items:center;background:var(--card);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+.sugg{background:var(--card);border-radius:12px;margin-top:6px;box-shadow:0 2px 12px rgba(0,0,0,.25);overflow:hidden;display:none}
+.sugg div{padding:11px 12px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer}
+.sugg div small{display:block;color:var(--muted);font-size:12px}
+.quick{display:flex;gap:6px;overflow-x:auto;margin-top:6px;scrollbar-width:none}
+.quick button{flex:none;border:0;background:var(--card);border-radius:999px;padding:7px 12px;font:600 13px Inter;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--card);border-radius:18px 18px 0 0;box-shadow:0 -4px 18px rgba(0,0,0,.25);max-height:58vh;overflow-y:auto;padding:8px 14px calc(14px + env(safe-area-inset-bottom))}
+.grab{width:42px;height:5px;border-radius:3px;background:#d6cdbf;margin:2px auto 8px}
+.sheet h2{font:900 19px Archivo;margin:2px 0 4px}
+.muted{color:var(--muted);font-size:13px}
+.opt{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:8px 0;cursor:pointer;background:#fff}
+.opt.on{border:2px solid var(--ink)}
+.opt .head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.badge{display:inline-block;color:#fff;border-radius:7px;padding:3px 7px;font:800 13px Archivo;margin-right:4px}
+.steps{margin:8px 0 0;padding:0;list-style:none}
+.steps li{padding:5px 0 5px 26px;position:relative;font-size:14px}
+.steps li:before{position:absolute;left:0;top:4px;font-size:15px}
+.steps li.w:before{content:"🚶"} .steps li.b:before{content:"🚌"} .steps li.o:before{content:"🔔"} .steps li.t:before{content:"🔁"}
+.go{display:block;width:100%;margin-top:10px;border:0;border-radius:12px;padding:12px;background:var(--ok);color:#fff;font:800 15px Inter}
+.alert{position:fixed;left:10px;right:10px;top:40%;z-index:2000;background:#b91c1c;color:#fff;border-radius:16px;padding:18px;text-align:center;font:800 20px Archivo;display:none;box-shadow:0 6px 30px rgba(0,0,0,.4)}
+.fab{position:fixed;right:12px;z-index:1000;border:0;border-radius:14px;width:46px;height:46px;background:var(--card);box-shadow:0 2px 10px rgba(0,0,0,.3);font-size:20px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.chips button{border:0;border-radius:7px;padding:5px 7px;font:800 12px Archivo;color:#fff;opacity:.9}
+.chips button.off{opacity:.35}
+details{margin-top:12px}
+summary{font-weight:700;cursor:pointer}
+.rl{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+.rl a{color:var(--ok);font-weight:600}
+.leaflet-tooltip.lbl{background:rgba(29,26,22,.85);color:#fff;border:0;box-shadow:none;font:600 11px Inter;padding:2px 6px}
 .leaflet-tooltip.lbl:before{display:none}
-.leaflet-popup-content{font:13px Inter}
+.prog{height:4px;background:#e4dccf;border-radius:2px;overflow:hidden;margin:6px 0}
+.prog i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap" style="padding-bottom:0">
-    <h1>Rutas BinniBus<br>Oaxaca</h1>
-    <p>35 rutas · mapas oficiales · actualizado nov 2026</p>
-  </div>
-</header>
-<div class="wrap">
+<div id="map"></div>
 
-  <div class="mine">
-    <b>Desde San Martín Mexicapam</b>
-    <h2>RA-06 Wagul (Música)</h2>
-    <p>San Martín Mexicapam → Primera Etapa. Pasa cerca del Estadio Yu'va.</p>
-    <div class="btns">
-      <a class="btn" href="https://www.oaxaca.gob.mx/citybus/wp-content/uploads/sites/94/2026/03/RA-06.png">Ver mapa de la RA-06</a>
-      <a class="btn alt" href="https://apps.apple.com/mx/app/binnibus/id6752256141">¿Dónde viene? · App (iPhone)</a>
-      <a class="btn alt" href="https://play.google.com/store/search?q=binnibus%20oaxaca&c=apps">App (Android)</a>
-    </div>
-  </div>
+<div class="top">
+  <form class="search" id="sform">
+    <input id="q" type="search" placeholder="¿A dónde vas? (ej. Estadio, Zócalo, CU)" autocomplete="off">
+    <button>Buscar</button>
+  </form>
+  <div class="sugg" id="sugg"></div>
+  <div class="quick" id="quick"></div>
+  <div class="from" id="from">📍 Desde: buscando tu ubicación…</div>
+</div>
 
-  <div class="mapbox" id="mapa">
-    <div class="maphead"><b>Recorrido real</b><span id="sel"></span></div>
-    <iframe id="gm" title="Mapa de la ruta" loading="lazy" allowfullscreen></iframe>
-    <div class="routechips" id="rchips"></div>
-    <p class="warn">Mapas oficiales de cada ruta (Google My Maps). Toca una ruta para ver su recorrido y sus paradas; dentro del mapa puedes hacer zoom con los dedos.</p>
-  </div>
+<button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
+<div class="alert" id="alert"></div>
 
-  <div class="mapbox">
-    <div class="maphead"><b>¿A dónde vas?</b></div>
-    <div class="dest">
-      <button class="chip on" data-d="yuva">⚾ Estadio Yu'va</button>
-    </div>
-    <div id="destout"></div>
-    <a class="btn" style="margin-top:10px" href="https://rutasoaxaca.com/">Planear viaje con transbordos (rutasoaxaca.com) →</a>
-  </div>
-
-  <div class="mapbox">
-    <div class="maphead"><b>Tu ubicación en vivo</b><span id="locmsg"></span></div>
-    <div class="mapwrap"><div id="lmap"></div><button id="locbtn" class="locbtn">📍 Dónde estoy</button></div>
-  </div>
-
-  <div class="sticky">
-    <input type="search" id="q" placeholder="Busca colonia, lugar o ruta (ej. Viguera, Centro, RA-06)">
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div id="panel"></div>
+  <details>
+    <summary>Rutas en el mapa</summary>
+    <p class="muted">Trazadas con las paradas oficiales: <span id="donelist"></span>. Las demás todavía no tienen trazo: manda la foto de su mapa oficial para agregarlas.</p>
     <div class="chips" id="chips"></div>
-  </div>
-  <div class="count" id="count"></div>
-  <div id="list"></div>
-
-  <section class="info">
-    <h3>Ver dónde viene el camión</h3>
-    <ul>
-      <li>Abre la app <b>BinniBus Oaxaca</b> y permite la ubicación.</li>
-      <li>En el panel de abajo elige la línea: ves las unidades en el mapa y el tiempo estimado de llegada.</li>
-      <li>Avisos de cambios y cierres: <a href="https://whatsapp.com/channel/0029VbDAxm20VycBKu2joH13">canal oficial de WhatsApp</a>.</li>
-    </ul>
-  </section>
-
-  <section class="info">
-    <h3>Horario y tarifas</h3>
-    <ul>
-      <li>Lunes a domingo, 6:00 a 22:00 (algunas empiezan a las 6:30).</li>
-      <li>Nocturnas: RC-14 hasta las 00:00 (vie y sáb hasta las 3:00); RC-15 con horario extendido similar.</li>
-      <li>Con tarjeta: $8 · En efectivo: $10 · Estudiantes y adultos mayores: $4 · Personas con discapacidad: gratis.</li>
-      <li>La tarjeta cuesta $50 y se tramita en los módulos de Yuroo Viguera o Parque del Amor.</li>
-    </ul>
-  </section>
-
-  <p class="note">Fuentes: oaxaca.gob.mx/citybus (mapas oficiales), El Heraldo de Oaxaca y El Imparcial (rutas con bajada cerca del Estadio Yu'va). Las rutas cambian seguido: si algo no cuadra, confírmalo en la app o en el canal oficial. ★ guarda tus rutas en este teléfono.</p>
+  </details>
+  <details>
+    <summary>Las 35 rutas</summary>
+    <div id="all"></div>
+  </details>
+  <p class="muted" style="margin-top:12px">Tarifa $8 con tarjeta · $10 efectivo · $4 estudiantes y adultos mayores. Horario 6:00–22:00. Las paradas se ubicaron automáticamente con OpenStreetMap a partir de los mapas oficiales: confirma con el chofer si algo no cuadra.</p>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="routes.js"></script>
+<script src="stops.js"></script>
 <script>
-const IMG="https://www.oaxaca.gob.mx/citybus/wp-content/uploads/sites/94/";
-const R=[
- ["RT-01","Kayaal","","Yuroo Viguera – Yuroo Xoxocotlán","2025/11/RT-01_isotipo_600px.png"],
- ["RT-02","Yii Gap","","Yuroo Viguera – Ciudad Administrativa","2026/08/RT-02.png"],
- ["RA-01","Jnòn","Telar de cintura","San Isidro Monjas – Esquipulas – Centro","2026/02/RA-01-600px.png"],
- ["RA-02","Mo'","Montaña","Santa María Atzompa – Guadalupe Victoria","2026/02/RA-02.png"],
- ["RA-03","Ladxidó","Corazón","Yuroo Parque del Amor – Huayápam Centro","2025/11/RA-03_isotipo_600px.png",1],
- ["RA-04","Naa","Mamá","Monumento a la Madre / Tecnológico – Estadio Yu'va – Santa Cruz Amilpas","2026/03/RA-04.png",1],
- ["RA-05","Guié","Flor","Colonia Jardín – Anáhuac","2026/04/RA-05.png",1],
- ["RA-06","Wagul","Música","San Martín Mexicapam – Primera Etapa","2026/03/RA-06.png",1],
- ["RA-07","Uxacha","Coyote","Guadalupe Victoria 2ª sección – Colonia Moctezuma","2026/02/RA-07-600px.png"],
- ["RA-08","Koo","Luna","Agencia Donají – Colonia Satélite","2026/03/RA-08.png"],
- ["RA-09","Moog","Casa tradicional","Fraccionamiento Los Álamos – Panteón Jardín","2026/04/RA-09.png",1],
- ["RA-10","Tza' Tøk","Cueva","La Cuevita – Fracc. El Rosario 5ª Etapa","2026/05/RA-10.png",1],
- ["RA-11","Tüchi","Conejo","Montoya – Colonia Jardín","2026/01/RA-11.png"],
- ["RA-12","Najmé","Maíz","Colonia La Soledad – Primera Etapa","2026/03/RA-12.png",1],
- ["RA-14","Poj","Viento","Montoya – Fracc. El Rosario","2026/01/RA-14.png"],
- ["RA-15","Xra'","Trabajo","Colonia Monte Albán – El Tule – Santo Domingo Tomaltepec","2026/02/RA-15.png"],
- ["RA-16","Ri'nin","Huipil","Colonia Guelaguetza – Plaza del Valle","2026/02/RA-16-600PX.png"],
- ["RA-17","Bakku Nunni","Nacimiento de agua","Colonia Monte Albán – Base Símbolos Patrios","2025/11/R4-17_isotipo_600px.png"],
- ["RA-18","Nave'e","Familia","Yuroo Viguera – Centro de Rehabilitación DIF","2025/11/RC-18_isotipo_600px.png"],
- ["RA-19","Nandá","Agua","Yuroo Viguera – Huitzo / Telixtlahuaca","2026/05/RA-19.png"],
- ["RC-01","Dugue","Joya","Pueblo Nuevo «La Joya» – Agencia Donají","2026/03/RC-01.png",1],
- ["RC-02","Fane Kantsini","Tres colibríes","Viguera – Primera Etapa","2026/04/RC-02.png",1],
- ["RC-03","Nisa","Cántaro","San Felipe del Agua – Plaza del Valle","2026/04/RC-03.png"],
- ["RC-04","Atlantekomatl","Concha de mar","Santa Cruz Etla – Fracc. Benito Juárez / Esmeralda – La Experimental – Plaza del Valle","2026/03/RC-04.png"],
- ["RC-05","Xuujx","","San Pablo Etla – Viguera – Los Ángeles – Centro (Jardín Madero)","2025/11/RC-05.png"],
- ["RC-06","Mondok","Pescadores","San Jerónimo Yahuiche – San Jacinto Amilpas – Huayápam","2025/11/RC-06_isotipo_600px.png",1],
- ["RC-07","Vitú Vií","Alebrije","Colonia Monte Bello – Centro","2026/05/RC-07.png"],
- ["RC-08","Ruja","Diablo","San Luis Beltrán – Colonia Jardín – Col. Heladio Ramírez López","2026/02/RC-08.png",1],
- ["RC-09","Kítsian Jan","Jaguar","Colonia Bugambilias – Fracc. El Rosario","2025/11/RC-09.png"],
- ["RC-10","Kaymo","Lagarto","Manzana L – Ánimas Trujano","2025/12/RC-10.png"],
- ["RC-11","Má","Águila","La Raya / Aeropuerto – Módulo Azul","2025/11/RA-11.png",1],
- ["RC-12","Ñunda","Nopal","Tlalixtac de Cabrera – Yuroo Parque del Amor","2025/11/RC-12_isotipo_600px.png"],
- ["RC-13","Yuku Tay","Cerro sagrado","Hospital ISSSTE – Base CRIT","2026/03/RC-13.png"],
- ["RC-14","Laba'","Raíz","Yuroo Viguera – San Sebastián Tutla","2025/11/RC-14_isotipo_600px.png",0,1],
- ["RC-15","Yu Ngta'","Barro negro","Hospital de la Mujer y la Niñez – Símbolos Patrios – Módulo Azul","2025/11/RC-15_isotipo_600px.png",0,1]
-];
-const TYPES={RT:"Troncal",RA:"Alimentadora",RC:"Colectora"};
-const FILTERS=[["all","Todas"],["fav","★ Mis rutas"],["yuva","⚾ Estadio Yu'va"],["RT","Troncales"],["RA","Alimentadoras"],["RC","Colectoras"],["night","🌙 Nocturnas"]];
-let favs=[];try{favs=JSON.parse(localStorage.getItem("bb-favs")||"[]")}catch(e){favs=[]}
-if(!favs.length) favs=["RA-06"];
-let filter="all";
-const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
-const chips=document.getElementById("chips");
-FILTERS.forEach(([k,l])=>{const b=document.createElement("button");b.className="chip"+(k===filter?" on":"");b.textContent=l;b.onclick=()=>{filter=k;[...chips.children].forEach(c=>c.classList.remove("on"));b.classList.add("on");render()};chips.appendChild(b)});
-function save(){try{localStorage.setItem("bb-favs",JSON.stringify(favs))}catch(e){}}
-function render(){
-  const q=norm(document.getElementById("q").value.trim());
-  const list=document.getElementById("list");list.innerHTML="";
-  const rows=R.filter(r=>{
-    const t=r[0].slice(0,2);
-    if(filter==="fav"&&!favs.includes(r[0]))return false;
-    if(filter==="yuva"&&!r[5])return false;
-    if(filter==="night"&&!r[6])return false;
-    if(["RT","RA","RC"].includes(filter)&&t!==filter)return false;
-    if(q&&!norm(r.slice(0,4).join(" ")).includes(q)&&!norm(r[0].replace("-","")).includes(q.replace("-","")))return false;
-    return true;});
-  document.getElementById("count").textContent=rows.length+(rows.length===1?" ruta":" rutas");
-  rows.forEach(r=>{
-    const t=r[0].slice(0,2),on=favs.includes(r[0]);
-    const d=document.createElement("div");d.className="card";
-    d.innerHTML=`<div class="code t-${t}">${r[0]}</div>
-      <div class="name">${r[1]} ${r[2]?`<small>· ${r[2]}</small>`:""}</div>
-      <button class="star${on?" on":""}" aria-label="Guardar ruta">★</button>
-      <div class="od">${r[3]}</div>
-      <div class="tags"><span class="tag">${TYPES[t]}</span>${r[5]?'<span class="tag yuva">⚾ Baja cerca del Yu\'va</span>':""}${r[6]?'<span class="tag night">🌙 Nocturna</span>':""}</div>
-      <div class="links"><a href="#mapa" data-r="${r[0]}" class="vr">Ver recorrido en el mapa →</a> · <a href="${IMG+r[4]}">Imagen oficial</a></div>`;
-    d.querySelector(".star").onclick=()=>{favs=on?favs.filter(x=>x!==r[0]):[...favs,r[0]];save();render()};
-    const vr=d.querySelector(".vr");if(vr)vr.onclick=e=>{e.preventDefault();pick(r[0],true)};list.appendChild(d);});
-}
-document.getElementById("q").addEventListener("input",render);
-render();
-
-const MID={"RT-01": "1RS4boTAVhA6lxBzfZC3x9SAM-tYbxGE", "RA-03": "1i_QjIrsX3PJBQ3tXBVuUm42HAX6NmUY", "RC-05": "1t1RmEsRMqotxpOi1LNV_AIkAVrl2mHA", "RC-06": "1yjAIAJhIPN8IRzpyIIlYWDLwZTuLpC4", "RC-09": "1gcakTjFsYLGppj1FlxmPQDL6CdJHLmw", "RC-10": "1rdzLewEm7OMe56xSSsiOj6MU_UULQeo", "RC-11": "14fJAASgxD4tW77Uf3WRNWPCAph6SDk8", "RC-12": "19a9N9c1eUD6tt4qhyoZ9AMBAABuZuB8", "RC-14": "1jIGlXq0DB6Pfm7EzrthjE3l45voo6Gw", "RA-15": "1KS--IOW4TelKMGwvrN7p8SwTU4q3BDw", "RC-15": "118NgL6x-IGiEMmSQVxiaMZfZRY3V8uI", "RA-17": "1DiE9OzK7jeVCdPhaz6jg0BVEXSyj1ko", "RA-18": "1GhDKLpolPsqeT7KFIZI5zY5lywiEJLk", "RA-11": "1AFDoKpp78jkHUxo_kv92Sv-Mam1ie14", "RA-14": "15u7ZUVPfoAyrB4ql0eJ8lvyYsW0aqWE", "RA-01": "1v_K3uzPa1hgMdwx03ATHmerEADAeEF4", "RA-07": "1gv3nFdqbWMjSAKWSvsF3_d8EFEm3zGU", "RA-16": "1HdNUi5qgzguco033Y0DbyEgp6HBvcw0", "RC-08": "1zeHskPKUOu4-SfJq6G_Jw4rPUJmTUGw", "RA-02": "1xJfTmJQMRlzmhsi4T-2X6kmrMCoYuQU", "RA-13": "1cnd_BCJj2q8kNpRsJw-A4ZsWcbV223M", "RC-13": "1ze2zxgi4Ruvtw60InwMrzKcRkOp6v0k", "RA-06": "19UqZmt4kkVyyX8Ow9Ci1rTAEzFLpyH0", "RA-08": "1070g-eOCBlnqmeklyjE5lx58J-G_Wro", "RC-01": "1IHXtIHwtF1Rls8JCzqO7BWzF41ozoaE", "RA-12": "1_ZglwPqfGADHFUKmfPSqOucPl7thJTM", "RA-04": "10ZLX1U97ri6KxET7PRIa3mIIgUIbLWg", "RC-04": "1RqhJqZVWOYCk5uqadF3uHUsiekpgOHg", "RC-02": "15MeDubtexmxMkc1Wq_sFhRFiwfOm6oA", "RA-09": "1Iq9CzCI3NabyPThrGRfBLLlsEeMUGoI", "RA-05": "1q4Dz5u1hcVeM83Ls9zM-WfLnSKR5BRQ", "RC-03": "1cKAh2wrvGZbN197uA4m8e60_vjUMbKM", "RA-10": "162i9Zis3mrBYkf4mkLZju0KxjY3MucM", "RA-19": "1pD5KURxeoWwyhiWCQShTC5WLkkBs5kI", "RC-07": "1dX5wo-QcEmeYdWMwdAuqQgoq-iia3tM"};
-const COL={RT:"#c2410c",RA:"#0f766e",RC:"#7c3aed"};
-let sel=null;
-const rch=document.getElementById("rchips");
-R.forEach(r=>{const code=r[0];if(!MID[code])return;
-  const b=document.createElement("button");b.className="rc-chip";b.textContent=code;
-  b.style.background=COL[code.slice(0,2)];b.dataset.c=code;b.onclick=()=>pick(code);rch.appendChild(b);});
-function pick(code,scroll){
-  sel=code;const r=R.find(x=>x[0]===code);
-  document.getElementById("gm").src="https://www.google.com/maps/d/embed?mid="+MID[code]+"&ehbc=2E312F";
-  document.getElementById("sel").textContent=r?`${r[0]} ${r[1]}: ${r[3]}`:code;
-  [...rch.children].forEach(b=>b.classList.toggle("on",b.dataset.c===code));
-  if(scroll)document.getElementById("mapa").scrollIntoView({behavior:"smooth"});
-}
-/* destinos */
-const DEST={yuva:{name:"Estadio Yu'va",ll:[17.0700,-96.7130],
-  txt:`<div class="step"><b>Desde San Martín Mexicapam / Periférico:</b> toma la <b>RA-06 Wagul</b> con letrero <b>Primera Etapa</b>. Bájate en la parada <b>Alianza</b> (después de Panteón General y Esc. Sec. Téc. N°6) y camina al estadio.</div>
-  <div class="step"><b>Otras rutas con bajada cerca del estadio:</b> RA-03, RA-04, RA-05, RA-09, RA-10, RA-12, RC-01, RC-02, RC-06, RC-08, RC-11.</div>
-  <div class="step">📍 Blvd. Eduardo Vasconcelos y Calz. Héroes de Chapultepec, Col. Jalatlaco.</div>`}};
-function showDest(k){document.getElementById("destout").innerHTML=DEST[k].txt;if(destMk)destMk.setLatLng(DEST[k].ll)}
-document.querySelectorAll(".dest .chip").forEach(b=>b.onclick=()=>showDest(b.dataset.d));
-/* ubicación en vivo */
-const map=L.map("lmap").setView([17.065,-96.72],13);
-L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imágenes © Esri, Maxar, Earthstar Geographics"}).addTo(map);
-L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,opacity:.7}).addTo(map);
+const COL={"RA-06":"#7c3aed","RA-16":"#dc2626","RA-05":"#f97316"};
+const BBOX="16.95,-96.85,17.16,-96.60"; // s,w,n,e
+const CACHE="bb-geo-v1";
+const $=id=>document.getElementById(id);
+const map=L.map("map",{zoomControl:false}).setView([17.065,-96.72],13);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imágenes © Esri · Calles © OpenStreetMap"}).addTo(map);
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,opacity:.75}).addTo(map);
 L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19}).addTo(map);
-let destMk=L.marker(DEST.yuva.ll).addTo(map).bindTooltip("⚾ Estadio Yu'va",{permanent:true,direction:"top"});
+const D=(a,b)=>map.distance(a,b);
+const fmt=m=>m>=1000?(m/1000).toFixed(1)+" km":Math.round(m/10)*10+" m";
+const mins=m=>Math.max(1,Math.round(m/75)); // caminando ~4.5 km/h
 
-let me=null,acc=null,watchId=null,follow=true,firstFix=true;
-const locbtn=document.getElementById("locbtn"),locmsg=document.getElementById("locmsg");
-map.on("dragstart",()=>{if(watchId!==null){follow=false;locbtn.textContent="📍 Centrar en mí"}});
-function onPos(p){
-  const c=[p.coords.latitude,p.coords.longitude];locmsg.textContent="";
-  if(!me){
-    acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
-    me=L.circleMarker(c,{radius:8,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map).bindPopup("Estás aquí (en vivo)");
-  }else{me.setLatLng(c);acc.setLatLng(c).setRadius(p.coords.accuracy)}
-  const d=map.distance(c,destMk.getLatLng());locmsg.textContent=(d>=1000?(d/1000).toFixed(1)+" km":Math.round(d)+" m")+" al destino";
-  if(follow)map.setView(c,firstFix?16:map.getZoom(),{animate:true});
-  firstFix=false;
-}
-function onErr(e){
-  if(e&&e.code!==1){if(!me)locmsg.textContent="Buscando tu ubicación…";return}
-  if(watchId!==null)navigator.geolocation.clearWatch(watchId);
-  locmsg.textContent="Activa el permiso de ubicación del navegador";locbtn.textContent="📍 Dónde estoy";watchId=null;
-}
-locbtn.onclick=()=>{
-  if(!navigator.geolocation)return onErr({code:1});
-  if(watchId===null){
-    watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
-    follow=true;firstFix=true;locbtn.textContent="⏹ Detener ubicación";
-  }else if(!follow){
-    follow=true;locbtn.textContent="⏹ Detener ubicación";if(me)map.setView(me.getLatLng(),map.getZoom());
-  }else{
-    navigator.geolocation.clearWatch(watchId);watchId=null;locbtn.textContent="📍 Dónde estoy";locmsg.textContent="";
-    if(me){map.removeLayer(me);map.removeLayer(acc);me=acc=null}
-  }
+/* ---------- 1. Ubicar paradas con OpenStreetMap ---------- */
+const SPECIAL={
+ "Central de Abasto":"Abasto","Central del Abasto":"Abasto","Yubez María Sabina":"María Sabina","Yubez Flores Magón":"Flores Mag","Yubez Lázaro Cárdenas":"Lázaro Cárdenas",
+ "CFE Periférico":"Periférico","Chedraui Periférico":"Chedraui","Esc. Sec. Téc. N°6":null,"GYM Universitario":null,"Campo de Béisbol Vinicio Castilla":"Vinicio Castilla",
+ "Facultad de Enfermería CU":"Enfermer","Facultad de Enfermería":"Enfermer","Facultad de Arquitectura":"Arquitectura","Rectoría CU":"Rector",
+ "Plaza Bella Cinemex":"Plaza Bella","Base Símbolos Patrios":"Símbolos Patrios","Crucero de la Experimental":"Experimental","Puente del CONALEP":"CONALEP",
+ "Crucero al Tequio":"Tequio","Bosque El Tequio":"Tequio","Entrada Principal Bosque El Tequio":"Tequio","Carretera al Tequio":"Tequio","Base Anáhuac":"Anáhuac",
+ "1° de Mayo":"de Mayo","Monte Albán":"Monte Alb","Av. Mexicapam":"Mexicapa","Sierra de Juárez":"Sierra (de )?Juárez","Sierra Juárez":"Sierra (de )?Juárez",
+ "Puente Valerio Trujano":"Valerio Trujano","Huajuapam":"Huajuapa","Mixcóatl":"Mixcoatl","Prolongación Calzada de la República":"de la República","Prol. Calzada de la República":"de la República",
+ "La República":"República","Panteón General":"Panteón","Prepa 2":"Preparatoria","Preparatoria 2":"Preparatoria","Mercado Flores Magón":"Flores Mag","Agencia Montoya":"Montoya",
+ "Plaza del Valle":"Plaza del Valle","Plaza Oaxaca":"Plaza Oaxaca","Yuroo Xoxocotlán":"Xoxocotl","Rotonda Xoxocotlán Lateral":"Rotonda","Arboledas Xoxo":"Arboledas","Puerto Cd. del Carmen":"Carmen",
+ "Real Antequera 1":"Antequera","Quinta Privada de Pinos":"Pinos","Privada de Jazmines":"Jazmines","Priv. Alianza":"Alianza","Circuito P":null,"Universidad":"Universidad"
 };
-pick("RA-06");showDest("yuva");
+const accent=t=>t.replace(/[aá]/gi,"[aá]").replace(/[eé]/gi,"[eé]").replace(/[ií]/gi,"[ií]").replace(/[oó]/gi,"[oó]").replace(/[uú]/gi,"[uú]");
+function term(n){
+  if(n in SPECIAL) return SPECIAL[n];
+  return n.replace(/^(Av\.|Avenida|Priv\.|Privada|Prol\.|Calz\.|Base|Del|De la|De los|De) /i,"").replace(/\./g,"");
+}
+async function overpass(terms){
+  const re=terms.map(t=>accent(t)).join("|");
+  const q=`[out:json][timeout:90];(way["highway"]["name"~"${re}",i](${BBOX});nwr["name"~"${re}",i]["highway"!~"."](${BBOX}););out geom;`;
+  const r=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q)});
+  if(!r.ok) throw new Error("overpass "+r.status);
+  return (await r.json()).elements;
+}
+async function nominatim(q){
+  const u=`https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=mx&viewbox=-96.85,17.16,-96.60,16.95&bounded=1&q=${encodeURIComponent(q)}`;
+  const r=await fetch(u,{headers:{"Accept-Language":"es"}});return r.ok?await r.json():[];
+}
+async function osrm(pts){
+  // max 90 puntos por consulta
+  let out=[];
+  for(let i=0;i<pts.length-1;i+=85){
+    const chunk=pts.slice(i,i+86);
+    const q=chunk.map(p=>p[1].toFixed(6)+","+p[0].toFixed(6)).join(";");
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${q}?overview=full&geometries=geojson&continue_straight=true`);
+    const j=await r.json();
+    if(!j.routes) throw new Error("osrm");
+    out=out.concat(j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]));
+  }
+  return out;
+}
+function locate(names,elements,seed){
+  // cada parada: el punto de una calle/lugar con ese nombre más cercano a la parada anterior
+  const cands={};
+  for(const n of names){
+    const t=term(n);cands[n]=[];
+    if(!t) continue;
+    const rx=new RegExp(accent(t),"i");
+    for(const e of elements){
+      if(!e.tags||!e.tags.name||!rx.test(e.tags.name)) continue;
+      if(e.geometry) e.geometry.forEach(g=>cands[n].push([g.lat,g.lon]));
+      else if(e.lat) cands[n].push([e.lat,e.lon]);
+      else if(e.bounds) cands[n].push([(e.bounds.minlat+e.bounds.maxlat)/2,(e.bounds.minlon+e.bounds.maxlon)/2]);
+    }
+  }
+  let prev=seed;const res=[];
+  for(const n of names){
+    let best=null,bd=1e9;
+    for(const c of cands[n]){const d=D(prev,c);if(d<bd){bd=d;best=c}}
+    if(best&&bd<1800){res.push({name:n,ll:best});prev=best}
+    else res.push({name:n,ll:null});
+  }
+  return res;
+}
+let GEO={};try{GEO=JSON.parse(localStorage.getItem(CACHE)||"{}")}catch(e){}
+function save(){try{localStorage.setItem(CACHE,JSON.stringify(GEO))}catch(e){}}
+async function buildRoute(code,onStep){
+  if(GEO[code]&&GEO[code].ida&&GEO[code].vuelta) return GEO[code];
+  const S=STOPS[code];
+  let seed=S.seed;
+  if(!seed){const r=await nominatim(S.seedQ);seed=r[0]?[+r[0].lat,+r[0].lon]:[17.065,-96.72]}
+  const all=[...new Set([...S.ida,...S.vuelta].map(term).filter(Boolean))];
+  onStep&&onStep(code+": buscando calles");
+  const els=await overpass(all);
+  const out={};
+  const ida=locate(S.ida,els,seed);
+  const end=[...ida].reverse().find(s=>s.ll);
+  const vuelta=locate(S.vuelta,els,end?end.ll:seed);
+  for(const [k,st] of [["ida",ida],["vuelta",vuelta]]){
+    onStep&&onStep(code+": trazando "+k);
+    const pts=st.filter(s=>s.ll).map(s=>s.ll);
+    let line=pts;try{line=await osrm(pts)}catch(e){}
+    // posición de cada parada sobre la línea
+    st.forEach(s=>{if(!s.ll)return;let bi=0,bd=1e9;line.forEach((p,i)=>{const d=D(s.ll,p);if(d<bd){bd=d;bi=i}});s.i=bi});
+    out[k]={stops:st,line:line.map(p=>[+p[0].toFixed(5),+p[1].toFixed(5)])};
+  }
+  GEO[code]=out;save();return out;
+}
+
+/* ---------- 2. Dibujar ---------- */
+const layers={};
+function draw(code){
+  const g=GEO[code];if(!g)return;
+  const grp=L.layerGroup();
+  ["ida","vuelta"].forEach((k,j)=>{
+    L.polyline(g[k].line,{color:COL[code]||"#0f766e",weight:4,opacity:.55,dashArray:j?"6 6":null}).addTo(grp)
+     .bindTooltip(`${code} · ${k==="ida"?"hacia "+STOPS[code].to:"hacia "+STOPS[code].from}`,{sticky:true});
+    g[k].stops.forEach(s=>{if(s.ll)L.circleMarker(s.ll,{radius:3.5,color:"#fff",weight:1.5,fillColor:COL[code]||"#0f766e",fillOpacity:1}).addTo(grp).bindPopup(`<b>${s.name}</b><br>${code} ${k==="ida"?"→ "+STOPS[code].to:"→ "+STOPS[code].from}`)});
+  });
+  layers[code]=grp;grp.addTo(map);
+}
+
+/* ---------- 3. Planear viaje ---------- */
+let origin=null,dest=null,destName="",tripLayer=L.layerGroup().addTo(map),plans=[],active=null;
+function legsFor(code){const g=GEO[code];return g?[["ida",g.ida],["vuelta",g.vuelta]]:[]}
+function nearestStops(dir,pt,maxD){return dir.stops.map((s,k)=>({s,k,d:s.ll?D(pt,s.ll):1e9})).filter(x=>x.d<maxD)}
+function plan(){
+  plans=[];
+  const codes=Object.keys(GEO);
+  const W0=1200,W1=1000;
+  // directas
+  for(const c of codes) for(const [dk,dir] of legsFor(c)){
+    const B=nearestStops(dir,origin,W0),A=nearestStops(dir,dest,W1);
+    let best=null;
+    for(const b of B) for(const a of A){ if(a.k<=b.k) continue;
+      const ride=a.k-b.k,score=b.d+a.d+ride*60;
+      if(!best||score<best.score) best={score,legs:[{c,dk,dir,b,a}],walk:[b.d,a.d]};
+    }
+    if(best) plans.push(best);
+  }
+  // un transbordo
+  for(const c1 of codes) for(const [k1,d1] of legsFor(c1)){
+    const B=nearestStops(d1,origin,W0);if(!B.length)continue;
+    for(const c2 of codes){ if(c2===c1)continue; for(const [k2,d2] of legsFor(c2)){
+      const A=nearestStops(d2,dest,W1);if(!A.length)continue;
+      for(const b of B) for(let t1=b.k+1;t1<d1.stops.length;t1++){const s1=d1.stops[t1];if(!s1.ll)continue;
+        for(let t2=0;t2<d2.stops.length;t2++){const s2=d2.stops[t2];if(!s2.ll)continue;const tw=D(s1.ll,s2.ll);if(tw>300)continue;
+          for(const a of A){ if(a.k<=t2)continue;
+            const score=b.d+tw+a.d+((t1-b.k)+(a.k-t2))*60+600;
+            const key=c1+c2;const ex=plans.find(p=>p.key===key);
+            if(!ex||score<ex.score){const np={key,score,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0}},{c:c2,dk:k2,dir:d2,b:{s:s2,k:t2,d:tw},a}],walk:[b.d,a.d],tw};
+              if(ex)Object.assign(ex,np);else plans.push(np)}
+          }}}
+    }}
+  }
+  plans.sort((x,y)=>x.score-y.score);
+  // quitar duplicados por ruta
+  const seen=new Set();plans=plans.filter(p=>{const k=p.legs.map(l=>l.c+l.dk).join();if(seen.has(k))return false;seen.add(k);return true}).slice(0,4);
+  renderPlans();
+}
+function badge(c){return `<span class="badge" style="background:${COL[c]||"#0f766e"}">${c}</span>`}
+function renderPlans(){
+  const P=$("panel");
+  const dd=origin&&dest?D(origin,dest):0;
+  let h=`<h2>${destName}</h2><div class="muted">A ${fmt(dd)} de ti en línea recta</div>`;
+  if(!plans.length){
+    h+=`<p>No encontré una ruta trazada que te sirva desde aquí. Por ahora solo están trazadas ${Object.keys(GEO).join(", ")||"pocas rutas"}; ${dd<1500?"<b>te conviene caminar ("+mins(dd*1.3)+" min aprox.)</b>.":"manda la foto del mapa de las rutas que pasan por tu zona y las agrego."}</p>`;
+  }
+  plans.forEach((p,i)=>{
+    const L0=p.legs[0],L1=p.legs[p.legs.length-1];
+    const walkT=mins(p.walk[0])+mins(p.walk[1])+(p.tw?mins(p.tw):0);
+    h+=`<div class="opt${i===0?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0?"⭐ Mejor opción · ":""}🚶 ${walkT} min</div></div>
+    <ul class="steps">
+      <li class="w">Camina ${fmt(p.walk[0])} a la parada <b>${L0.b.s.name}</b></li>
+      ${p.legs.map((l,j)=>`<li class="b">Toma la <b>${l.c}</b> con letrero <b>${l.dk==="ida"?STOPS[l.c].to:STOPS[l.c].from}</b> · ${l.a.k-l.b.k} paradas</li>
+        <li class="${j<p.legs.length-1?"t":"o"}">Bájate en <b>${l.a.s.name}</b>${j<p.legs.length-1?` y camina ${fmt(p.tw)} a <b>${p.legs[j+1].b.s.name}</b>`:""}</li>`).join("")}
+      <li class="w">Camina ${fmt(p.walk[1])} a tu destino</li>
+    </ul>${i===0?`<button class="go" data-go="${i}">Iniciar viaje · te aviso dónde bajar</button>`:""}</div>`;
+  });
+  P.innerHTML=h;
+  P.querySelectorAll(".opt").forEach(o=>o.onclick=e=>{if(e.target.dataset.go)return;P.querySelectorAll(".opt").forEach(x=>x.classList.remove("on"));o.classList.add("on");
+    const old=P.querySelector(".go");if(old)old.remove();o.insertAdjacentHTML("beforeend",`<button class="go" data-go="${o.dataset.i}">Iniciar viaje · te aviso dónde bajar</button>`);bindGo();showPlan(plans[o.dataset.i])});
+  bindGo();
+  if(plans[0])showPlan(plans[0]);else{tripLayer.clearLayers();drawEnds();map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
+}
+function bindGo(){document.querySelectorAll(".go").forEach(b=>b.onclick=()=>startTrip(plans[b.dataset.go]))}
+function drawEnds(){
+  L.circleMarker(dest,{radius:9,color:"#fff",weight:3,fillColor:"#111",fillOpacity:1}).addTo(tripLayer).bindTooltip("🏁 "+destName,{permanent:true,direction:"top",className:"lbl"});
+}
+function showPlan(p){
+  tripLayer.clearLayers();drawEnds();
+  const pts=[origin];
+  p.legs.forEach((l,j)=>{
+    const from=l.b.s,to=l.a.s;
+    if(j===0) L.polyline([origin,from.ll],{color:"#fff",weight:4,dashArray:"2 8"}).addTo(tripLayer);
+    const seg=l.dir.line.slice(Math.min(from.i,to.i),Math.max(from.i,to.i)+1);
+    L.polyline(seg,{color:"#000",weight:10,opacity:.35}).addTo(tripLayer);
+    L.polyline(seg,{color:COL[l.c]||"#0f766e",weight:7}).addTo(tripLayer);
+    L.circleMarker(from.ll,{radius:8,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1}).addTo(tripLayer).bindTooltip("Sube: "+from.name+" ("+l.c+")",{permanent:true,direction:"right",className:"lbl"});
+    L.circleMarker(to.ll,{radius:8,color:"#fff",weight:3,fillColor:"#dc2626",fillOpacity:1}).addTo(tripLayer).bindTooltip("Bájate: "+to.name,{permanent:true,direction:"right",className:"lbl"});
+    if(j<p.legs.length-1) L.polyline([to.ll,p.legs[j+1].b.s.ll],{color:"#fff",weight:4,dashArray:"2 8"}).addTo(tripLayer);
+    pts.push(from.ll,to.ll);
+  });
+  const last=p.legs[p.legs.length-1].a.s.ll;
+  L.polyline([last,dest],{color:"#fff",weight:4,dashArray:"2 8"}).addTo(tripLayer);
+  pts.push(dest);
+  map.fitBounds(L.latLngBounds(pts),{padding:[40,40],paddingBottomRight:[0,window.innerHeight*.5]});
+}
+
+/* ---------- 4. Ubicación en vivo y aviso de bajada ---------- */
+let me=null,acc=null,trip=null,warned={};
+function setOrigin(c,label){origin=c;$("from").textContent="📍 Desde: "+label;if(dest)plan()}
+navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
+  const c=[p.coords.latitude,p.coords.longitude];
+  if(!me){acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
+    me=L.circleMarker(c,{radius:8,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map).bindPopup("Estás aquí");
+    if(!origin){setOrigin(c,"tu ubicación");map.setView(c,15)}}
+  else{me.setLatLng(c);acc.setLatLng(c).setRadius(p.coords.accuracy)}
+  if(originIsMe) origin=c;
+  if(trip) checkTrip(c);
+},()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
+let originIsMe=true;
+$("me").onclick=()=>{if(me)map.setView(me.getLatLng(),16)};
+function startTrip(p){trip=p;warned={};$("panel").insertAdjacentHTML("afterbegin",`<p class="muted" id="tripmsg">🟢 Viaje activo: te aviso cuando estés cerca de tu parada. Deja esta página abierta.</p>`);if(me)map.setView(me.getLatLng(),16)}
+function checkTrip(c){
+  trip.legs.forEach((l,j)=>{const s=l.a.s;const d=D(c,s.ll);
+    if(d<450&&!warned[j]){warned[j]=1;const a=$("alert");a.innerHTML=`🔔 ¡Prepárate!<br>Bájate en <u>${s.name}</u><br><small style="font:600 14px Inter">${j<trip.legs.length-1?"ahí cambias a la "+trip.legs[j+1].c:"ya casi llegas"}</small>`;a.style.display="block";
+      try{navigator.vibrate&&navigator.vibrate([400,150,400,150,600])}catch(e){}
+      setTimeout(()=>a.style.display="none",9000)}});
+}
+$("alert").onclick=()=>$("alert").style.display="none";
+
+/* ---------- 5. Buscar destino ---------- */
+const QUICK=[["⚾ Estadio Yu'va",[17.0700,-96.7130]],["Zócalo",[17.0606,-96.7253]],["Central de Abasto","Central de Abasto"],["Ciudad Universitaria","Ciudad Universitaria UABJO"],["Plaza del Valle","Plaza del Valle Oaxaca"],["Plaza Bella","Plaza Bella Oaxaca"]];
+QUICK.forEach(([n,v])=>{const b=document.createElement("button");b.textContent=n;b.onclick=async()=>{if(Array.isArray(v))setDest(v,n.replace("⚾ ",""));else{const r=await nominatim(v);if(r[0])setDest([+r[0].lat,+r[0].lon],n)}};$("quick").appendChild(b)});
+async function search(q){
+  const box=$("sugg");box.innerHTML='<div class="muted">Buscando…</div>';box.style.display="block";
+  const r=await nominatim(q+", Oaxaca");
+  if(!r.length){box.innerHTML='<div class="muted">No lo encontré. Prueba otro nombre o toca el mapa en el lugar.</div>';return}
+  box.innerHTML="";r.forEach(x=>{const d=document.createElement("div");const parts=x.display_name.split(",");d.innerHTML=`${parts[0]}<small>${parts.slice(1,4).join(",")}</small>`;d.onclick=()=>{box.style.display="none";setDest([+x.lat,+x.lon],parts[0])};box.appendChild(d)});
+}
+$("sform").onsubmit=e=>{e.preventDefault();const q=$("q").value.trim();if(q)search(q);$("q").blur()};
+function setDest(c,name){
+  dest=c;destName=name;$("q").value=name;$("sugg").style.display="none";
+  if(!origin){$("panel").innerHTML="<h2>"+name+"</h2><p>Activa tu ubicación o toca el mapa en el lugar desde donde sales.</p>";tripLayer.clearLayers();drawEnds();return}
+  if(!ready){$("panel").innerHTML="<h2>"+name+"</h2><p>Termino de trazar las rutas y te doy las opciones…</p>";pending=true;return}
+  plan();
+}
+let pressT=null;
+map.on("click",e=>{const c=[e.latlng.lat,e.latlng.lng];
+  L.popup().setLatLng(c).setContent(`<button id="pd" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#111;color:#fff">🏁 Ir aquí</button><br><button id="po" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#16a34a;color:#fff">📍 Salir de aquí</button>`).openOn(map);
+  setTimeout(()=>{$("pd").onclick=()=>{map.closePopup();setDest(c,"Punto en el mapa")};$("po").onclick=()=>{map.closePopup();originIsMe=false;setOrigin(c,"punto elegido en el mapa")}},0);
+});
+
+/* ---------- 6. Arranque ---------- */
+let ready=false,pending=false;
+$("panel").innerHTML=`<h2>¿A dónde vas?</h2><p class="muted">Escribe un lugar, toca uno de los botones o toca el mapa. Te digo qué BinniBus tomar, dónde subir y dónde bajarte.</p><div class="muted" id="st">Trazando rutas…</div><div class="prog"><i id="pb"></i></div>`;
+(async()=>{
+  const codes=Object.keys(STOPS);let n=0;
+  for(const c of codes){
+    try{await buildRoute(c,t=>{const s=$("st");if(s)s.textContent="Trazando rutas: "+t+"…"});draw(c)}catch(e){console.warn(c,e)}
+    n++;const pb=$("pb");if(pb)pb.style.width=(n/codes.length*100)+"%";
+  }
+  ready=true;const s=$("st");if(s)s.textContent="Listo: "+Object.keys(GEO).join(", ")+" trazadas.";
+  $("donelist").textContent=Object.keys(GEO).join(", ");
+  Object.keys(GEO).forEach(c=>{const b=document.createElement("button");b.textContent=c;b.style.background=COL[c];b.onclick=()=>{if(map.hasLayer(layers[c])){map.removeLayer(layers[c]);b.classList.add("off")}else{layers[c].addTo(map);b.classList.remove("off")}};$("chips").appendChild(b)});
+  if(pending&&dest)plan();
+})();
+$("all").innerHTML=R.map(r=>`<div class="rl"><b>${r[0]}</b> ${r[1]} · ${r[3]}${STOPS[r[0]]?" · <b style='color:#0f766e'>trazada</b>":""}<br><a href="${IMG+r[4]}">Mapa oficial</a></div>`).join("");
 </script>
 </body>
 </html>
