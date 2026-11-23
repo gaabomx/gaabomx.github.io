@@ -603,7 +603,10 @@ try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");s
   let RAW={};try{RAW=await (await fetch("geo.json?v=2")).json()}catch(e){}
   let n=0;const tot=OSM_REL.length;
   const st=t=>{const s=$("st");if(s)s.textContent=t};
-  // 1) rutas oficiales cargadas de OpenStreetMap (de 6 en 6)
+  // 0) rutas guardadas en tu servidor (una sola descarga)
+  try{const r=await fetch(SBR+"bb_rutas_todas",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});
+    if(r.ok){const all=await r.json();for(const id in all){OSMD[id]=all[id]}st("Rutas cargadas");}}catch(e){}
+  // 1) lo que falte, directo de OpenStreetMap (de 6 en 6)
   for(let i=0;i<OSM_REL.length;i+=6){
     const res=await Promise.all(OSM_REL.slice(i,i+6).map(id=>loadOSM(id).catch(e=>null)));
     res.forEach(r=>{if(r){addDir(r.ref,r.to,r.stops,r.line,r.colour);const g=GEO[r.ref];g[g.length-1].breaks=r.breaks;g[g.length-1].rawN=r.rawN}});
@@ -623,7 +626,6 @@ try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");s
   if(U.get("a")==="estadio")setDest([17.0700,-96.7130],"Estadio Yu'va");
   if(pending&&dest&&origin)plan();
   if(U.get("debug"))debugReport();
-  if(U.get("export")){let ok=0;for(const id of OSM_REL){try{OSMD[id]=null;const d=await loadOSM(id);await fetch(SBR+"bb_tmp_put",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({p_id:id,p_data:d})});ok++;$("st").textContent="export "+ok}catch(e){}}$("st").textContent="EXPORTADO "+ok}
 })();
 function renderAll(){$("all").innerHTML=R.map(r=>`<div class="rl"><b>${r[0]}</b> ${r[1]} · ${r[3]}${GEO[r[0]]?" · <b style='color:#0f766e'>en el mapa</b>":" · <i>sin trazo</i>"}<br><a href="${IMG+r[4]}">Mapa oficial</a></div>`).join("")}
 </script>
