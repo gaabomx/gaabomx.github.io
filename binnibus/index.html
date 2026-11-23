@@ -206,6 +206,7 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
 .wdet{margin-top:4px}.wdet summary{color:var(--ok);font-weight:700;cursor:pointer;font-size:13px}
 .wsteps{margin:6px 0 0;padding-left:18px;font-size:13px}.wsteps li{padding:3px 0}
 .h2logo{display:flex;align-items:center;gap:8px}.h2logo img{height:30px;width:auto}
+#appvid{display:block;width:100%;max-width:260px;margin:8px auto 0;border-radius:18px;background:#000;box-shadow:0 6px 20px #0003;aspect-ratio:540/1174}
 .brand{display:flex;align-items:center;gap:10px}.brand img{height:44px;width:auto;filter:drop-shadow(0 4px 10px #e8336d55)}.brand b{display:block;font-family:Archivo,sans-serif;font-weight:900;font-size:22px;line-height:1;letter-spacing:-.02em}.brand small{display:block;font-weight:800;font-size:10px;letter-spacing:.35em;color:#0f766e;margin-top:3px}
 </style>
 </head>
@@ -245,6 +246,10 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
         <li><span>5</span><div>¿No sale tu casa o privada? Toca el mapa ahí y elige <b>📌 Guardar este lugar</b>.</div></li>
       </ol>
     </section>
+    <section class="msec" id="appsec" style="--d:1"><details class="mdet" id="appdet"><summary><h3>📲 Ponla como app en tu iPhone</h3><span class="chev">▾</span></summary>
+      <p class="muted">Así te queda en tu pantalla de inicio, con su ícono, y la abres como cualquier app. Son 5 toques:</p>
+      <video id="appvid" src="como-app.mp4" poster="como-app.jpg" playsinline muted loop preload="none" controls></video>
+      <p class="muted" style="margin-top:6px">En Android: Chrome → ⋮ → <b>Agregar a pantalla principal</b>.</p></details></section>
     <section class="msec" style="--d:1"><label class="tgl"><input type="checkbox" id="stopwarn"><span></span>🚏 Avisarme cuando pase cerca de una parada</label></section>
     <section class="msec" style="--d:1"><h3>⭐ Mis lugares</h3><div id="mmis"></div></section>
     <section class="msec" style="--d:2"><details class="mdet"><summary><h3>Rutas en el mapa</h3><span class="chev">▾</span></summary><p class="muted">Toca una ruta para mostrarla u ocultarla.</p><div class="chips" id="chips"></div>
@@ -1121,6 +1126,12 @@ function showRouteFrom(code,to,ll,name){
 }
 setInterval(()=>{if(SC&&document.visibilityState==="visible")renderStopCard()},10000);
 
+
+/* ---------- Video: ponla como app ---------- */
+(()=>{const d=$("appdet"),v=$("appvid");if(!d||!v)return;
+  if(window.Capacitor||navigator.standalone||matchMedia("(display-mode: standalone)").matches){$("appsec").style.display="none";return}
+  d.addEventListener("toggle",()=>{if(d.open){v.currentTime=0;v.play().catch(()=>{})}else v.pause()});
+  $("mclose")&&$("mclose").addEventListener("click",()=>v.pause());})();
 
 /* ---------- Girar el mapa 360° ---------- */
 function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;
