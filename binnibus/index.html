@@ -343,14 +343,30 @@ async function pick(code){
     if(g&&sel===code){lines[code].setLatLngs(g)}
   }else map.setView([17.065,-96.72],12);
 }
-let me=null;
-document.getElementById("locbtn").onclick=()=>{
-  if(!navigator.geolocation)return;
-  navigator.geolocation.getCurrentPosition(p=>{
-    const c=[p.coords.latitude,p.coords.longitude];
-    if(me)me.setLatLng(c);else me=L.circleMarker(c,{radius:8,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map).bindPopup("Estás aquí");
-    map.setView(c,16);me.openPopup();
-  },()=>{document.getElementById("sel").textContent="No se pudo obtener tu ubicación"});
+let me=null,acc=null,watchId=null,follow=true,firstFix=true;
+const locbtn=document.getElementById("locbtn");
+map.on("dragstart",()=>{if(watchId!==null){follow=false;locbtn.textContent="📍 Centrar en mí"}});
+function onPos(p){
+  const c=[p.coords.latitude,p.coords.longitude];
+  if(!me){
+    acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
+    me=L.circleMarker(c,{radius:8,color:"#fff",weight:3,fillColor:"#2563eb",fillOpacity:1}).addTo(map).bindPopup("Estás aquí (en vivo)");
+  }else{me.setLatLng(c);acc.setLatLng(c).setRadius(p.coords.accuracy)}
+  if(follow)map.setView(c,firstFix?16:map.getZoom(),{animate:true});
+  firstFix=false;
+}
+function onErr(e){if(e&&e.code!==1&&me)return;if(e&&e.code!==1){document.getElementById("sel").textContent="Buscando tu ubicación…";return}if(watchId!==null)navigator.geolocation.clearWatch(watchId);document.getElementById("sel").textContent="No se pudo obtener tu ubicación. Revisa el permiso de ubicación del navegador.";locbtn.textContent="📍 Dónde estoy";watchId=null}
+locbtn.onclick=()=>{
+  if(!navigator.geolocation)return onErr({code:1});
+  if(watchId===null){
+    watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+    follow=true;firstFix=true;locbtn.textContent="⏹ Detener ubicación";
+  }else if(!follow){
+    follow=true;locbtn.textContent="⏹ Detener ubicación";if(me)map.setView(me.getLatLng(),map.getZoom());
+  }else{
+    navigator.geolocation.clearWatch(watchId);watchId=null;locbtn.textContent="📍 Dónde estoy";
+    if(me){map.removeLayer(me);map.removeLayer(acc);me=acc=null}
+  }
 };
 pick(sel);
 
