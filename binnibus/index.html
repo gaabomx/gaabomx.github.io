@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía de rutas BinniBus Oaxaca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f2ea; --ink:#1d1a16; --muted:#6b6358; --card:#fffdf8; --line:#e4dccf;
+  --rt:#c2410c; --ra:#0f766e; --rc:#7c3aed; --night:#1e3a8a; --gold:#b45309;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,sans-serif}
+header{padding:28px 18px 18px;background:var(--ink);color:#f6f2ea}
+header h1{font:900 30px/1.05 Archivo,sans-serif;margin:0 0 6px;letter-spacing:-.5px}
+header p{margin:0;color:#cfc6b8;font-size:14px}
+.wrap{max-width:760px;margin:0 auto;padding:0 14px 60px}
+.mine{margin:16px 0;background:var(--card);border:2px solid var(--ra);border-radius:14px;padding:14px}
+.mine b{font-family:Archivo;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ra)}
+.mine h2{margin:4px 0 4px;font:800 22px Archivo}
+.mine p{margin:0 0 10px;color:var(--muted)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-block;padding:9px 12px;border-radius:10px;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;font-size:13px}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.sticky{position:sticky;top:0;background:var(--bg);padding:10px 0 8px;z-index:5}
+input[type=search]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);font:inherit;background:#fff}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-top:8px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 11px;font:600 13px Inter;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.count{color:var(--muted);font-size:13px;margin:6px 2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:start}
+.code{font:900 15px Archivo;color:#fff;border-radius:8px;padding:6px 7px;min-width:58px;text-align:center}
+.t-RT{background:var(--rt)}.t-RA{background:var(--ra)}.t-RC{background:var(--rc)}
+.name{font:800 16px Archivo}
+.name small{font:500 12px Inter;color:var(--muted)}
+.od{grid-column:2/4;color:var(--ink)}
+.tags{grid-column:2/4;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tag{font-size:11px;font-weight:600;border-radius:6px;padding:2px 7px;background:#efe8dc;color:var(--muted)}
+.tag.yuva{background:#fde7c7;color:var(--gold)}
+.tag.night{background:#dbe4ff;color:var(--night)}
+.links{grid-column:2/4;margin-top:6px}
+.links a{color:var(--ra);font-weight:600;font-size:13px}
+.star{background:none;border:0;font-size:22px;cursor:pointer;color:#c9bfae;line-height:1;padding:0}
+.star.on{color:var(--gold)}
+section.info{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+section.info h3{font:800 17px Archivo;margin:0 0 8px}
+section.info ul{margin:0;padding-left:18px}
+section.info li{margin:3px 0}
+.note{font-size:12px;color:var(--muted);margin-top:18px}
+.mapbox{background:#fffdf8;border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0}
+.maphead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.maphead b{font:800 17px Archivo}
+#sel{font-size:13px;color:var(--muted);text-align:right}
+.mapwrap{position:relative;margin-top:8px}
+#map{width:100%;height:68vh;min-height:420px;display:block;background:#f3ede2;border-radius:10px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.zbtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
+.zbtns button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fffdf8;font:700 20px Inter;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12);cursor:pointer}
+.hint{position:absolute;left:8px;bottom:8px;background:rgba(29,26,22,.78);color:#fff;font-size:11px;padding:4px 8px;border-radius:8px;pointer-events:none;transition:opacity .4s}
+#map .nd{cursor:pointer}
+#map .rl{fill:none;stroke-linecap:round;stroke-linejoin:round;cursor:pointer;transition:opacity .2s,stroke-width .2s}
+#map .nd{fill:#fff;stroke:#1d1a16;stroke-width:1.2}
+#map .nd.hub{fill:#1d1a16}
+#map text{font:600 8.5px Inter;fill:#1d1a16;paint-order:stroke;stroke:#f3ede2;stroke-width:3px;pointer-events:none}
+#map text.dim{opacity:.35}
+.legend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12px;color:var(--muted);margin-top:8px}
+.lg{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.lg.rt{background:var(--rt)}.lg.ra{background:var(--ra)}.lg.rc{background:var(--rc)}
+.routechips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.rc-chip{border:0;border-radius:7px;padding:5px 7px;font:700 12px Archivo;color:#fff;cursor:pointer;opacity:.85}
+.rc-chip.on{outline:3px solid #1d1a16;opacity:1}
+.warn{font-size:12px;color:var(--muted);margin:10px 2px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-bottom:0">
+    <h1>Rutas BinniBus<br>Oaxaca</h1>
+    <p>35 rutas · mapas oficiales · actualizado nov 2026</p>
+  </div>
+</header>
+<div class="wrap">
+
+  <div class="mine">
+    <b>Desde San Martín Mexicapam</b>
+    <h2>RA-06 Wagul (Música)</h2>
+    <p>San Martín Mexicapam → Primera Etapa. Pasa cerca del Estadio Yu'va.</p>
+    <div class="btns">
+      <a class="btn" href="https://www.oaxaca.gob.mx/citybus/wp-content/uploads/sites/94/2026/03/RA-06.png">Ver mapa de la RA-06</a>
+      <a class="btn alt" href="https://apps.apple.com/mx/app/binnibus/id6752256141">¿Dónde viene? · App (iPhone)</a>
+      <a class="btn alt" href="https://play.google.com/store/search?q=binnibus%20oaxaca&c=apps">App (Android)</a>
+    </div>
+  </div>
+
+  <div class="mapbox">
+    <div class="maphead"><b>Mapa simplificado</b><span id="sel">Toca una ruta</span></div>
+    <div class="mapwrap"><svg id="map" viewBox="0 0 400 470" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Esquema de rutas BinniBus"></svg><div class="zbtns"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button><button id="zreset" aria-label="Centrar" style="font-size:15px">⟲</button></div><div class="hint" id="hint">Arrastra con un dedo · pellizca para hacer zoom · toca una parada</div></div>
+    <div class="legend"><span><i class="lg rt"></i>Troncal</span><span><i class="lg ra"></i>Alimentadora</span><span><i class="lg rc"></i>Colectora</span><span>⚾ Estadio Yu'va</span><button id="allbtn" class="chip">Ver todas</button></div>
+    <div class="routechips" id="rchips"></div>
+    <p class="warn">Esquema aproximado: cada línea une el inicio, el final y los puntos clave conocidos de la ruta. No sigue las calles exactas; para eso abre el mapa oficial de cada ruta abajo.</p>
+  </div>
+
+  <div class="sticky">
+    <input type="search" id="q" placeholder="Busca colonia, lugar o ruta (ej. Viguera, Centro, RA-06)">
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+
+  <section class="info">
+    <h3>Ver dónde viene el camión</h3>
+    <ul>
+      <li>Abre la app <b>BinniBus Oaxaca</b> y permite la ubicación.</li>
+      <li>En el panel de abajo elige la línea: ves las unidades en el mapa y el tiempo estimado de llegada.</li>
+      <li>Avisos de cambios y cierres: <a href="https://whatsapp.com/channel/0029VbDAxm20VycBKu2joH13">canal oficial de WhatsApp</a>.</li>
+    </ul>
+  </section>
+
+  <section class="info">
+    <h3>Horario y tarifas</h3>
+    <ul>
+      <li>Lunes a domingo, 6:00 a 22:00 (algunas empiezan a las 6:30).</li>
+      <li>Nocturnas: RC-14 hasta las 00:00 (vie y sáb hasta las 3:00); RC-15 con horario extendido similar.</li>
+      <li>Con tarjeta: $8 · En efectivo: $10 · Estudiantes y adultos mayores: $4 · Personas con discapacidad: gratis.</li>
+      <li>La tarjeta cuesta $50 y se tramita en los módulos de Yuroo Viguera o Parque del Amor.</li>
+    </ul>
+  </section>
+
+  <p class="note">Fuentes: oaxaca.gob.mx/citybus (mapas oficiales), El Heraldo de Oaxaca y El Imparcial (rutas con bajada cerca del Estadio Yu'va). Las rutas cambian seguido: si algo no cuadra, confírmalo en la app o en el canal oficial. ★ guarda tus rutas en este teléfono.</p>
+</div>
+
+<script>
+const IMG="https://www.oaxaca.gob.mx/citybus/wp-content/uploads/sites/94/";
+const R=[
+ ["RT-01","Kayaal","","Yuroo Viguera – Yuroo Xoxocotlán","2025/11/RT-01_isotipo_600px.png"],
+ ["RT-02","Yii Gap","","Yuroo Viguera – Ciudad Administrativa","2026/08/RT-02.png"],
+ ["RA-01","Jnòn","Telar de cintura","San Isidro Monjas – Esquipulas – Centro","2026/02/RA-01-600px.png"],
+ ["RA-02","Mo'","Montaña","Santa María Atzompa – Guadalupe Victoria","2026/02/RA-02.png"],
+ ["RA-03","Ladxidó","Corazón","Yuroo Parque del Amor – Huayápam Centro","2025/11/RA-03_isotipo_600px.png",1],
+ ["RA-04","Naa","Mamá","Monumento a la Madre / Tecnológico – Estadio Yu'va – Santa Cruz Amilpas","2026/03/RA-04.png",1],
+ ["RA-05","Guié","Flor","Colonia Jardín – Anáhuac","2026/04/RA-05.png",1],
+ ["RA-06","Wagul","Música","San Martín Mexicapam – Primera Etapa","2026/03/RA-06.png",1],
+ ["RA-07","Uxacha","Coyote","Guadalupe Victoria 2ª sección – Colonia Moctezuma","2026/02/RA-07-600px.png"],
+ ["RA-08","Koo","Luna","Agencia Donají – Colonia Satélite","2026/03/RA-08.png"],
+ ["RA-09","Moog","Casa tradicional","Fraccionamiento Los Álamos – Panteón Jardín","2026/04/RA-09.png",1],
+ ["RA-10","Tza' Tøk","Cueva","La Cuevita – Fracc. El Rosario 5ª Etapa","2026/05/RA-10.png",1],
+ ["RA-11","Tüchi","Conejo","Montoya – Colonia Jardín","2026/01/RA-11.png"],
+ ["RA-12","Najmé","Maíz","Colonia La Soledad – Primera Etapa","2026/03/RA-12.png",1],
+ ["RA-14","Poj","Viento","Montoya – Fracc. El Rosario","2026/01/RA-14.png"],
+ ["RA-15","Xra'","Trabajo","Colonia Monte Albán – El Tule – Santo Domingo Tomaltepec","2026/02/RA-15.png"],
+ ["RA-16","Ri'nin","Huipil","Colonia Guelaguetza – Plaza del Valle","2026/02/RA-16-600PX.png"],
+ ["RA-17","Bakku Nunni","Nacimiento de agua","Colonia Monte Albán – Base Símbolos Patrios","2025/11/R4-17_isotipo_600px.png"],
+ ["RA-18","Nave'e","Familia","Yuroo Viguera – Centro de Rehabilitación DIF","2025/11/RC-18_isotipo_600px.png"],
+ ["RA-19","Nandá","Agua","Yuroo Viguera – Huitzo / Telixtlahuaca","2026/05/RA-19.png"],
+ ["RC-01","Dugue","Joya","Pueblo Nuevo «La Joya» – Agencia Donají","2026/03/RC-01.png",1],
+ ["RC-02","Fane Kantsini","Tres colibríes","Viguera – Primera Etapa","2026/04/RC-02.png",1],
+ ["RC-03","Nisa","Cántaro","San Felipe del Agua – Plaza del Valle","2026/04/RC-03.png"],
+ ["RC-04","Atlantekomatl","Concha de mar","Santa Cruz Etla – Fracc. Benito Juárez / Esmeralda – La Experimental – Plaza del Valle","2026/03/RC-04.png"],
+ ["RC-05","Xuujx","","San Pablo Etla – Viguera – Los Ángeles – Centro (Jardín Madero)","2025/11/RC-05.png"],
+ ["RC-06","Mondok","Pescadores","San Jerónimo Yahuiche – San Jacinto Amilpas – Huayápam","2025/11/RC-06_isotipo_600px.png",1],
+ ["RC-07","Vitú Vií","Alebrije","Colonia Monte Bello – Centro","2026/05/RC-07.png"],
+ ["RC-08","Ruja","Diablo","San Luis Beltrán – Colonia Jardín – Col. Heladio Ramírez López","2026/02/RC-08.png",1],
+ ["RC-09","Kítsian Jan","Jaguar","Colonia Bugambilias – Fracc. El Rosario","2025/11/RC-09.png"],
+ ["RC-10","Kaymo","Lagarto","Manzana L – Ánimas Trujano","2025/12/RC-10.png"],
+ ["RC-11","Má","Águila","La Raya / Aeropuerto – Módulo Azul","2025/11/RA-11.png",1],
+ ["RC-12","Ñunda","Nopal","Tlalixtac de Cabrera – Yuroo Parque del Amor","2025/11/RC-12_isotipo_600px.png"],
+ ["RC-13","Yuku Tay","Cerro sagrado","Hospital ISSSTE – Base CRIT","2026/03/RC-13.png"],
+ ["RC-14","Laba'","Raíz","Yuroo Viguera – San Sebastián Tutla","2025/11/RC-14_isotipo_600px.png",0,1],
+ ["RC-15","Yu Ngta'","Barro negro","Hospital de la Mujer y la Niñez – Símbolos Patrios – Módulo Azul","2025/11/RC-15_isotipo_600px.png",0,1]
+];
+const TYPES={RT:"Troncal",RA:"Alimentadora",RC:"Colectora"};
+const FILTERS=[["all","Todas"],["fav","★ Mis rutas"],["yuva","⚾ Estadio Yu'va"],["RT","Troncales"],["RA","Alimentadoras"],["RC","Colectoras"],["night","🌙 Nocturnas"]];
+let favs=[];try{favs=JSON.parse(localStorage.getItem("bb-favs")||"[]")}catch(e){favs=[]}
+if(!favs.length) favs=["RA-06"];
+let filter="all";
+const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const chips=document.getElementById("chips");
+FILTERS.forEach(([k,l])=>{const b=document.createElement("button");b.className="chip"+(k===filter?" on":"");b.textContent=l;b.onclick=()=>{filter=k;[...chips.children].forEach(c=>c.classList.remove("on"));b.classList.add("on");render()};chips.appendChild(b)});
+function save(){try{localStorage.setItem("bb-favs",JSON.stringify(favs))}catch(e){}}
+function render(){
+  const q=norm(document.getElementById("q").value.trim());
+  const list=document.getElementById("list");list.innerHTML="";
+  const rows=R.filter(r=>{
+    const t=r[0].slice(0,2);
+    if(filter==="fav"&&!favs.includes(r[0]))return false;
+    if(filter==="yuva"&&!r[5])return false;
+    if(filter==="night"&&!r[6])return false;
+    if(["RT","RA","RC"].includes(filter)&&t!==filter)return false;
+    if(q&&!norm(r.slice(0,4).join(" ")).includes(q)&&!norm(r[0].replace("-","")).includes(q.replace("-","")))return false;
+    return true;});
+  document.getElementById("count").textContent=rows.length+(rows.length===1?" ruta":" rutas");
+  rows.forEach(r=>{
+    const t=r[0].slice(0,2),on=favs.includes(r[0]);
+    const d=document.createElement("div");d.className="card";
+    d.innerHTML=`<div class="code t-${t}">${r[0]}</div>
+      <div class="name">${r[1]} ${r[2]?`<small>· ${r[2]}</small>`:""}</div>
+      <button class="star${on?" on":""}" aria-label="Guardar ruta">★</button>
+      <div class="od">${r[3]}</div>
+      <div class="tags"><span class="tag">${TYPES[t]}</span>${r[5]?'<span class="tag yuva">⚾ Baja cerca del Yu\'va</span>':""}${r[6]?'<span class="tag night">🌙 Nocturna</span>':""}</div>
+      <div class="links"><a href="${IMG+r[4]}">Ver mapa oficial →</a></div>`;
+    d.querySelector(".star").onclick=()=>{favs=on?favs.filter(x=>x!==r[0]):[...favs,r[0]];save();render()};
+    list.appendChild(d);});
+}
+document.getElementById("q").addEventListener("input",render);
+render();
+
+/* ---------- Mapa simplificado ---------- */
+// Posiciones aproximadas [lat, lon]; hub = punto de transbordo importante
+const N={
+ centro:["Centro",17.061,-96.725,1], yuva:["⚾ Yu'va",17.070,-96.713,1],
+ viguera:["Yuroo Viguera",17.105,-96.757,1], amor:["Parque del Amor",17.055,-96.695,1],
+ xoxo:["Yuroo Xoxocotlán",17.030,-96.733,1], pvalle:["Plaza del Valle",17.064,-96.688,1],
+ modazul:["Módulo Azul",17.022,-96.722,1], cdadmin:["Cd. Administrativa",17.071,-96.663,1],
+ mexicapam:["San Martín Mexicapam",17.068,-96.740], primera:["Primera Etapa",17.077,-96.700],
+ etla:["San Pablo Etla",17.150,-96.765], scetla:["Sta. Cruz Etla",17.160,-96.790],
+ huitzo:["↑ Huitzo / Telixtlahuaca",17.170,-96.800], atzompa:["Atzompa",17.095,-96.785],
+ guadv:["Guadalupe Victoria",17.085,-96.733], moctezuma:["Col. Moctezuma",17.058,-96.712],
+ monjas:["San Isidro Monjas",17.000,-96.738], esquipulas:["Esquipulas",17.015,-96.742],
+ tecno:["Tecnológico",17.078,-96.744], scamilpas:["Sta. Cruz Amilpas",17.066,-96.676],
+ jardin:["Col. Jardín",17.072,-96.722], anahuac:["Anáhuac",17.092,-96.718],
+ donaji:["Ag. Donají",17.088,-96.742], satelite:["Satélite",17.073,-96.697],
+ alamos:["Los Álamos",17.086,-96.702], pjardin:["Panteón Jardín",17.057,-96.703],
+ cuevita:["La Cuevita",17.076,-96.733], rosario:["El Rosario",17.044,-96.684],
+ montoya:["Montoya",17.074,-96.757], soledad:["La Soledad",17.064,-96.733],
+ montealban:["Col. Monte Albán",17.058,-96.755], tule:["El Tule",17.047,-96.636],
+ tomaltepec:["Tomaltepec →",17.060,-96.610], guelaguetza:["Col. Guelaguetza",17.095,-96.730],
+ simbolos:["Símbolos Patrios",17.040,-96.718], dif:["CRI DIF",17.045,-96.735],
+ joya:["La Joya",17.083,-96.765], sfelipe:["San Felipe del Agua",17.103,-96.708],
+ experimental:["La Experimental",17.030,-96.700], yahuiche:["Yahuiche",17.100,-96.775],
+ huayapam:["Huayápam",17.105,-96.672], montebello:["Monte Bello",17.085,-96.752],
+ sluis:["San Luis Beltrán",17.098,-96.693], heladio:["Heladio Ramírez",17.033,-96.695],
+ bugambilias:["Bugambilias",17.100,-96.745], manzanal:["Manzana L",17.020,-96.738],
+ animas:["Ánimas Trujano",16.990,-96.712], raya:["La Raya / Aeropuerto",17.000,-96.722],
+ tlalixtac:["Tlalixtac",17.075,-96.652], issste:["ISSSTE",17.072,-96.706],
+ crit:["CRIT",17.005,-96.700], tutla:["San Sebastián Tutla",17.050,-96.680],
+ hmujer:["Hosp. de la Mujer",16.990,-96.735]
+};
+// Recorrido simplificado: inicio, puntos clave, final
+const P={
+ "RT-01":["viguera","tecno","centro","xoxo"],
+ "RT-02":["viguera","tecno","yuva","pvalle","cdadmin"],
+ "RA-01":["monjas","esquipulas","xoxo","centro"],
+ "RA-02":["atzompa","guadv"],
+ "RA-03":["amor","yuva","huayapam"],
+ "RA-04":["tecno","yuva","scamilpas"],
+ "RA-05":["jardin","yuva","anahuac"],
+ "RA-06":["mexicapam","centro","yuva","primera"],
+ "RA-07":["guadv","centro","moctezuma"],
+ "RA-08":["donaji","yuva","satelite"],
+ "RA-09":["alamos","yuva","pjardin"],
+ "RA-10":["cuevita","yuva","rosario"],
+ "RA-11":["montoya","centro","jardin"],
+ "RA-12":["soledad","yuva","primera"],
+ "RA-14":["montoya","centro","rosario"],
+ "RA-15":["montealban","centro","tule","tomaltepec"],
+ "RA-16":["guelaguetza","yuva","pvalle"],
+ "RA-17":["simbolos","montealban"],
+ "RA-18":["viguera","dif"],
+ "RA-19":["huitzo","etla","viguera"],
+ "RC-01":["joya","yuva","donaji"],
+ "RC-02":["viguera","yuva","primera"],
+ "RC-03":["sfelipe","pvalle"],
+ "RC-04":["scetla","viguera","pvalle","experimental"],
+ "RC-05":["etla","viguera","centro"],
+ "RC-06":["yahuiche","yuva","huayapam"],
+ "RC-07":["montebello","centro"],
+ "RC-08":["sluis","jardin","yuva","heladio"],
+ "RC-09":["bugambilias","rosario"],
+ "RC-10":["manzanal","animas"],
+ "RC-11":["raya","yuva","modazul"],
+ "RC-12":["tlalixtac","amor"],
+ "RC-13":["issste","crit"],
+ "RC-14":["viguera","centro","tutla"],
+ "RC-15":["hmujer","simbolos","modazul"]
+};
+const COL={RT:"#c2410c",RA:"#0f766e",RC:"#7c3aed"};
+const LAT0=17.172,LAT1=16.985,LON0=-96.805,LON1=-96.600,W=400,H=470,PAD=14;
+const XY={"centro": [190, 250], "yuva": [240, 215], "mexicapam": [130, 240], "soledad": [150, 265], "moctezuma": [225, 278], "jardin": [212, 188], "cuevita": [168, 208], "tecno": [150, 180], "guadv": [178, 150], "donaji": [130, 152], "montebello": [102, 178], "montoya": [80, 215], "joya": [72, 160], "montealban": [92, 272], "issste": [272, 240], "primera": [285, 192], "satelite": [310, 222], "alamos": [292, 160], "anahuac": [238, 148], "guelaguetza": [205, 118], "sfelipe": [255, 105], "sluis": [318, 118], "huayapam": [350, 90], "bugambilias": [160, 100], "viguera": [110, 110], "yahuiche": [62, 112], "atzompa": [38, 140], "etla": [92, 55], "scetla": [48, 42], "huitzo": [28, 14], "pvalle": [318, 265], "amor": [290, 302], "pjardin": [262, 290], "scamilpas": [348, 250], "cdadmin": [365, 215], "tlalixtac": [386, 190], "tutla": [335, 322], "rosario": [302, 348], "tule": [372, 335], "tomaltepec": [390, 292], "heladio": [285, 388], "experimental": [252, 372], "simbolos": [205, 332], "dif": [140, 312], "xoxo": [160, 365], "modazul": [210, 388], "manzanal": [165, 412], "esquipulas": [118, 400], "monjas": [108, 440], "raya": [222, 428], "animas": [255, 455], "crit": [292, 430], "hmujer": [172, 456]};
+const xy=k=>{const p=XY[k];return[p[0]*0.92+16,p[1]*0.94+14]};
+const svg=document.getElementById("map"),NS="http://www.w3.org/2000/svg";
+const el=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e};
+let sel="RA-06";
+const lines={};
+// small per-route offset so overlapping lines stay visible
+Object.keys(P).forEach((code,i)=>{
+  const off=((i%5)-2)*1.4;
+  const pts=P[code].map(k=>{const[a,b]=xy(k);return(a+off)+","+(b+off)}).join(" ");
+  const pl=el("polyline",{points:pts,class:"rl",stroke:COL[code.slice(0,2)]});
+  pl.addEventListener("click",()=>{if(!moved)pick(code)});
+  svg.appendChild(pl);lines[code]=pl;
+});
+const labels={},dots={};
+Object.keys(N).forEach(k=>{
+  const[x,y]=xy(k),n=N[k];
+  const c=el("circle",{cx:x,cy:y,r:n[3]?4.2:2.6,class:"nd"+(n[3]?" hub":"")});c.addEventListener("click",()=>{if(!moved)nodeInfo(k)});svg.appendChild(c);dots[k]=c;
+  const t=el("text",{x:x+5,y:y-4});t.textContent=n[0];
+  if(x>W-70){t.setAttribute("text-anchor","end");t.setAttribute("x",x-5)}
+  if(k==="yuva"){t.setAttribute("text-anchor","end");t.setAttribute("x",x-6);t.setAttribute("y",y-6)}
+  svg.appendChild(t);labels[k]=t;
+});
+const rch=document.getElementById("rchips");
+Object.keys(P).forEach(code=>{
+  const b=document.createElement("button");b.className="rc-chip";b.textContent=code;
+  b.style.background=COL[code.slice(0,2)];b.dataset.c=code;b.onclick=()=>pick(code);rch.appendChild(b);
+});
+document.getElementById("allbtn").onclick=()=>pick(null);
+function pick(code){
+  sel=code;
+  const used=code?new Set(P[code]):null;
+  Object.entries(lines).forEach(([c,pl])=>{
+    const on=!code||c===code;
+    pl.style.opacity=code?(on?1:.08):.55;
+    
+    if(on&&code)svg.insertBefore(pl,svg.querySelector("circle"));
+  });
+  curUsed=used;if(typeof applyVB==='function'&&svg.getAttribute('viewBox'))applyVB();
+  [...rch.children].forEach(b=>b.classList.toggle("on",b.dataset.c===code));
+  const r=code&&R.find(x=>x[0]===code);
+  document.getElementById("sel").textContent=r?`${r[0]} ${r[1]}: ${r[3]}`:"Todas las rutas";
+}
+let curUsed=null,moved=false;
+function nodeInfo(k){
+  const rs=Object.keys(P).filter(c=>P[c].includes(k));
+  document.getElementById("sel").textContent=`${N[k][0].replace(/[↑→⚾] ?/g,"")}: pasan ${rs.join(", ")}`;
+}
+/* --- zoom y arrastre con dedos --- */
+const VB0={x:0,y:0,w:400,h:470};let vb={...VB0};
+function clampVB(){vb.w=Math.min(Math.max(vb.w,60),400);vb.h=vb.w*470/400;vb.x=Math.min(Math.max(vb.x,-vb.w*.5),400-vb.w*.5);vb.y=Math.min(Math.max(vb.y,-vb.h*.5),470-vb.h*.5)}
+function applyVB(){
+  clampVB();svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  const k=vb.w/400;
+  svg.querySelectorAll("text").forEach(t=>{t.style.fontSize=(9.5*k)+"px";t.style.strokeWidth=(3*k)+"px"});
+  Object.entries(dots).forEach(([n,c])=>{c.setAttribute("r",(N[n][3]?4.6:3)*Math.max(k,.45));c.style.strokeWidth=1.2*k});
+  Object.entries(lines).forEach(([c,pl])=>{const on=sel&&c===sel;pl.style.strokeWidth=((on?5:2.4)*Math.max(k,.5))+"px"});
+  refreshLabels();
+}
+function refreshLabels(){
+  const zoomed=vb.w<=260;
+  Object.entries(labels).forEach(([k,t])=>{
+    const inRoute=curUsed&&curUsed.has(k);
+    const show=N[k][3]||inRoute||zoomed;
+    t.style.display=show?"":"none";t.style.fontWeight=inRoute?"700":"600";
+    t.style.opacity=curUsed&&!inRoute&&!N[k][3]?.45:1;
+  });
+}
+function toSvg(cx,cy){const r=svg.getBoundingClientRect();const s=Math.max(vb.w/r.width,vb.h/r.height);const ox=(r.width*s-vb.w)/2,oy=(r.height*s-vb.h)/2;return[vb.x+(cx-r.left)*s-ox,vb.y+(cy-r.top)*s-oy,s]}
+function zoomAt(f,cx,cy){const[px,py]=toSvg(cx,cy);const nw=Math.min(Math.max(vb.w*f,60),400);const r=nw/vb.w;vb.x=px-(px-vb.x)*r;vb.y=py-(py-vb.y)*r;vb.w=nw;vb.h=nw*470/400;applyVB()}
+const ptr=new Map();let last=null,startPt=null;
+svg.addEventListener("pointerdown",e=>{ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});startPt={x:e.clientX,y:e.clientY};moved=false;last=null;document.getElementById("hint").style.opacity=0});
+svg.addEventListener("pointermove",e=>{
+  if(!ptr.has(e.pointerId))return;
+  const prev=ptr.get(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(startPt&&Math.hypot(e.clientX-startPt.x,e.clientY-startPt.y)>6)moved=true;
+  if(!moved)return;
+  if(ptr.size===1){const[, ,s]=toSvg(0,0);vb.x-=(e.clientX-prev.x)*s;vb.y-=(e.clientY-prev.y)*s;applyVB()}
+  else if(ptr.size===2){
+    const[a,b]=[...ptr.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    if(last){zoomAt(last.d/d,mx,my);const[, ,s]=toSvg(0,0);vb.x-=(mx-last.mx)*s;vb.y-=(my-last.my)*s;applyVB()}
+    last={d,mx,my};
+  }
+});
+const up=e=>{ptr.delete(e.pointerId);last=null;if(ptr.size===0)setTimeout(()=>{moved=false},0)};
+svg.addEventListener("pointerup",up);svg.addEventListener("pointercancel",up);svg.addEventListener("pointerleave",up);
+svg.addEventListener("wheel",e=>{e.preventDefault();zoomAt(e.deltaY>0?1.15:1/1.15,e.clientX,e.clientY)},{passive:false});
+const ctr=()=>{const r=svg.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]};
+document.getElementById("zin").onclick=()=>zoomAt(1/1.5,...ctr());
+document.getElementById("zout").onclick=()=>zoomAt(1.5,...ctr());
+document.getElementById("zreset").onclick=()=>{vb={...VB0};applyVB()};
+pick(sel);applyVB();
+</script>
+</body>
+</html>
