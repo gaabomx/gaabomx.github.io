@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /panel.html
+Disallow: /vpanel.html
+Disallow: /binnibus/panel.html
+Disallow: /binnibus/build.html
+
+Sitemap: https://gaabomx.github.io/sitemap.xml
