@@ -382,7 +382,7 @@ window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.cl
 <button class="fab dim" id="dimbtn" title="Cambiar vista 2D / 3D" aria-label="Vista 2D o 3D">2D</button>
 <button class="fab compass" id="compass" title="Norte" aria-label="Apuntar al norte"><span id="needle">➤</span></button>
 <button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
-<button class="seen" id="seenbtn">Vi un Binni</button><button class="avfab" id="avbtn" aria-label="Avisar un problema"><svg viewBox="0 0 24 24"><path d="M12 2.5 1.5 21h21z" fill="#f59e0b" stroke="#1d1a16" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 9v5.5" stroke="#1d1a16" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.3" fill="#1d1a16"/></svg><b id="avcount"></b></button>
+<button class="seen" id="seenbtn">Vi un Binni</button><button class="avfab" id="avbtn" aria-label="Avisar un problema"><svg viewBox="0 0 24 24"><path d="M12 2.5 1.5 21h21z" fill="#f59e0b" stroke="#1d1a16" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 9v5.5" stroke="#1d1a16" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.3" fill="#1d1a16"/></svg></button>
 <div class="dlg" id="recdlg"><div class="dlgbox"><div class="head"><b>🔴 Grabar recorrido</b><button class="mclose" id="recx">✕</button></div>
   <p class="muted" style="margin:4px 0 6px">¿Qué ruta vas a grabar?</p><select id="recr" class="recsel"></select>
   <p class="muted" style="margin:10px 0 6px">¿Qué dice su letrero? (hacia dónde va)</p><select id="recto" class="recsel"></select>
@@ -1468,7 +1468,7 @@ function drawAvisos(){avLayer.clearLayers();const gs=[];
   AVISOS.filter(a=>a.s<3600).forEach(a=>{const ll=[a.lat,a.lon];let g=gs.find(g=>D(g.ll,ll)<100); // solo se junta si está a menos de 100 m del primer reporte (la marca no se mueve)
     if(!g){g={ll,n:0,s:1e9,T:{},rs:new Set()};gs.push(g)}
     g.n++;g.s=Math.min(g.s,a.s);const t=g.T[a.t]=g.T[a.t]||{n:0,s:1e9};t.n++;t.s=Math.min(t.s,a.s);avRutas(a).forEach(r=>g.rs.add(r))});
-  try{const e=$("avcount");e.textContent=gs.length;e.classList.toggle("on",gs.length>0)}catch(e){}
+  
   const SH={bloqueo:"Bloqueo",base:"No salen",trafico:"Tráfico"},ORD=["bloqueo","base","trafico"];
   gs.forEach(g=>{const ts=ORD.filter(t=>g.T[t]);
     L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[0,0],iconAnchor:[0,0],html:`<div class="avmk">${ts.map(t=>AVN[t].split(" ")[0]).join("")}<b>${ts.length===1?SH[ts[0]]:"Incidentes"}${g.n>1?` ×${g.n}`:""}</b></div>`}),zIndexOffset:2100}).addTo(avLayer)
