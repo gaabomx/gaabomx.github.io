@@ -178,6 +178,12 @@ body.hasdest .clear2{display:block}
 .credit{border-bottom:1px solid var(--line);text-align:left;padding:2px 0 12px}
 .credit p{margin:0;font-size:14px;color:var(--muted)}
 .credit a{color:var(--ink);text-decoration:none}
+.credit .opbtn{display:flex;align-items:center;gap:12px;margin:10px 0 2px;padding:11px 14px;border-radius:999px;background:#0b0710;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .2s}
+.credit .opbtn:active{transform:scale(.98)}
+.credit .opbtn b{display:block;font:700 14px Inter,system-ui,sans-serif;color:#fff}.credit .opbtn small{display:block;font:500 11.5px Inter,system-ui,sans-serif;color:#a8a29e;margin-top:1px}
+.credit .opdot{flex:none;width:10px;height:10px;border-radius:50%;background:#ffd696;box-shadow:0 0 10px 3px rgba(255,214,150,.55);animation:opblink 4s steps(1,end) infinite}
+.credit .opgo{margin-left:auto;color:#a8a29e}
+@keyframes opblink{0%,92%{opacity:1}94%{opacity:.25}96%{opacity:1}}
 .mdet summary{list-style:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
 .mdet summary::-webkit-details-marker{display:none}
 .mdet summary h3{margin:0}
@@ -317,7 +323,7 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
 <aside class="menu" id="menu" aria-hidden="true">
   <div class="mhead"><div class="brand"><img src="logo.png" alt="" width="34" height="44"><div><b>Binni Rutas</b><small>OAXACA</small></div></div><button id="mclose" class="mclose" aria-label="Cerrar">✕</button></div>
   <div class="mbody">
-    <section class="msec credit" style="--d:0"><p>Página hecha por <a href="https://www.instagram.com/gaabomx/" target="_blank" rel="noopener"><b>@gaabomx</b></a></p><p style="margin-top:4px;font-size:12px"><a href="privacidad.html" target="_blank" style="color:var(--muted);text-decoration:underline">Aviso de privacidad</a> · No es la app oficial de BinniBus</p></section>
+    <section class="msec credit" style="--d:0"><p>Página hecha por <a href="https://www.instagram.com/gaabomx/" target="_blank" rel="noopener"><b>@gaabomx</b></a></p><a class="opbtn" href="https://gaabomx.github.io/mensaje" target="_blank" rel="noopener"><span class="opdot"></span><span><b>Déjame tu opinión</b><small>Es anónima · me ayuda a mejorar la app</small></span><span class="opgo">→</span></a><p style="margin-top:4px;font-size:12px"><a href="privacidad.html" target="_blank" style="color:var(--muted);text-decoration:underline">Aviso de privacidad</a> · No es la app oficial de BinniBus</p></section>
     <section class="msec" style="--d:0">
       <h3>¿Cómo funciona?</h3>
       <ol class="how">
