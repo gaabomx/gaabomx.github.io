@@ -1064,7 +1064,7 @@ function renderMis(){
 
 /* ---------- Red en vivo: camiones compartidos por usuarios ---------- */
 let SHARE=null,lastPing=0,LIVE=[];const busLayer=L.layerGroup().addTo(map);
-function busIcon(r,col,me){return L.divIcon({className:"",iconSize:[64,26],iconAnchor:[32,13],html:`<div class="bus${me?" mine":""}" style="--c:${col}">🚌 ${r}</div>`})}
+function busIcon(r,col,me){const w=r.length>6?84:64;return L.divIcon({className:"",iconSize:[w,26],iconAnchor:[w/2,13],html:`<div class="bus${me?" mine":""}" style="--c:${col}">🚌 ${r}</div>`})}
 function startShare(code,to){
   SHARE={code,to,since:Date.now(),off:0};lastPing=0;
   if(me)pingShare([me.getLatLng().lat,me.getLatLng().lng],null);
@@ -1091,15 +1091,31 @@ function shareUI(){
       $("mdirs").querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>{if(!me){toast("Activa tu ubicación para poder compartir.");return}closeMenu();startShare(c,GEO[c][x.dataset.d].to)})};mr.appendChild(bt)})}
 }
 function toast(t){let e=$("toast");if(!e){e=document.createElement("div");e.id="toast";document.body.appendChild(e)}e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),3500)}
+const BUSMK=[];
+function glideBus(mk,to){const f=mk.getLatLng(),a=[f.lat,f.lng];if(D(a,to)<2)return;cancelAnimationFrame(mk._gl);const t0=performance.now(),dur=1600;
+  const st=t=>{const k=Math.min(1,(t-t0)/dur),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;mk.setLatLng([a[0]+(to[0]-a[0])*e,a[1]+(to[1]-a[1])*e]);if(k<1)mk._gl=requestAnimationFrame(st)};mk._gl=requestAnimationFrame(st)}
 async function pollLive(){
   if(document.visibilityState!=="visible")return;
   try{const r=await fetch(SBR+"bb_buses_vivos",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(!r.ok)return;LIVE=await r.json()}catch(e){return}
-  // juntar a varias personas en el mismo camión
-  const g=[];LIVE.forEach(x=>{const ll=[x.lat,x.lon];const y=g.find(z=>z.r===x.r&&z.d===x.d&&D(z.ll,ll)<150);if(y){y.n++;y.s=Math.min(y.s,x.s)}else g.push({r:x.r,d:x.d,ll,v:x.v,s:x.s,n:1})});
-  LIVE=g;busLayer.clearLayers();
-  g.forEach(x=>{const mine=SHARE&&me&&x.r===SHARE.code&&D(x.ll,[me.getLatLng().lat,me.getLatLng().lng])<150;
-    L.marker(x.ll,{icon:busIcon(x.r,COL[x.r]||"#0f766e",mine),zIndexOffset:1000}).addTo(busLayer)
-     .bindPopup(`<b>🚌 ${x.r} → ${esc(x.d)}</b><br>En vivo · hace ${x.s} s${x.v?` · ${Math.round(x.v)} km/h`:""}<br><span style="color:#6b6358">${x.n>1?x.n+" personas a bordo comparten":"1 persona a bordo comparte"}</span>`)});
+  // juntar a varias personas en el mismo camión: un solo camión por grupo, con su posición promediada
+  const g=[];LIVE.forEach(x=>{const ll=[x.lat,x.lon],w=1/(1+Math.max(0,x.s)/10);
+    const y=g.find(z=>z.r===x.r&&z.d===x.d&&D(z.ll,ll)<250);
+    if(y){y.sw+=w;y.ll=[y.ll[0]+(ll[0]-y.ll[0])*w/y.sw,y.ll[1]+(ll[1]-y.ll[1])*w/y.sw];y.n++;y.s=Math.min(y.s,x.s);if(x.v!=null)y.vs.push(x.v)}
+    else g.push({r:x.r,d:x.d,ll,sw:w,v:x.v,vs:x.v!=null?[x.v]:[],s:x.s,n:1})});
+  g.forEach(z=>{if(z.vs.length)z.v=z.vs.reduce((a,b)=>a+b,0)/z.vs.length;
+    // pegar el punto a la ruta: el camión siempre va sobre su recorrido
+    const dir=(GEO[z.r]||[]).find(d=>d.to===z.d);if(dir){let bd=1e9,bp=null;for(const p of dir.line){const d=D(p,z.ll);if(d<bd){bd=d;bp=p}}if(bp&&bd<120)z.ll=[bp[0],bp[1]]}});
+  LIVE=g;
+  // mover los camiones que ya estaban en el mapa en vez de borrarlos y volverlos a poner
+  const old=BUSMK.splice(0),used=new Set();
+  g.forEach(x=>{const mine=SHARE&&me&&x.r===SHARE.code&&D(x.ll,[me.getLatLng().lat,me.getLatLng().lng])<250;
+    let m=null,bd=700;old.forEach((o,i)=>{if(used.has(i)||o.r!==x.r||o.d!==x.d)return;const d=D(o.mk.getLatLng?[o.mk.getLatLng().lat,o.mk.getLatLng().lng]:o.ll,x.ll);if(d<bd){bd=d;m=i}});
+    const html=`<b>🚌 ${x.r} → ${esc(x.d)}</b><br>En vivo · hace ${x.s} s${x.v?` · ${Math.round(x.v)} km/h`:""}<br><span style="color:#6b6358">${x.n>1?x.n+" personas a bordo comparten (posición combinada)":"1 persona a bordo comparte"}</span>`;
+    let mk;
+    if(m!=null){used.add(m);mk=old[m].mk;if(old[m].n!==x.n||old[m].mine!==!!mine)mk.setIcon(busIcon(x.r+(x.n>1?" ·"+x.n:""),COL[x.r]||"#0f766e",mine));mk.bindPopup(html);glideBus(mk,x.ll)}
+    else mk=L.marker(x.ll,{icon:busIcon(x.r+(x.n>1?" ·"+x.n:""),COL[x.r]||"#0f766e",mine),zIndexOffset:1000}).addTo(busLayer).bindPopup(html);
+    BUSMK.push({mk,r:x.r,d:x.d,n:x.n,mine:!!mine})});
+  old.forEach((o,i)=>{if(!used.has(i))busLayer.removeLayer(o.mk)});
   updateLiveEta();if(SC)renderStopCard();
   const n=$("livecount");if(n)n.textContent=g.length?`🔴 ${g.length} ${g.length===1?"camión":"camiones"} en vivo`:"";
 }
