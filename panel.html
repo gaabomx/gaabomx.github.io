@@ -175,10 +175,6 @@ button:focus-visible,input:focus-visible{outline:2px solid rgb(var(--luz));outli
     <div class="tarjeta"><ul class="lista" id="origenes"></ul></div>
   </section>
 
-  <section class="seccion">
-    <div><h2>¿Desde qué ciudad?</h2><p class="ayuda">Ciudad aproximada, últimos 7 días. Con datos móviles a veces sale la ciudad de la compañía de internet.</p></div>
-    <div class="tarjeta"><ul class="lista" id="ciudades"></ul></div>
-  </section>
 
 
   <section class="seccion">
@@ -255,7 +251,7 @@ function pintarVisitas(v){
     col.append(num,bar,lab); cont.append(col);
   });
   lista($("origenes"), v.origenes || []);
-  lista($("ciudades"), v.ciudades || []);
+  if($("ciudades"))lista($("ciudades"), v.ciudades || []);
   
   lista($("paginas"), v.paginas || []);
 }
@@ -295,8 +291,8 @@ function pintarVivos(lst){
   const ul=$("vivos"); ul.textContent="";
   for (const p of lst){
     const li=document.createElement("li"); const dot=document.createElement("span"); dot.className="pulso";
-    const d=document.createElement("div"); const b=document.createElement("b"); b.textContent=lugar(p);
-    const sm=document.createElement("small"); sm.textContent = aparato(p) + " · viendo " + (p.pagina==="mensaje" ? "la página de opiniones" : "tu portafolio") + " · " + cuanto(p.desde);
+    const d=document.createElement("div"); const b=document.createElement("b"); b.textContent=aparato(p);
+    const sm=document.createElement("small"); sm.textContent = "Viendo " + (p.pagina==="mensaje" ? "la página de opiniones" : "tu portafolio") + " · " + cuanto(p.desde);
     d.append(b,sm); li.append(dot,d); ul.append(li);
   }
 }
@@ -308,8 +304,7 @@ function pintarModelos(lst){
     const pos=document.createElement("span"); pos.className="lugar"; pos.textContent="#"+(i+1);
     const b=document.createElement("b"); b.textContent=NOMBRES[m.nombre] || m.nombre;
     const c=document.createElement("div"); c.className="cuantas"; c.textContent=m.n; const u=document.createElement("span"); u.textContent=Number(m.n)===1?"visita":"visitas"; c.append(u);
-    const sm=document.createElement("small"); sm.textContent = (m.ciudades && m.ciudades.length) ? "Desde " + m.ciudades.join(", ") : "Ciudad sin dato";
-    d.append(pos,b,c,sm); box.append(d);
+    d.append(pos,b,c); box.append(d);
   });
 }
 function pintarRecientes(lst){
@@ -320,7 +315,7 @@ function pintarRecientes(lst){
     const b=document.createElement("b"); b.textContent=aparato(r);
     const c=document.createElement("span"); c.className="cuando"; c.textContent=hace(r.creado);
     const sm=document.createElement("small");
-    sm.textContent=[lugar(r), r.sistema, r.navegador && ("desde " + r.navegador), r.pagina==="mensaje" ? "vio la página de opiniones" : "vio tu portafolio"].filter(Boolean).join(" · ");
+    sm.textContent=[r.sistema, r.navegador && ("desde " + r.navegador), r.pagina==="mensaje" ? "vio la página de opiniones" : "vio tu portafolio"].filter(Boolean).join(" · ");
     li.append(b,c,sm); ul.append(li);
   }
 }
