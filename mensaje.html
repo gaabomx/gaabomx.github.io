@@ -197,6 +197,7 @@ document.getElementById("forma").addEventListener("submit", async (e) => {
   e.preventDefault();
   const texto = txt.value.trim();
   if (!texto) return;
+  if (pareceBasura(texto)) { aviso("Escribe tu opinión de verdad, por favor 🙂 (no se aceptan pruebas como \"test\").", true); return; }
   if (Date.now() - ultimo < 15000) { aviso("Espera unos segundos antes de mandar otro.", true); return; }
   btn.disabled = true; aviso("enviando…");
   try {
@@ -205,17 +206,23 @@ document.getElementById("forma").addEventListener("submit", async (e) => {
       headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
       body: JSON.stringify({ texto })
     });
-    if (!r.ok) throw new Error(r.status === 400 || r.status === 500 ? "spam" : "red");
+    if (!r.ok) { let m = ""; try { m = (await r.json()).message || ""; } catch (x) {} throw new Error(m === "basura" ? "basura" : (r.status === 400 || r.status === 500 ? "spam" : "red")); }
     ultimo = Date.now();
     txt.value = ""; cuenta.textContent = "0 / 600"; aviso("");
     b.classList.remove("tiembla"); b.classList.add("enviando");
     gracias.classList.add("ver");
     setTimeout(() => { gracias.classList.remove("ver"); b.classList.remove("enviando"); b.classList.add("tiembla"); }, 2600);
   } catch (err) {
-    aviso(err.message === "spam" ? "Hay muchos mensajes ahora mismo. Intenta en un minuto." : "No se pudo enviar. Revisa tu conexión e intenta otra vez.", true);
+    aviso(err.message === "basura" ? "Escribe tu opinión de verdad, por favor 🙂 (no se aceptan pruebas ni mensajes repetidos)." : err.message === "spam" ? "Hay muchos mensajes ahora mismo. Intenta en un minuto." : "No se pudo enviar. Revisa tu conexión e intenta otra vez.", true);
     btn.disabled = false;
   }
 });
+// mensajes de prueba o sin sentido ("test", "prueba", "gbg", "aaaa")
+function pareceBasura(t) {
+  const n = t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), l = n.replace(/[^a-z]/g, "");
+  return l.length < 4 || /^(test|tests|testing|teste|tset|prueba|pruebas|probando|probar|tst|asd|asdf|qwe|qwerty|xd|jaja|ja|aaa|a)+$/.test(l)
+    || /^\s*(test\w*|prueba\w*|probando)[\s\d!.?]*$/.test(n) || !/[aeiou]/.test(l) || /^(.)\1+$/.test(l);
+}
 function aviso(t, error) { estado.textContent = t; estado.classList.toggle("error", !!error); }
 </script>
 
