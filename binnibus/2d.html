@@ -380,7 +380,7 @@ window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.cl
   <input id="recto2" class="recsel" placeholder="Escribe hacia dónde va" style="display:none;margin-top:6px">
   <button class="mbtn" id="recgo" style="width:100%;margin-top:12px;background:#b91c1c;color:#fff;border:0">🔴 Empezar a grabar</button></div></div>
 <div id="recbar"><div class="rbt"><i></i><b id="rect">Grabando</b><small id="recs"></small></div><div class="rbb"><button id="recstop">🚏 Parada</button><button id="recend">⏹ Terminar</button></div></div>
-<div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b id="seenttl">👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><div class="seg" id="seenmode"><button data-m="vi" class="on">👀 Lo vi</button><button data-m="av">⚠️ Hay un problema</button></div><p class="muted" id="seensub" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div id="seenroutes"></div><div id="seendirs"></div></div></div>
+<div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b id="seenttl">👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><div class="seg" id="seenmode" style="display:none"><button data-m="vi" class="on">👀 Lo vi</button><button data-m="av">⚠️ Hay un problema</button></div><p class="muted" id="seensub" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div id="seenroutes"></div><div id="seendirs"></div></div></div>
 <div class="alert" id="alert"></div>
 <div class="mscrim" id="mscrim"></div>
 <aside class="menu" id="menu" aria-hidden="true">
@@ -1365,7 +1365,7 @@ const AVT=[["bloqueo","🚧","Bloqueo","Hay un bloqueo y no puede pasar"],["base
 const AVN={bloqueo:"🚧 Bloqueo",base:"🅿️ No están saliendo de la base",trafico:"🚗 Mucho tráfico"};
 var OPENING=false;function setSeenMode(m){const b=document.querySelector(`#seenmode [data-m="${m}"]`);OPENING=true;try{if(b)b.onclick()}finally{OPENING=false}}
 document.querySelectorAll("#seenmode button").forEach(b=>b.onclick=()=>{SEENMODE=b.dataset.m;document.querySelectorAll("#seenmode button").forEach(x=>x.classList.toggle("on",x===b));
-  $("seenttl").textContent=SEENMODE==="av"?"⚠️ Avisar un problema":"👀 ¿Qué BinniBus viste?";
+  $("seenttl").textContent=SEENMODE==="av"?"⚠️ Reportar un incidente":"👀 ¿Qué BinniBus viste?";
   $("seensub").textContent=SEENMODE==="av"?"Elige la ruta. Se avisa a todos durante 1 hora. Anónimo.":"Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.";$("seendirs").innerHTML="";if(!OPENING&&$("seendlg").classList.contains("on"))openSeen()});
 // avisos de la gente: bloqueo, no salen de la base, mucho tráfico (duran 1 hora)
 const avLayer=L.layerGroup().addTo(map);
