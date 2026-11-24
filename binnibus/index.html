@@ -114,6 +114,8 @@ body.mopen .msec{opacity:1;transform:none}
 .go.share{background:#1d4ed8;margin-top:8px}.go.share.on{background:#7c2d12}
 .liveeta{color:#b91c1c;font-weight:700;font-size:13px;margin-top:4px}.liveeta:empty{display:none}
 #livecount:empty{display:none}
+.extras{max-height:120px;transition:max-height .45s cubic-bezier(.22,1,.36,1),opacity .3s,transform .45s cubic-bezier(.22,1,.36,1);transform-origin:top}
+.extras.hid{max-height:0;opacity:0;transform:translateY(-10px) scaleY(.9);pointer-events:none;overflow:hidden}
 #toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#1d1a16;color:#fff;padding:10px 14px;border-radius:12px;font:600 13px Inter;z-index:3000;opacity:0;transition:.3s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #topmini{position:fixed;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));z-index:1001;display:none;gap:8px}
@@ -239,8 +241,10 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
     <button>Buscar</button>
   <button type="button" id="clear2" class="clear2" title="Limpiar">✕</button></form>
   <div class="sugg" id="sugg"></div>
+  <div class="extras" id="extras">
   <div class="quick" id="quick"></div>
   <div class="from" id="from">📍 Desde: buscando tu ubicación…</div> <span class="from" id="livecount" style="cursor:default"></span>
+  </div>
   <div class="topzone" id="topzone"><div class="tgrab"></div></div>
 </div>
 <div id="topmini"><button id="showtop">🔍 ¿A dónde vas?</button><button id="clearbtn" title="Limpiar">✕ Limpiar</button></div>
@@ -1280,5 +1284,14 @@ try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");s
 })();
 function renderAll(){$("all").innerHTML=R.map(r=>`<div class="rl"><b>${r[0]}</b> ${r[1]} · ${r[3]}${GEO[r[0]]?" · <b style='color:#0f766e'>en el mapa</b>":" · <i>sin trazo</i>"}<br><a href="${IMG+r[4]}">Mapa oficial</a></div>`).join("")}
 </script>
+<script>/* atajos y "Desde": 10 s al entrar, luego se esconden; vuelven al tocar ¿A dónde vas? */
+(function(){var x=document.getElementById("extras"),q=document.getElementById("q"),t=null;if(!x)return;
+function show(){clearTimeout(t);x.classList.remove("hid")}
+function later(ms){clearTimeout(t);t=setTimeout(function(){if(document.activeElement!==q)x.classList.add("hid")},ms)}
+later(10000);
+q.addEventListener("focus",show);q.addEventListener("click",show);
+q.addEventListener("blur",function(){later(10000)});
+var st=document.getElementById("showtop");if(st)st.addEventListener("click",function(){show();later(10000)});
+x.addEventListener("click",function(){later(10000)},true);})();</script>
 </body>
 </html>
