@@ -1059,7 +1059,8 @@ const UA=navigator.userAgent,DISP=/iPhone/.test(UA)?"iphone":/iPad/.test(UA)?"ip
   addEventListener("pagehide",off);if(document.visibilityState==="visible")on();
 })();
 let lastLogged="";
-function logSearch(){if(!destName||destName===lastLogged||destName==="Punto en el mapa")return;lastLogged=destName;sb("bb_busqueda",{p_destino:destName,p_con_ruta:plans.length>0})}
+function logSearch(){if(!destName||destName===lastLogged||destName==="Punto en el mapa")return;lastLogged=destName;let cerca=plans.length>0;try{if(dest&&dest.length){if(!STOPIDX)buildStopIdx();cerca=STOPIDX.some(g=>D(dest,g.ll)<800)}}catch(e){}
+  sb("bb_busqueda",{p_destino:destName,p_con_ruta:cerca})}
 
 
 function debugReport(){
