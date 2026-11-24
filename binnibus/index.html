@@ -152,6 +152,10 @@ body.rec #recbar{display:block}
 .lv div{background:#ecfdf3;border-radius:10px;padding:8px 4px}
 .lv b{display:block;font:900 18px Archivo;color:#166534}
 .lv span{font-size:11px;color:var(--muted)}
+.fqres{display:none;margin-top:6px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff}
+.fqres>div{padding:9px 11px;border-top:1px solid var(--line);font:600 14px Inter;cursor:pointer;animation:fqin .28s ease both}.fqres>div:first-child{border-top:0}
+.fqres>div small{display:block;font:500 12px Inter;color:var(--muted);margin-top:1px}.fqres>div:active{background:#f0fdf4}
+@keyframes fqin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .fromrow{display:flex;align-items:center;gap:6px;margin:8px 0 4px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;font:500 13px Inter;color:#57534e}.fromrow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1d1a16}.fromrow button{flex:none;border:0;background:#16a34a;color:#fff;font:700 12px Inter;padding:6px 10px;border-radius:999px}
 .busend{transform:translate(-50%,-130%);white-space:nowrap;background:#fff;color:var(--c);font:800 11px Inter;padding:3px 7px;border-radius:8px;border:2px solid var(--c);box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .busw{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
@@ -1052,10 +1056,10 @@ function stopHits(q){try{
   const out=[];hit.forEach(({c})=>{const o=out.find(y=>norm(y.name)===norm(c.name)&&D(y.ll,c.ll)<300);if(o){c.r.forEach(k=>o.rs.add(k));return}if(out.length<4)out.push({name:c.name,ll:c.ll,rs:new Set(c.r)})});
   return out.map(x=>({name:"🚏 "+x.name,addr:"Parada BinniBus · "+[...x.rs].sort().join(", "),kind:"_stop",ll:x.ll}));
 }catch(e){return[]}}
-async function search(q,auto){
-  const box=$("sugg");const my=++sSeq;
+async function search(q,auto,inBox){
+  const box=inBox||$("sugg"),PF=PICKFROM||!!inBox;const my=++sSeq;
   if(!auto){box.innerHTML='<div class="muted">Buscando en todo Oaxaca…</div>';box.style.display="block"}
-  if(!PICKFROM&&routeHits(q).length){box.innerHTML="";routeRows(box,q);if(!auto)box.insertAdjacentHTML("beforeend",'<div class="muted">Buscando lugares…</div>');box.style.display="block"}
+  if(!PF&&routeHits(q).length){box.innerHTML="";routeRows(box,q);if(!auto)box.insertAdjacentHTML("beforeend",'<div class="muted">Buscando lugares…</div>');box.style.display="block"}
   const nq=norm(q);
   // coordenadas o link de Google Maps con coordenadas
   const m=q.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/)||q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||q.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
@@ -1077,18 +1081,18 @@ async function search(q,auto){
   // quitar fuera de la zona y repetidos
   const seen=[];r=r.filter(x=>{if(x.ll[0]<16.6||x.ll[0]>17.5||x.ll[1]<-97.3||x.ll[1]>-96.2)return false;
     if(seen.some(y=>norm(y.name)===norm(x.name)&&D(y.ll,x.ll)<150))return false;seen.push(x);return true});
-  if(!r.length&&!PICKFROM&&routeHits(q).length){box.innerHTML="";routeRows(box,q);box.style.display="block";return}
+  if(!r.length&&!PF&&routeHits(q).length){box.innerHTML="";routeRows(box,q);box.style.display="block";return}
   if(!r.length){box.innerHTML=`<div class="muted">No encontré "${esc(q)}" en los mapas. Si es una privada o lugar nuevo, toca el mapa donde está y elige <b>📌 Guardar este lugar</b>: la próxima vez sí sale.</div>`;box.style.display="block";return}
   const here=origin||[17.065,-96.72];
   const toks=norm(simpleQ(q)||q).split(/\s+/).filter(t=>t.length>2);
   const pri=x=>x.kind==="_pin"?0:x.kind==="_mio"?1:x.kind==="_com"?2:x.kind==="_stop"?2.5:norm(x.name).startsWith(nq)?3:norm(x.name).includes(nq)?4:(toks.length&&toks.every(t=>norm(x.name+" "+(x.addr||"")).includes(t)))?4.5:5;
   r.sort((a,b)=>pri(a)-pri(b)||D(here,a.ll)-D(here,b.ll));
-  box.innerHTML="";box.style.display="block";if(!PICKFROM)routeRows(box,q);
-  r.slice(0,10).forEach(x=>{const d=document.createElement("div");
+  box.innerHTML="";box.style.display="block";if(!PF)routeRows(box,q);
+  r.slice(0,inBox?6:10).forEach((x,k)=>{const d=document.createElement("div");if(inBox)d.style.animationDelay=(k*45)+"ms";
     const tag=x.kind==="_mio"?"⭐ Tuyo":x.kind==="_com"?"👥 Usuarios":x.kind==="_stop"?"":KIND[x.kind]||"";
     d.innerHTML=`${esc(x.name)}${tag?` <span class="muted">· ${tag}</span>`:""}<small>${esc(x.addr||"")}${origin?" · a "+fmt(D(origin,x.ll)):""}</small>`;
-    d.onclick=()=>{box.style.display="none";if(PICKFROM){fromDone(x.ll,x.name);return}destAddr=x.addr||"";setDest(x.ll,x.name)};box.appendChild(d)});
-  const add=document.createElement("div");add.innerHTML='<span class="muted">¿No está tu lugar? Toca el mapa donde está y elige <b>📌 Guardar este lugar</b>.</span>';add.onclick=()=>{box.style.display="none";setTop(false);setSheet(true)};box.appendChild(add);
+    d.onclick=()=>{box.style.display="none";if(PF){fromDone(x.ll,x.name);return}destAddr=x.addr||"";setDest(x.ll,x.name)};box.appendChild(d)});
+  const add=document.createElement("div");add.innerHTML='<span class="muted">¿No está tu lugar? Toca el mapa donde está y elige <b>📌 Guardar este lugar</b>.</span>';add.onclick=()=>{box.style.display="none";setTop(false);setSheet(true)};if(!inBox)box.appendChild(add);
 }
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 /* historial de búsquedas (solo en este celular) */
@@ -1272,12 +1276,16 @@ function confirmDel(x){const P=$("panel");setSheet(false);P.insertAdjacentHTML("
   $("delno").onclick=()=>$("delbox").remove();$("delok").onclick=()=>{MIS=MIS.filter(y=>y!==x);saveMis();$("delbox").remove()};}
 renderQuick();
 // origen elegido desde la búsqueda (para guiar a otra persona que está en otro lugar)
-function fromDone(ll,name){name=String(name).replace(/^🚏 /,"");PICKFROM=false;originIsMe=false;$("q").value=dest?(destName||""):"";$("q").placeholder="¿A dónde vas? Tienda, lugar, calle…";setOrigin(ll,name);
+function fromDone(ll,name){try{$("frombox").remove()}catch(e){}name=String(name).replace(/^🚏 /,"");PICKFROM=false;originIsMe=false;$("q").value=dest?(destName||""):"";$("q").placeholder="¿A dónde vas? Tienda, lugar, calle…";setOrigin(ll,name);
   try{L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1}).addTo(selLayer)}catch(e){}
   toast("🟢 Saliendo desde "+name+(dest?"":". Ahora busca a dónde va."));if(!dest){map.setView(ll,16);setTimeout(()=>$("q").focus(),300)}}
 $("from").onclick=()=>{setSheet(false);$("panel").insertAdjacentHTML("afterbegin",`<div class="opt" id="frombox" style="cursor:default"><b>¿Desde dónde sales?</b><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="go" id="fme" style="margin:0;flex:1">📍 Mi ubicación</button><button class="go" id="fmap" style="margin:0;flex:1;background:#444">🗺️ Elegir en el mapa</button></div><form id="fqf" style="display:flex;gap:6px;margin-top:8px"><input id="fq" placeholder="O escribe: colonia, calle, lugar…" style="flex:1 1 auto;width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:10px;font:500 15px Inter"><button class="go" style="margin:0;padding:0 14px;width:auto;flex:none">Buscar</button></form>${MIS.length?`<div class="quick" style="margin-top:8px">${MIS.slice(0,4).map((x,i)=>`<button data-f="${i}" style="box-shadow:none;border:1px solid var(--line)">⭐ ${esc(x.name)}</button>`).join("")}</div>`:""}</div>`);
   const fb=$("frombox");
-  $("fqf").onsubmit=e=>{e.preventDefault();const v=$("fq").value.trim();if(v.length<3){toast("✏️ Escribe de dónde sales (colonia, calle o lugar)");$("fq").focus();return}fb.remove();PICKFROM=true;$("q").value=v;$("q").placeholder="¿Desde dónde sales?";setSheet(true);setTop(true);search(v)};setTimeout(()=>{try{$("fq").focus()}catch(e){}},50);
+  fb.querySelector("#fqf").insertAdjacentHTML("afterend",'<div id="fqres" class="fqres"></div>');
+  let fqT=0;const fqGo=auto=>{const v=$("fq").value.trim();const R=$("fqres");if(v.length<3){if(!auto){toast("✏️ Escribe de dónde sales (colonia, calle o lugar)");$("fq").focus()}R.innerHTML="";R.style.display="none";return}
+    if(!R.innerHTML)R.innerHTML='<div class="muted">Buscando…</div>';R.style.display="block";search(v,true,R)};
+  $("fq").addEventListener("input",()=>{clearTimeout(fqT);fqT=setTimeout(()=>fqGo(true),350)});
+  $("fqf").onsubmit=e=>{e.preventDefault();clearTimeout(fqT);try{$("fq").blur()}catch(x){}fqGo(false)};setTimeout(()=>{try{$("fq").focus()}catch(e){}},50);
   $("fme").onclick=()=>{fb.remove();originIsMe=true;if(me){setOrigin(me.getLatLng()&&[me.getLatLng().lat,me.getLatLng().lng],"tu ubicación");map.setView(me.getLatLng(),16)}else $("from").textContent="📍 Activa el permiso de ubicación del navegador"};
   $("fmap").onclick=()=>{fb.remove();setSheet(true);setTop(true);$("from").textContent="👆 Toca el mapa donde estás y elige Salir de aquí"};
   fb.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{const x=MIS[b.dataset.f];fb.remove();originIsMe=false;setOrigin(x.ll,x.name)});
