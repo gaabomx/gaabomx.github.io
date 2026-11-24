@@ -49,9 +49,25 @@
       // flechitas: dirección del recorrido en todas las líneas, con un flujo animado encima
       const A = 2, W = 20 * A, cv = document.createElement("canvas"); cv.width = cv.height = W; const x = cv.getContext("2d");
       x.lineCap = "round"; x.lineJoin = "round";
-      x.strokeStyle = "rgba(20,16,12,.55)"; x.lineWidth = 6 * A; x.beginPath(); x.moveTo(7 * A, 4 * A); x.lineTo(14 * A, 10 * A); x.lineTo(7 * A, 16 * A); x.stroke();
-      x.strokeStyle = "#ffffff"; x.lineWidth = 3.2 * A; x.beginPath(); x.moveTo(7 * A, 4 * A); x.lineTo(14 * A, 10 * A); x.lineTo(7 * A, 16 * A); x.stroke();
+      const arrow = () => { x.beginPath(); x.moveTo(3 * A, 10 * A); x.lineTo(16 * A, 10 * A); x.moveTo(11 * A, 5 * A); x.lineTo(16.5 * A, 10 * A); x.lineTo(11 * A, 15 * A); x.stroke(); };
+      x.strokeStyle = "rgba(20,16,12,.55)"; x.lineWidth = 5 * A; arrow();
+      x.strokeStyle = "#ffffff"; x.lineWidth = 2.4 * A; arrow();
       try { g.addImage("lf-chev", x.getImageData(0, 0, W, W), { pixelRatio: A }); } catch (e) {}
+      // flujo de flechas en todas las rutas (se mueven en el sentido del camión)
+      g.addSource("lf-pts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      g.addLayer({ id: "lf-arrows", type: "symbol", source: "lf-pts", minzoom: 12.3, layout: { "icon-image": "lf-chev", "icon-rotate": ["get", "r"], "icon-size": ["interpolate", ["linear"], ["zoom"], 12.3, .34, 17, .55],
+        "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-rotation-alignment": "map", "icon-pitch-alignment": "map" }, paint: { "icon-opacity": .95 } }, "lf-circle");
+      const SEG = new WeakMap(); let ph = 0, lt = 0, lu = 0;
+      const seg = f => { let q = SEG.get(f); if (q) return q; const pts = f.geometry.coordinates, cum = [0];
+        for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + dist([pts[i - 1][1], pts[i - 1][0]], [pts[i][1], pts[i][0]])); q = { pts, cum, L: cum[cum.length - 1] }; SEG.set(f, q); return q; };
+      const tick = t => { requestAnimationFrame(tick); if (t - lu < 50 || document.visibilityState !== "visible") return; const z = g.getZoom();
+        const mpp = 156543.03 * Math.cos(17.06 * rad) / Math.pow(2, z + 1), sp = 42 * mpp; ph = (ph + (lt ? t - lt : 0) / 1000 * sp * .9) % sp; lt = t; lu = t;
+        const out = []; if (z >= 12.3) { const b = g.getBounds(), w = b.getWest(), e = b.getEast(), so = b.getSouth(), n = b.getNorth();
+          for (const f of this.lines.values()) { if (!f.properties.arrow || f.geometry.coordinates.length < 2) continue; const sg = seg(f);
+            for (let d = ph; d < sg.L; d += sp) { const [c, r] = arrowAt(sg, d); if (c[0] < w || c[0] > e || c[1] < so || c[1] > n) continue; out.push({ type: "Feature", properties: { r }, geometry: { type: "Point", coordinates: c } }); }
+            if (out.length > 1500) break; } }
+        this.m._arrN = out.length; const src = g.getSource("lf-pts"); if (src) src.setData({ type: "FeatureCollection", features: out }); };
+      requestAnimationFrame(tick);
       this.ready = true; this.flush();
     }
     dashLayer(dash, w) {
@@ -75,6 +91,10 @@
     }
   }
 
+  function arrowAt(sg, d) { let lo = 0, hi = sg.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (sg.cum[m] <= d) lo = m; else hi = m; }
+    const a = sg.pts[lo], b = sg.pts[hi], f = (d - sg.cum[lo]) / Math.max(1e-6, sg.cum[hi] - sg.cum[lo]);
+    const y = Math.sin((b[0] - a[0]) * rad) * Math.cos(b[1] * rad), x = Math.cos(a[1] * rad) * Math.sin(b[1] * rad) - Math.sin(a[1] * rad) * Math.cos(b[1] * rad) * Math.cos((b[0] - a[0]) * rad);
+    return [[a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f], Math.atan2(y, x) / rad - 90]; }
   /* letrero de parada: cuadrito blanco con borde y camión del color de la ruta */
   function stopImg(m, col) {
     const id = "stop-" + col; if (m.store.imgs.has(id)) return id; m.store.imgs.add(id);
