@@ -230,6 +230,8 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
 .compass{bottom:calc(58vh + 122px)}
 .wdet{margin-top:4px}.wdet summary{color:var(--ok);font-weight:700;cursor:pointer;font-size:13px}
 .wsteps{margin:6px 0 0;padding-left:18px;font-size:13px}.wsteps li{padding:3px 0}
+.homehead{display:flex;align-items:center;justify-content:space-between;gap:8px}.homehead h2{margin:10px 0;font-size:clamp(18px,5.4vw,22px);white-space:nowrap}
+.nearbtn.sm{width:auto;margin:0;flex:none;padding:8px 11px;border-radius:999px;font-size:12.5px;white-space:nowrap;gap:4px}
 .h2logo{display:flex;align-items:center;gap:8px}.h2logo img{height:30px;width:auto}
 #appvid{display:block;width:100%;max-width:260px;margin:8px auto 0;border-radius:18px;background:#000;box-shadow:0 6px 20px #0003;aspect-ratio:540/1174}
 .brand{display:flex;align-items:center;gap:10px}.brand img{height:44px;width:auto;filter:drop-shadow(0 4px 10px #e8336d55)}.brand b{display:block;font-family:Archivo,sans-serif;font-weight:900;font-size:22px;line-height:1;letter-spacing:-.02em}.brand small{display:block;font-weight:800;font-size:10px;letter-spacing:.35em;color:#0f766e;margin-top:3px}
@@ -1142,7 +1144,7 @@ setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("
 function clearAll(){
   dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;RT=null;rtId++;rtLayer.clearLayers();rtHid=false;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
-  $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
+  $("panel").innerHTML=`<div class="homehead"><h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><button class="nearbtn sm" id="nearbtn" onclick="toggleNear()">🚏 Rutas próximas <span class="chev">▾</span></button></div><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa.</p><div id="stopsec"></div>`;SC=null;
   if(me)map.setView(me.getLatLng(),15);setTop(true);setSheet(false);
   if(trip){ // con viaje activo: solo queda el seguimiento, lo demás se quita
     dest=trip.dest.slice();destName="";$("panel").innerHTML="";tripBar();shareUI();
@@ -1349,7 +1351,7 @@ upCompass();
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
-$("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
+$("panel").innerHTML=`<div class="homehead"><h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><button class="nearbtn sm" id="nearbtn" onclick="toggleNear()">🚏 Rutas próximas <span class="chev">▾</span></button></div><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
 setTimeout(()=>{renderPeek();if(isIdle()&&!sheet.classList.contains("min"))setSheet(true)},700);
 try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");setTimeout(openMenu,900)}}catch(e){}
 (async()=>{
