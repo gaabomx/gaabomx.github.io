@@ -590,14 +590,17 @@ function plan(W0=1000,W1=900,now){
   plans=[];
   const codes=Object.keys(GEO);
   // avisos de la gente: se suman al tiempo de llegada (tráfico alarga el viaje; bloqueo o camiones parados en la base, la espera)
-  const AVD={};try{AVISOS.filter(a=>a.s<3600).forEach(a=>{(AVD[a.r]=AVD[a.r]||new Set()).add(a.t)})}catch(e){}
-  const avDelay=(c,ride)=>{const t=AVD[c];if(!t)return 0;let d=0;if(t.has("trafico"))d+=Math.max(5,ride*.6);if(t.has("base"))d+=20;if(t.has("bloqueo"))d+=30;return Math.min(45,Math.round(d))};
+  const AVA={};try{AVISOS.filter(a=>a.s<3600).forEach(a=>avRutas(a).forEach(r=>(AVA[r]=AVA[r]||[]).push(a)))}catch(e){}
+  // solo cuenta si el aviso está en el tramo que vas a ir en el camión (o si no salen de su base)
+  const avDelay=(c,ride,dir,i0,i1)=>{const L0=AVA[c];if(!L0)return 0;const t=new Set();
+    for(const a of L0){if(a.t==="base"||!dir){t.add(a.t);continue}const ll=[a.lat,a.lon];for(let i=i0;i<=i1;i+=2)if(D(dir.line[i],ll)<300){t.add(a.t);break}}
+    let d=0;if(t.has("trafico"))d+=Math.max(5,ride*.6);if(t.has("base"))d+=20;if(t.has("bloqueo"))d+=30;return Math.min(45,Math.round(d))};
   for(const c of codes) for(const [dk,dir] of legsFor(c)){
     const B=nearestStops(dir,origin,W0),A=nearestStops(dir,dest,W1);
     let best=null;
     for(const b of B) for(const a of A){ if(a.k<=b.k||a.s.i==null||b.s.i==null) continue;
       const rm=rideM(dir,b,a);if(rm<200)continue;
-      const dl=avDelay(c,rm/BUS),t=wmin(b.d)+WAIT+rm/BUS+wmin(a.d)+dl,score=t+pen(b.d+a.d,1);
+      const dl=avDelay(c,rm/BUS,dir,b.s.i,a.s.i),t=wmin(b.d)+WAIT+rm/BUS+wmin(a.d)+dl,score=t+pen(b.d+a.d,1);
       if(!best||score<best.score) best={t,score,dl,legs:[{c,dk,dir,b,a,rm}],walk:[b.d,a.d]};
     }
     if(best) plans.push(best);
@@ -621,7 +624,7 @@ function plan(W0=1000,W1=900,now){
         for(const q of L2){if(q.c2===c1)continue;const tw=D(s1.ll,q.s2.ll);if(tw>400)continue;
           for(const b of B){if(t1<=b.k)continue;const r1=rideM(d1,b,{s:s1});if(r1<200)continue;
             for(const a2 of Aof.get(q.d2)){if(a2.k<=q.t2)continue;const r2=rideM(q.d2,{s:q.s2},a2);if(r2<200)continue;
-              const dl=avDelay(c1,r1/BUS)+avDelay(q.c2,r2/BUS),t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a2.d)+dl,score=t+pen(b.d+tw+a2.d,2);
+              const dl=avDelay(c1,r1/BUS,d1,b.s.i,s1.i)+avDelay(q.c2,r2/BUS,q.d2,q.s2.i,a2.s.i),t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a2.d)+dl,score=t+pen(b.d+tw+a2.d,2);
               const key=c1+k1+q.c2+q.k2;const ex=TB.get(key);
               if(!ex||score<ex.score)TB.set(key,{key,t,score,dl,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0},rm:r1},{c:q.c2,dk:q.k2,dir:q.d2,b:{s:q.s2,k:q.t2,d:tw},a:a2,rm:r2}],walk:[b.d,a2.d],tw});
             }}}}}
@@ -650,7 +653,7 @@ function renderPlans(){
     const L0=p.legs[0],L1=p.legs[p.legs.length-1];
     const walkT=Math.round(wmin(p.walk[0])+wmin(p.walk[1])+(p.tw?wmin(p.tw):0));
     h+=`<div class="opt${i===0&&!walkBest?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0&&!walkBest?"⭐ Mejor · ":""}~${Math.round(p.t)} min · llegas ${hora(p.t)}</div></div>
-    <div class="kind">${p.legs.length>1?'<span class="tag tr">🔁 1 transbordo</span>':'<span class="tag dr">✅ Directa</span>'}<span class="muted">🚶 ${fmt((p.walk[0]+p.walk[1]+(p.tw||0))*1.25)} a pie</span></div>${avisoTxt(p.legs.map(l=>l.c),p.dl)}
+    <div class="kind">${p.legs.length>1?'<span class="tag tr">🔁 1 transbordo</span>':'<span class="tag dr">✅ Directa</span>'}<span class="muted">🚶 ${fmt((p.walk[0]+p.walk[1]+(p.tw||0))*1.25)} a pie</span></div>${p.dl?avisoTxt(p.legs.map(l=>l.c),p.dl):""}
     <div class="liveeta" data-eta="${i}"></div>
     <ul class="steps">
       <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
@@ -1361,7 +1364,7 @@ if(YO){$("recsec").style.display="";recPendUI();try{const x=JSON.parse(localStor
 let SEEN=[];const seenLayer=L.layerGroup().addTo(map);
 const hace=s=>s<60?"hace un momento":s<3600?`hace ${Math.round(s/60)} min`:`hace ${Math.round(s/3600)} h`;
 var SEENMODE="vi",AVISOS=[];
-const AVT=[["bloqueo","🚧","Bloqueo","Hay un bloqueo y no puede pasar"],["base","🅿️","No están saliendo","Los camiones siguen parados en la base"],["trafico","🚗","Mucho tráfico","Va muy lento, tardará más"]];
+const AVT=[["bloqueo","🚧","Bloqueo","Hay un bloqueo y no puede pasar"],["base","🅿️","No están saliendo","Estoy en la base y los camiones siguen parados"],["trafico","🚗","Mucho tráfico","Va muy lento, tardará más"]];
 const AVN={bloqueo:"🚧 Bloqueo",base:"🅿️ No están saliendo de la base",trafico:"🚗 Mucho tráfico"};
 var OPENING=false;function setSeenMode(m){const b=document.querySelector(`#seenmode [data-m="${m}"]`);OPENING=true;try{if(b)b.onclick()}finally{OPENING=false}}
 document.querySelectorAll("#seenmode button").forEach(b=>b.onclick=()=>{SEENMODE=b.dataset.m;document.querySelectorAll("#seenmode button").forEach(x=>x.classList.toggle("on",x===b));
@@ -1369,11 +1372,16 @@ document.querySelectorAll("#seenmode button").forEach(b=>b.onclick=()=>{SEENMODE
   $("seensub").textContent=SEENMODE==="av"?"Elige la ruta. Se avisa a todos durante 1 hora. Anónimo.":"Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.";$("seendirs").innerHTML="";if(!OPENING&&$("seendlg").classList.contains("on"))openSeen()});
 // avisos de la gente: bloqueo, no salen de la base, mucho tráfico (duran 1 hora)
 const avLayer=L.layerGroup().addTo(map);
-function avisosDe(c){const m={};AVISOS.filter(a=>a.r===c&&a.s<3600).forEach(a=>{(m[a.t]=m[a.t]||[]).push(a)});return Object.entries(m).map(([t,v])=>({t,n:v.length,s:Math.min(...v.map(x=>x.s))}))}
-function avisoTxt(codes,dl){const out=[];[...new Set(codes)].forEach(c=>avisosDe(c).forEach(a=>out.push(`⚠️ ${c}: ${AVN[a.t]} · ${hace(a.s)}${a.n>1?` · ${a.n} personas`:""}`)));if(out.length&&dl)out.push(`⏱️ Ya le sumé ~${dl} min a tu llegada`);return out.length?`<div class="avwarn">${out.join("<br>")}</div>`:""}
-function drawAvisos(){avLayer.clearLayers();try{const n=new Set(AVISOS.filter(a=>a.s<3600).map(a=>a.r+a.t)).size,e=$("avcount");e.textContent=n;e.classList.toggle("on",n>0)}catch(e){}const gs=[];AVISOS.filter(a=>a.s<3600).forEach(a=>{const ll=[a.lat,a.lon];const g=gs.find(g=>g.r===a.r&&g.t===a.t&&D(g.ll,ll)<400);if(g)g.n++;else gs.push({r:a.r,t:a.t,ll,s:a.s,n:1})});
-  gs.forEach(g=>L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[0,0],iconAnchor:[0,0],html:`<div class="avmk">${AVN[g.t].split(" ")[0]}<b>${g.r}</b></div>`}),zIndexOffset:2100}).addTo(avLayer)
-    .bindPopup(`<b>${AVN[g.t]}</b><br>Ruta ${g.r} · ${hace(g.s)}${g.n>1?`<br>${g.n} personas lo reportaron`:""}<br><span style="color:#6b6358">Reporte de usuarios</span>`));
+// rutas a las que les afecta un aviso: las que pasan a menos de 300 m (si "no salen de la base": las que tienen su base ahí)
+function avRutas(a){if(a.r)return[a.r];if(a._rs&&a._n===Object.keys(GEO).length)return a._rs;const ll=[a.lat,a.lon],out=[];
+  for(const c in GEO){const ok=GEO[c].some(d=>a.t==="base"?[d.line[0],d.line[d.line.length-1]].some(p=>p&&D(p,ll)<500):d.line.some(p=>D(p,ll)<300));if(ok)out.push(c)}
+  a._rs=out;a._n=Object.keys(GEO).length;return out}
+function avisosDe(c){const m={};AVISOS.filter(a=>a.s<3600&&avRutas(a).includes(c)).forEach(a=>{(m[a.t]=m[a.t]||[]).push(a)});return Object.entries(m).map(([t,v])=>({t,n:v.length,s:Math.min(...v.map(x=>x.s))}))}
+function avisoTxt(codes,dl){const out=[];[...new Set(codes)].forEach(c=>avisosDe(c).forEach(a=>out.push(`⚠️ ${c}: ${AVN[a.t]} en su camino · ${hace(a.s)}${a.n>1?` · ${a.n} personas`:""}`)));if(out.length&&dl)out.push(`⏱️ Ya le sumé ~${dl} min a tu llegada`);return out.length?`<div class="avwarn">${out.join("<br>")}</div>`:""}
+function drawAvisos(){avLayer.clearLayers();const gs=[];AVISOS.filter(a=>a.s<3600).forEach(a=>{const ll=[a.lat,a.lon];const g=gs.find(g=>g.t===a.t&&D(g.ll,ll)<400);if(g){g.n++;g.s=Math.min(g.s,a.s);avRutas(a).forEach(r=>g.rs.add(r))}else gs.push({t:a.t,ll,s:a.s,n:1,rs:new Set(avRutas(a))})});
+  try{const e=$("avcount");e.textContent=gs.length;e.classList.toggle("on",gs.length>0)}catch(e){}
+  gs.forEach(g=>L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[0,0],iconAnchor:[0,0],html:`<div class="avmk">${AVN[g.t].split(" ")[0]}<b>${{bloqueo:"Bloqueo",base:"No salen",trafico:"Tráfico"}[g.t]}</b></div>`}),zIndexOffset:2100}).addTo(avLayer)
+    .bindPopup(`<b>${AVN[g.t]}</b><br>${hace(g.s)}${g.n>1?` · ${g.n} personas lo reportaron`:""}${g.rs.size?`<br>Afecta: ${[...g.rs].sort().join(", ")}`:""}<br><span style="color:#6b6358">Reporte de usuarios</span>`));
   try{renderPeek()}catch(e){}}
 async function pollAvisos(){if(document.visibilityState!=="visible")return;try{const r=await fetch(SBR+"bb_avisos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){AVISOS=await r.json();drawAvisos();if(plans&&plans.length&&typeof renderPlans==="function")try{renderPlans()}catch(e){}}}catch(e){}}
 setInterval(pollAvisos,45000);setTimeout(pollAvisos,2500);setInterval(()=>{AVISOS.forEach(x=>x.s+=60);drawAvisos()},60000);
@@ -1415,7 +1423,17 @@ $("seenbtn").onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openSeen("v
   if(!document.body.classList.contains("fleft"))av.style.right=cs.right;else av.style.left=cs.left};
   new MutationObserver(sync).observe(sb2,{attributes:true,attributeFilter:["style","class"]});new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:["class"]});
   addEventListener("resize",sync);sb2.addEventListener("transitionend",sync);setTimeout(sync,0);setInterval(sync,1500);
-  av.onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openSeen("av")}})();
+  av.onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openAviso()}})();
+// ⚠️ reportar un incidente donde está la persona (sin elegir ruta)
+function openAviso(){if(!me){toast("📍 Activa tu ubicación para reportar lo que pasa donde estás.");try{geoTry=0;geoStart()}catch(e){}return}
+  setSeenMode("av");const c=[me.getLatLng().lat,me.getLatLng().lng];
+  $("seensub").textContent="Se marca donde estás y se avisa a todos durante 1 hora. Anónimo.";
+  $("seenroutes").innerHTML=`<p class="muted" style="margin:6px 0 2px">¿Qué está pasando aquí?</p>`+AVT.map(([t,e,n,d])=>`<button class="avbtn" data-t="${t}"><em>${e}</em><span>${n}<small>${d}</small></span></button>`).join("");$("seendirs").innerHTML="";
+  $("seenroutes").querySelectorAll("[data-t]").forEach(x=>x.onclick=()=>{const t=x.dataset.t;
+    sb("bb_aviso_add",{p_sesion:SES,p_ruta:null,p_tipo:t,p_lat:c[0],p_lon:c[1]});
+    AVISOS.unshift({r:null,t,lat:c[0],lon:c[1],s:0});drawAvisos();$("seendlg").classList.remove("on");
+    const rs=avRutas(AVISOS[0]);toast(`⚠️ Gracias. Ya les avisamos a los que usan ${rs.length?rs.slice(0,4).join(", ")+(rs.length>4?"…":""):"las rutas de aquí"}`)});
+  $("seendlg").classList.add("on")}
 $("seenx").onclick=()=>$("seendlg").classList.remove("on");
 $("seendlg").onclick=e=>{if(e.target.id==="seendlg")$("seendlg").classList.remove("on")};
 function snapSeen(k,di,c){ // pone la marca en la parada de esa ruta más cercana (o sobre la ruta)
