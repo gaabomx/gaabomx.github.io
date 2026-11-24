@@ -82,14 +82,14 @@ button{font:700 15px Inter;border:0;border-radius:10px;padding:12px;background:v
     <div class="vivo"><b id="ahora">0</b><div><h2 style="margin:0">Viéndola ahorita</h2><div class="muted" id="vivosTxt"></div></div></div>
     <div class="card bk"><h2>📈 Bolsa de Binni Rutas</h2><p style="margin:0 0 8px;color:#8d8a84;font-size:13px">Visitas y gente conectada, como en la bolsa de valores.</p>
       <div class="bk-top">
-        <div class="bk-tabs" id="bkModo"><button data-m="v" class="on">Visitas</button><button data-m="a">Conectados</button></div>
+        <div class="bk-tabs" id="bkModo"><button data-m="v">Visitas</button><button data-m="a" class="on">Conectados</button></div>
         <div class="bk-vivo"><i></i><span id="bkAhora">0</span> ahora</div>
       </div>
       <div class="bk-num"><b id="bkNum">0</b><span id="bkVar" class="sube">+0%</span></div>
       <div class="bk-sub" id="bkSub">visitas en las últimas 24 horas</div>
       <div class="bk-chart" id="bkChart"><svg id="bkSvg" preserveAspectRatio="none"></svg><div class="bk-tip" id="bkTip"></div><div class="bk-ejey" id="bkEjeY"></div></div>
       <div class="bk-ejex" id="bkEjeX"></div>
-      <div class="bk-tabs rango" id="bkRango"><button data-r="1D" class="on">1D</button><button data-r="1S">1S</button><button data-r="1M">1M</button><button data-r="3M">3M</button><button data-r="TODO">Todo</button></div>
+      <div class="bk-tabs rango" id="bkRango"><button data-r="LIVE" class="on">🔴 1s</button><button data-r="1S">1S</button><button data-r="1M">1M</button><button data-r="3M">3M</button><button data-r="TODO">Todo</button></div>
       <div class="bk-stats">
         <div><span>Máximo</span><b id="bkMax">0</b></div><div><span>Mínimo</span><b id="bkMin">0</b></div><div><span>Promedio</span><b id="bkProm">0</b></div>
         <div><span>Pico conectados</span><b id="bkPico">0</b></div><div><span>Periodo anterior</span><b id="bkAntes">0</b></div><div><span>Total</span><b id="bkTot">0</b></div>
@@ -141,18 +141,25 @@ function pintar(d){
   list($("disp"),d.dispositivos,x=>DISP[x.nombre]||x.nombre);
 }
 /* ---------- Bolsa de visitas ---------- */
-const BK={r:"1D",m:"v",d:null};
+const BK={r:"LIVE",m:"a",d:null};const BKL=[];let bkTimer=null;
 const fmtN=n=>Number(n).toLocaleString("es-MX");
-function bkHora(t,r){const d=new Date(t);return r==="1D"?d.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}):r==="1S"?d.toLocaleDateString("es-MX",{weekday:"short"})+" "+d.toLocaleTimeString("es-MX",{hour:"numeric"}):d.toLocaleDateString("es-MX",{day:"numeric",month:"short"})}
-async function bkCargar(){try{BK.d=await rpc("panel_bb_grafica",{p_clave:clave,p_rango:BK.r});bkPintar()}catch(e){}}
+function bkHora(t,r){const d=new Date(t);if(r==="LIVE")return (d.getHours()%12||12)+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0");return r==="1D"?d.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}):r==="1S"?d.toLocaleDateString("es-MX",{weekday:"short"})+" "+d.toLocaleTimeString("es-MX",{hour:"numeric"}):d.toLocaleDateString("es-MX",{day:"numeric",month:"short"})}
+async function bkVivo(){if(BK.r!=="LIVE"||document.visibilityState!=="visible")return;try{const r=await rpc("panel_bb_ahora",{p_clave:clave});
+    BKL.push({t:new Date().toISOString(),a:r.ahora,v:r.hoy});while(BKL.length>120)BKL.shift();
+    const a=BKL.map(x=>x.a);BK.d={puntos:BKL.slice(),ahora:r.ahora,pico:Math.max(...a),total:r.hoy,antes:(BKL[Math.max(0,BKL.length-61)]||{}).a||0,live:1};bkPintar()}catch(e){}}
+function bkStart(){clearInterval(bkTimer);if(BK.r==="LIVE"){bkVivo();bkTimer=setInterval(bkVivo,1000)}}
+async function bkCargar(){if(BK.r==="LIVE"){bkStart();return}clearInterval(bkTimer);bkTimer=null;try{BK.d=await rpc("panel_bb_grafica",{p_clave:clave,p_rango:BK.r});bkPintar()}catch(e){}}
 function bkPintar(){const d=BK.d;if(!d)return;const P=d.puntos||[],k=BK.m,vals=P.map(p=>+p[k]||0);
   const svg=$("bkSvg"),W=svg.clientWidth||320,H=svg.clientHeight||190,R=30;
   const max=Math.max(1,...vals),min=Math.min(...vals),sum=vals.reduce((a,b)=>a+b,0);
   const tot=k==="v"?d.total:Math.max(0,...vals),ant=d.antes||0;
   $("bkNum").textContent=fmtN(k==="v"?tot:d.ahora);
-  const sub={"1D":"las últimas 24 horas","1S":"los últimos 7 días","1M":"los últimos 30 días","3M":"los últimos 3 meses","TODO":"desde el inicio"}[BK.r];
-  $("bkSub").textContent=(k==="v"?"visitas en ":"conectados ahora · pico en ")+sub+(k==="a"?": "+fmtN(d.pico):"");
-  let ch=0,cls="igual",txt="";if(k==="v"&&BK.r!=="TODO"){ch=ant?((tot-ant)/ant*100):(tot?100:0);cls=ch>0?"sube":ch<0?"baja":"igual";txt=(ch>0?"▲ +":ch<0?"▼ ":"")+ch.toFixed(1)+"%"}
+  const LV=!!d.live;
+  const sub={"LIVE":"los últimos 2 minutos","1D":"las últimas 24 horas","1S":"los últimos 7 días","1M":"los últimos 30 días","3M":"los últimos 3 meses","TODO":"desde el inicio"}[BK.r];
+  $("bkSub").textContent=LV?(k==="v"?"visitas de hoy · en tiempo real":"conectados en tiempo real · pico de los últimos 2 min: "+fmtN(d.pico)):(k==="v"?"visitas en ":"conectados ahora · pico en ")+sub+(k==="a"?": "+fmtN(d.pico):"");
+  if(LV)$("bkNum").textContent=fmtN(k==="v"?d.total:d.ahora);
+  let ch=0,cls="igual",txt="";if(LV){const f=vals.slice(-1)[0]||0,p0=k==="a"?d.antes:(vals[Math.max(0,vals.length-61)]||0),df=f-p0;cls=df>0?"sube":df<0?"baja":"igual";txt=(df>0?"▲ +":df<0?"▼ ":"= ")+df+" en 1 min"}
+  else if(k==="v"&&BK.r!=="TODO"){ch=ant?((tot-ant)/ant*100):(tot?100:0);cls=ch>0?"sube":ch<0?"baja":"igual";txt=(ch>0?"▲ +":ch<0?"▼ ":"")+ch.toFixed(1)+"%"}
   else{const f=vals.slice(-1)[0]||0,i0=vals.find(v=>v>0)||0;cls=f>=i0?"sube":"baja";txt=""}
   const bv=$("bkVar");bv.className=cls;bv.textContent=txt;
   const col=cls==="baja"?"#f87171":"#4ade80";
@@ -166,12 +173,13 @@ function bkPintar(){const d=BK.d;if(!d)return;const P=d.puntos||[],k=BK.m,vals=P
     <path d="${area}" fill="url(#bkG)"/><path id="bkL" d="${line}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
     <line id="bkCur" x1="0" x2="0" y1="0" y2="${H-8}" stroke="#ecebe8" stroke-width="1" opacity="0"/><circle id="bkDot" r="4.5" fill="${col}" stroke="#0a0a0b" stroke-width="2" opacity="0"/>
     <circle cx="${x(vals.length-1)}" cy="${y(vals[vals.length-1]||0)}" r="4" fill="${col}"><animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;.4;1" dur="2s" repeatCount="indefinite"/></circle>`;
-  const L0=$("bkL");try{const len=L0.getTotalLength();L0.style.strokeDasharray=len;L0.style.strokeDashoffset=len;L0.getBoundingClientRect();L0.style.transition="stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)";L0.style.strokeDashoffset=0}catch(e){}
+  const L0=$("bkL");if(!LV)try{const len=L0.getTotalLength();L0.style.strokeDasharray=len;L0.style.strokeDashoffset=len;L0.getBoundingClientRect();L0.style.transition="stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)";L0.style.strokeDashoffset=0}catch(e){}
   $("bkEjeY").innerHTML=[max,Math.round(max*.5),0].map(v=>`<span>${fmtN(v)}</span>`).join("");
   const n=P.length,ix=[0,Math.floor(n/3),Math.floor(2*n/3),n-1].filter((v,i,a)=>v>=0&&a.indexOf(v)===i);
   $("bkEjeX").innerHTML=ix.map(i=>`<span>${P[i]?bkHora(P[i].t,BK.r):""}</span>`).join("");
   $("bkMax").textContent=fmtN(max===1&&!vals.some(v=>v)?0:max);$("bkMin").textContent=fmtN(vals.length?min:0);
   $("bkProm").textContent=(sum/Math.max(1,vals.length)).toFixed(1);$("bkPico").textContent=fmtN(d.pico);$("bkAntes").textContent=BK.r==="TODO"?"—":fmtN(ant);$("bkTot").textContent=fmtN(d.total);
+  if(LV){$("bkAntes").previousElementSibling.textContent="Hace 1 min";$("bkTot").previousElementSibling.textContent="Visitas hoy"}else{$("bkAntes").previousElementSibling.textContent="Periodo anterior";$("bkTot").previousElementSibling.textContent="Total"}
   $("bkAhora").textContent=fmtN(d.ahora);
   // tocar y arrastrar sobre la gráfica muestra el valor de ese momento
   const box=$("bkChart"),tip=$("bkTip"),cur=$("bkCur"),dot=$("bkDot");
@@ -186,13 +194,13 @@ document.querySelectorAll("#bkRango button").forEach(b=>b.onclick=()=>{document.
 document.querySelectorAll("#bkModo button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#bkModo button").forEach(x=>x.classList.toggle("on",x===b));BK.m=b.dataset.m;bkPintar()});
 addEventListener("resize",()=>bkPintar());
 async function cargar(){
-  try{pintar(await rpc("panel_binnibus",{p_clave:clave}));if(!BK.d||Date.now()-(BK.t||0)>30000){BK.t=Date.now();bkCargar()}$("estado").className="estado on";$("estadoTxt").textContent="en vivo"}
+  try{pintar(await rpc("panel_binnibus",{p_clave:clave}));if(BK.r==="LIVE"){if(!bkTimer)bkStart()}else if(!BK.d||Date.now()-(BK.t||0)>30000){BK.t=Date.now();bkCargar()}$("estado").className="estado on";$("estadoTxt").textContent="en vivo"}
   catch(e){if(e.status===400||e.status===401||e.status===403){salir("Clave incorrecta.");return}$("estado").className="estado";$("estadoTxt").textContent="sin conexión, reintentando…"}
 }
 async function abrir(k){clave=k;try{await rpc("panel_binnibus",{p_clave:k})}catch(e){salir(e.status?"Clave incorrecta.":"No hay conexión.");return}
   try{localStorage.setItem("panel_clave",k)}catch(e){}
   $("login").hidden=true;$("app").hidden=false;cargar();clearInterval(timer);timer=setInterval(()=>{if(document.visibilityState==="visible")cargar()},15000)}
-function salir(msg){clearInterval(timer);clave="";try{localStorage.removeItem("panel_clave")}catch(e){}$("app").hidden=true;$("login").hidden=false;$("err").textContent=msg||""}
+function salir(msg){clearInterval(timer);clearInterval(bkTimer);bkTimer=null;clave="";try{localStorage.removeItem("panel_clave")}catch(e){}$("app").hidden=true;$("login").hidden=false;$("err").textContent=msg||""}
 $("login").onsubmit=e=>{e.preventDefault();$("err").textContent="Entrando…";abrir($("clave").value)};
 $("salir").onclick=()=>salir();
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&clave)cargar()});
