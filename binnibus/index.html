@@ -182,14 +182,15 @@ body.hasdest #clearbtn{display:block}
 .vgh .vn{max-width:24px;margin-left:3px;font-size:8px;background:#1d1a16;color:#fff;border-radius:6px;padding:0 3px;line-height:11px}
 .vgh .chev{max-width:10px;margin-left:2px;font-size:7px;opacity:.6;transition:transform .25s,max-width .4s,opacity .3s}.vgrp.open .chev{transform:rotate(180deg)}
 .zclose .vgh .vlab{max-width:90px;opacity:1;margin-left:4px}
-.zfar .vgrp{background:#facc15;border-radius:50%;transform:translate(1px,1px)}
-.zfar .vgh{height:8px;padding:0 4px}.zfar .vgh>*{max-width:0!important;opacity:0!important;margin:0!important;padding:0}
-.zfar .vgrp,.zfar .vis i{box-shadow:0 0 0 1px rgba(120,90,0,.35),0 1px 3px rgba(0,0,0,.25)}
+.zfar .vgrp{background:#facc15;border:1.5px solid #1d1a16;border-radius:50%;transform:translate(-2px,-2px);opacity:1}
+.zfar .vgrp::before,.zfar .vis i::before{content:"👀";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;line-height:1}
+.zfar .vgh{height:15px;padding:0 7.5px}.zfar .vgh>*{max-width:0!important;opacity:0!important;margin:0!important;padding:0}
+.zfar .vgrp,.zfar .vis i{box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .zfar .vis i::after{border-color:#facc15!important}
 .zfar .vgrp.hot,.zfar .vis.hot i{animation:vblink 1.4s ease-in-out infinite}
-@keyframes vblink{0%,100%{box-shadow:0 0 0 1px rgba(120,90,0,.35),0 0 0 0 rgba(250,204,21,.9)}50%{box-shadow:0 0 0 1px rgba(120,90,0,.35),0 0 0 7px rgba(250,204,21,0);opacity:.55}}
+@keyframes vblink{0%,100%{box-shadow:0 0 0 0 rgba(250,204,21,.95),0 1px 4px rgba(0,0,0,.35)}60%{box-shadow:0 0 0 9px rgba(250,204,21,0),0 1px 4px rgba(0,0,0,.35)}}
 .zfar .vgl{grid-template-rows:0fr!important;max-width:0!important}
-.zfar .vis i{background:#facc15!important;width:9px;height:9px}
+.zfar .vis i{position:relative;background:#facc15!important;width:18px;height:18px;border:1.5px solid #1d1a16;margin:-3px 0 0 -3px}
 .vgrp.new{animation:vgp 2.2s ease-out 2}@keyframes vgp{0%{box-shadow:0 0 0 0 rgba(250,204,21,.6),0 1px 4px rgba(0,0,0,.22)}100%{box-shadow:0 0 0 6px rgba(250,204,21,0),0 1px 4px rgba(0,0,0,.22)}}
 .vgl{display:grid;grid-template-rows:0fr;max-width:0;transition:grid-template-rows .28s ease,max-width .28s ease}.vgrp.open .vgl{max-width:130px}.vgl>div{overflow:hidden}
 .vgrp.open .vgl{grid-template-rows:1fr}.vgrp.open .vgl>div{padding:0 4px 3px}
