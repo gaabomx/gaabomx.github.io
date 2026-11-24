@@ -52,16 +52,6 @@
       x.strokeStyle = "rgba(20,16,12,.55)"; x.lineWidth = 6 * A; x.beginPath(); x.moveTo(7 * A, 4 * A); x.lineTo(14 * A, 10 * A); x.lineTo(7 * A, 16 * A); x.stroke();
       x.strokeStyle = "#ffffff"; x.lineWidth = 3.2 * A; x.beginPath(); x.moveTo(7 * A, 4 * A); x.lineTo(14 * A, 10 * A); x.lineTo(7 * A, 16 * A); x.stroke();
       try { g.addImage("lf-chev", x.getImageData(0, 0, W, W), { pixelRatio: A }); } catch (e) {}
-      g.addLayer({ id: "lf-flow", type: "line", source: "lf-lines", minzoom: 11.5, filter: ["==", ["get", "arrow"], 1],
-        layout: { "line-cap": "butt", "line-join": "round" },
-        paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1.6, 17, 3.2], "line-opacity": .9, "line-dasharray": [0, 4, 3] } }, "lf-circle");
-      g.addLayer({ id: "lf-arrow", type: "symbol", source: "lf-lines", minzoom: 12, filter: ["==", ["get", "arrow"], 1],
-        layout: { "symbol-placement": "line", "symbol-spacing": ["interpolate", ["linear"], ["zoom"], 12, 70, 17, 120], "icon-image": "lf-chev",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, .75, 17, 1.2], "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-rotation-alignment": "map", "icon-pitch-alignment": "map" },
-        paint: { "icon-opacity": 1 } }, "lf-circle");
-      const seq = [[0,4,3],[.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],[0,.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,.5]];
-      let fk = 0, fl = 0; const fstep = t => { if (t - fl > 75 && document.visibilityState === "visible") { fl = t; try { g.setPaintProperty("lf-flow", "line-dasharray", seq[fk = (fk + 1) % seq.length]); } catch (e) {} } requestAnimationFrame(fstep); };
-      requestAnimationFrame(fstep);
       this.ready = true; this.flush();
     }
     dashLayer(dash, w) {
@@ -181,18 +171,19 @@
       g.addLayer({ id: "sel-glow", type: "line", source: "sel", layout: lay, paint: { "line-width": 22, "line-blur": 10, "line-gradient": grad(col, 0), "line-opacity": .55 } }, below);
       g.addLayer({ id: "sel-case", type: "line", source: "sel", layout: lay, paint: { "line-width": 13, "line-gradient": grad("#ffffff", 0) } }, below);
       g.addLayer({ id: "sel-main", type: "line", source: "sel", layout: lay, paint: { "line-width": 8, "line-gradient": grad(col, 0) } }, below);
-      g.addLayer({ id: "sel-flow", type: "line", source: "sel", layout: { "line-cap": "butt", "line-join": "round" }, paint: { "line-width": 3, "line-color": "#ffffff", "line-opacity": 0, "line-dasharray": [0, 4, 3] } }, below);
+      g.addLayer({ id: "sel-arrow", type: "symbol", source: "sel", layout: { "symbol-placement": "line", "symbol-spacing": ["interpolate", ["linear"], ["zoom"], 11, 45, 17, 80], "icon-image": "lf-chev",
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 11, .45, 17, .7], "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-rotation-alignment": "map", "icon-pitch-alignment": "map" }, paint: { "icon-opacity": 0 } }, below);
       const t0 = performance.now(), DUR = 1100; const seq = [[0,4,3],[.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],[0,.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,.5]];
       let k = 0, last = 0;
       const step = t => { if (!g.getLayer("sel-main")) return; const e = Math.min(1, (t - t0) / DUR), p = 1 - Math.pow(1 - e, 3);
         if (e < 1) { g.setPaintProperty("sel-glow", "line-gradient", grad(col, p)); g.setPaintProperty("sel-case", "line-gradient", grad("#ffffff", p)); g.setPaintProperty("sel-main", "line-gradient", grad(col, p)); }
-        else if (!this._selDone) { this._selDone = 1; g.setPaintProperty("sel-flow", "line-opacity", .95); }
+        else if (!this._selDone) { this._selDone = 1; g.setPaintProperty("sel-arrow", "icon-opacity", 1); }
         if (e >= 1) { g.setPaintProperty("sel-glow", "line-opacity", .35 + .25 * Math.sin((t - t0) / 380));
-          if (t - last > 70) { last = t; g.setPaintProperty("sel-flow", "line-dasharray", seq[k = (k + 1) % seq.length]); } }
+          if (t - last > 70) { last = t; g.setPaintProperty("sel-arrow", "icon-opacity", .7 + .3 * Math.sin((t - t0) / 260)); } }
         this._selRAF = requestAnimationFrame(step); };
       this._selDone = 0; this._selRAF = requestAnimationFrame(step); }); return this; }
     selClear() { cancelAnimationFrame(this._selRAF); const g = this.gl; if (!g || !g.getStyle()) return this;
-      ["sel-flow", "sel-main", "sel-case", "sel-glow"].forEach(id => { if (g.getLayer(id)) g.removeLayer(id); }); if (g.getSource("sel")) g.removeSource("sel"); return this; }
+      ["sel-arrow", "sel-main", "sel-case", "sel-glow"].forEach(id => { if (g.getLayer(id)) g.removeLayer(id); }); if (g.getSource("sel")) g.removeSource("sel"); return this; }
     refreshRasters() { const f = window.BB_GL && window.BB_GL.rasterVisible; if (!f) return this;
       this._layers.forEach(l => { if (l._sid && l.url && this.gl.getLayer(l._sid)) this.gl.setLayoutProperty(l._sid, "visibility", f(l.url) ? "visible" : "none"); }); return this; }
   }
