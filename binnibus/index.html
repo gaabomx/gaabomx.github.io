@@ -65,7 +65,7 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 #linecard{position:fixed;left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 64px);z-index:1050;background:var(--card);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.3);padding:10px 12px;font-size:13px;transform:perspective(700px) rotateX(-90deg);transform-origin:50% 0;opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .25s}
 #linecard.on{transform:perspective(700px) rotateX(0);opacity:1;pointer-events:auto}
 #linecard .lc-h{display:flex;align-items:center;gap:8px}#linecard .lc-h b{font-size:15px}#linecard .lc-h button{margin-left:auto;border:0;background:#efe8dc;border-radius:999px;width:28px;height:28px;font-size:13px;cursor:pointer}
-#linecard .lc-r{margin-top:4px;color:var(--ink)}#linecard .lc-d{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}#linecard .lc-d span{background:#f3ede2;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600}
+#linecard .lc-r{margin-top:4px;color:var(--ink)}#linecard .lc-d{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}#linecard .lc-go{border:0;background:#1d1a16;color:#fff;border-radius:999px;padding:7px 12px;font:700 12.5px Inter,system-ui,sans-serif;cursor:pointer}#linecard .lc-go:active{transform:scale(.96)}
 .peek.flip{animation:pkFlip .55s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 50%}
 .sheet.min.idle{transform:translateY(calc(100% - 196px - env(safe-area-inset-bottom)))}
 .pkinfo{display:flex;flex-direction:column;gap:6px;text-align:left;font:500 13px/1.3 Inter,system-ui,sans-serif;padding:2px 2px 4px}
@@ -531,8 +531,11 @@ function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.set
   const r=(window.R||[]).find(x=>x[0]===h.c)||[],dirs=(GEO[h.c]||[]).map(d=>d.to);let el=$("linecard");
   if(!el){el=document.createElement("div");el.id="linecard";document.body.appendChild(el)}
   el.innerHTML=`<div class="lc-h"><span class="badge" style="background:${COL[h.c]||"#0f766e"}">${h.c}</span><b>${esc(r[1]||"")}</b>${r[2]?`<span class="muted">· ${esc(r[2])}</span>`:""}<button id="lcx" aria-label="Cerrar">✕</button></div>
-    <div class="lc-r">${esc(r[3]||"")}</div><div class="lc-d">${dirs.map(t=>`<span>→ ${esc(t)}</span>`).join("")}</div>`;
-  el.classList.remove("on");void el.offsetWidth;el.classList.add("on");$("lcx").onclick=e=>{e.stopPropagation();clearLine()}}
+    <div class="lc-r">${esc(r[3]||"")}</div><div class="lc-d">${dirs.map((t,i)=>`<button class="lc-go" data-d="${i}">Ir → ${esc(t)}</button>`).join("")}</div>`;
+  el.classList.remove("on");void el.offsetWidth;el.classList.add("on");$("lcx").onclick=e=>{e.stopPropagation();clearLine()};
+  el.querySelectorAll(".lc-go").forEach(b=>b.onclick=e=>{e.stopPropagation();const d=GEO[h.c][+b.dataset.d];
+    const st=d.stops.filter(x=>x.ll&&!x.bad),last=st[st.length-1]||{ll:d.line[d.line.length-1],name:d.to};
+    clearLine();ONLY={c:h.c,to:d.to};ONLYK=true;try{setDest(last.ll,`${d.to} (${h.c})`)}finally{ONLYK=false}})}
 function clearLine(){if(!SELL)return;SELL=null;for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle({opacity:.6,weight:3}));const el=$("linecard");if(el)el.classList.remove("on")}
 function draw(code){
   const g=GEO[code];if(!g)return;
@@ -548,7 +551,8 @@ map.on("zoomend",stopsByZoom);
 
 /* ---------- 3. Planear viaje ---------- */
 let origin=null,dest=null,destName="",tripLayer=L.layerGroup().addTo(map),plans=[],active=null;
-function legsFor(code){return (GEO[code]||[]).map(d=>[d.to,d])}
+var ONLY=null,ONLYK=false; // "Ir" desde una línea: solo esa ruta y ese sentido
+function legsFor(code){if(ONLY&&code!==ONLY.c)return[];return (GEO[code]||[]).filter(d=>!ONLY||d.to===ONLY.to).map(d=>[d.to,d])}
 function nearestStops(dir,pt,maxD){return dir.stops.map((s,k)=>({s,k,d:s.ll&&!s.bad?D(pt,s.ll):1e9})).filter(x=>x.d<maxD)}
 const WALK=75,BUS=280,WAIT=8; // m/min caminando, m/min camión (~17 km/h), min de espera
 const wmin=m=>m*1.25/WALK; // la calle real es ~25% más larga que la línea recta
@@ -965,6 +969,7 @@ $("q").addEventListener("blur",()=>setTimeout(()=>{const b=$("sugg");if(b.classL
 $("q").addEventListener("input",()=>{clearTimeout(sTimer);const q=$("q").value.trim();$("sugg").classList.remove("hist");if(q.length<3){if(!q)showHist();else $("sugg").style.display="none";return}sTimer=setTimeout(()=>search(q,true),350)});
 $("sform").onsubmit=e=>{e.preventDefault();const q=$("q").value.trim();if(q)search(q);$("q").blur()};
 function setDest(c,name){
+  if(!ONLYK)ONLY=null;
   try{addHist(c,name)}catch(e){}
   document.body.classList.add("hasdest");dest=c;destName=name;$("q").value=name;$("sugg").style.display="none";setSheet(false);
   if(!origin){$("panel").innerHTML="<h2>"+esc(name)+"</h2><p>¿Desde dónde sales? Activa tu ubicación (botón 📍) o toca el mapa donde estás y elige <b>📍 Salir de aquí</b>.</p>";tripLayer.clearLayers();drawEnds();map.setView(c,15);pending=true;return}
@@ -1218,6 +1223,7 @@ setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("
 
 /* ---------- Limpiar todo ---------- */
 function clearAll(){
+  ONLY=null;
   clearLine();
   dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;RT=null;rtId++;rtLayer.clearLayers();rtHid=false;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
