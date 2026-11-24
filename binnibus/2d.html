@@ -1052,14 +1052,15 @@ const UA=navigator.userAgent,DISP=/iPhone/.test(UA)?"iphone":/iPad/.test(UA)?"ip
 (()=>{let ya=false;try{ya=!!sessionStorage.getItem("bb-v");sessionStorage.setItem("bb-v","1")}catch(e){}
   let org=null;try{const r=document.referrer&&new URL(document.referrer).hostname;if(r&&r!==location.hostname)org=r.replace(/^www\./,"").replace(/^(l\.|lm\.)/,"")}catch(e){}
   const u=new URLSearchParams(location.search).get("utm_source");if(u)org=u;
-  if(!ya&&!/build\.html/.test(location.pathname))sb("bb_visita",{p_sesion:SES,p_dispositivo:DISP,p_origen:org});
+  if(!ya&&!YO&&!/build\.html/.test(location.pathname))sb("bb_visita",{p_sesion:SES,p_dispositivo:DISP,p_origen:org});
   let t=null;const on=()=>{if(t)return;sb("bb_latido",{p_sesion:SES,p_activo:true,p_dispositivo:DISP});t=setInterval(()=>sb("bb_latido",{p_sesion:SES,p_activo:true,p_dispositivo:DISP}),20000)};
   const off=()=>{if(!t)return;clearInterval(t);t=null;sb("bb_latido",{p_sesion:SES,p_activo:false})};
   document.addEventListener("visibilitychange",()=>document.visibilityState==="visible"?on():off());
   addEventListener("pagehide",off);if(document.visibilityState==="visible")on();
 })();
 let lastLogged="";
-function logSearch(){if(!destName||destName===lastLogged||destName==="Punto en el mapa")return;lastLogged=destName;let cerca=plans.length>0;try{if(dest&&dest.length){if(!STOPIDX)buildStopIdx();cerca=STOPIDX.some(g=>D(dest,g.ll)<800)}}catch(e){}
+const YO=(()=>{try{return localStorage.getItem("bb-yo")==="1"}catch(e){return false}})(); // el dueño no cuenta en estadísticas
+function logSearch(){if(YO||!destName||destName===lastLogged||destName==="Punto en el mapa")return;lastLogged=destName;let cerca=plans.length>0;try{if(dest&&dest.length){if(!STOPIDX)buildStopIdx();cerca=STOPIDX.some(g=>D(dest,g.ll)<800)}}catch(e){}
   sb("bb_busqueda",{p_destino:destName,p_con_ruta:cerca})}
 
 

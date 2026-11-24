@@ -198,7 +198,7 @@ async function cargar(){
   catch(e){if(e.status===400||e.status===401||e.status===403){salir("Clave incorrecta.");return}$("estado").className="estado";$("estadoTxt").textContent="sin conexión, reintentando…"}
 }
 async function abrir(k){clave=k;try{await rpc("panel_binnibus",{p_clave:k})}catch(e){salir(e.status?"Clave incorrecta.":"No hay conexión.");return}
-  try{localStorage.setItem("panel_clave",k)}catch(e){}
+  try{localStorage.setItem("panel_clave",k);localStorage.setItem("bb-yo","1")}catch(e){}
   $("login").hidden=true;$("app").hidden=false;cargar();clearInterval(timer);timer=setInterval(()=>{if(document.visibilityState==="visible")cargar()},15000)}
 function salir(msg){clearInterval(timer);clearInterval(bkTimer);bkTimer=null;clave="";try{localStorage.removeItem("panel_clave")}catch(e){}$("app").hidden=true;$("login").hidden=false;$("err").textContent=msg||""}
 $("login").onsubmit=e=>{e.preventDefault();$("err").textContent="Entrando…";abrir($("clave").value)};
