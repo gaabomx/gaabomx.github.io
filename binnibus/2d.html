@@ -61,6 +61,10 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 .sheet.gone{transform:translateY(calc(100% + 30px))!important;transition:transform .45s cubic-bezier(.4,0,.2,1)!important}
 #showsheet{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));z-index:1001;transform:translate(-50%,40px) scale(.9);opacity:0;pointer-events:none;border:0;border-radius:999px;background:var(--card);color:var(--ink);box-shadow:0 6px 20px rgba(0,0,0,.3);padding:10px 18px;font:800 14px Inter,system-ui,sans-serif;max-width:86vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .45s cubic-bezier(.22,1.4,.36,1),opacity .25s}
 #showsheet.on{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto}
+#linecard{position:fixed;left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 64px);z-index:1050;background:var(--card);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.3);padding:10px 12px;font-size:13px;transform:perspective(700px) rotateX(-90deg);transform-origin:50% 0;opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .25s}
+#linecard.on{transform:perspective(700px) rotateX(0);opacity:1;pointer-events:auto}
+#linecard .lc-h{display:flex;align-items:center;gap:8px}#linecard .lc-h b{font-size:15px}#linecard .lc-h button{margin-left:auto;border:0;background:#efe8dc;border-radius:999px;width:28px;height:28px;font-size:13px;cursor:pointer}
+#linecard .lc-r{margin-top:4px;color:var(--ink)}#linecard .lc-d{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}#linecard .lc-d span{background:#f3ede2;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600}
 .peek.flip{animation:pkFlip .55s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 50%}
 .sheet.min.idle{transform:translateY(calc(100% - 196px - env(safe-area-inset-bottom)))}
 .pkinfo{display:flex;flex-direction:column;gap:6px;text-align:left;font:500 13px/1.3 Inter,system-ui,sans-serif;padding:2px 2px 4px}
@@ -453,12 +457,26 @@ async function buildRoute(code,raw){ // rutas sin datos en OpenStreetMap (parada
 /* ---------- 2. Dibujar ---------- */
 const layers={};
 const stopLayer=L.layerGroup();
+const NETPL={};let SELL=null;
+/* tocar una línea: se ilumina, las demás bajan intensidad y sale su información */
+function lineAt(e){if(netHidden)return null;const p=map.latLngToContainerPoint([e.latlng.lat,e.latlng.lng]);let best=null,bd=16;
+  for(const c in GEO){if(!layers[c]||!map.hasLayer(layers[c]))continue;for(const d of GEO[c]){const L0=d.line;let a=null;
+    for(let i=0;i<L0.length;i+=2){const q=map.latLngToContainerPoint(L0[i]);if(a){const dx=q.x-a.x,dy=q.y-a.y,l2=dx*dx+dy*dy||1;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l2;t=Math.max(0,Math.min(1,t));
+      const dd=Math.hypot(a.x+t*dx-p.x,a.y+t*dy-p.y);if(dd<bd){bd=dd;best={c,to:d.to}}}a=q}}}
+  return best}
+function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle(c===h.c?{opacity:1,weight:6}:{opacity:.12,weight:3}));
+  const r=(window.R||[]).find(x=>x[0]===h.c)||[],dirs=(GEO[h.c]||[]).map(d=>d.to);let el=$("linecard");
+  if(!el){el=document.createElement("div");el.id="linecard";document.body.appendChild(el)}
+  el.innerHTML=`<div class="lc-h"><span class="badge" style="background:${COL[h.c]||"#0f766e"}">${h.c}</span><b>${esc(r[1]||"")}</b>${r[2]?`<span class="muted">· ${esc(r[2])}</span>`:""}<button id="lcx" aria-label="Cerrar">✕</button></div>
+    <div class="lc-r">${esc(r[3]||"")}</div><div class="lc-d">${dirs.map(t=>`<span>→ ${esc(t)}</span>`).join("")}</div>`;
+  el.classList.remove("on");void el.offsetWidth;el.classList.add("on");$("lcx").onclick=e=>{e.stopPropagation();clearLine()}}
+function clearLine(){if(!SELL)return;SELL=null;for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle({opacity:.6,weight:3}));const el=$("linecard");if(el)el.classList.remove("on")}
 function draw(code){
   const g=GEO[code];if(!g)return;
   const grp=L.layerGroup(),c=COL[code]||"#0f766e";
   g.forEach((d,j)=>{
-    L.polyline(d.line,{color:c,weight:3,opacity:.6,dashArray:j?"6 6":null,smoothFactor:1.5,interactive:false}).addTo(grp);
-    d.stops.forEach(s=>{if(s.ll&&!s.bad)L.circleMarker(s.ll,{radius:5,color:"#fff",weight:1.5,fillColor:c,fillOpacity:1}).addTo(stopLayer).on("click",e=>{L.DomEvent.stop(e);openStopCard(s.ll,s.name)})});
+    (NETPL[code]=NETPL[code]||[]).push(L.polyline(d.line,{color:c,weight:3,opacity:.6,dashArray:j?"6 6":null,smoothFactor:1.5,interactive:false}).addTo(grp));
+    d.stops.forEach(s=>{if(s.ll&&!s.bad)L.circleMarker(s.ll,{radius:5,color:"#fff",weight:1.5,fillColor:c,fillOpacity:1,stop:1}).addTo(stopLayer).on("click",e=>{L.DomEvent.stop(e);openStopCard(s.ll,s.name)})});
   });
   layers[code]=grp;grp.addTo(map);
 }
@@ -588,7 +606,7 @@ async function walkRoute(a,b){ // la caminata más corta por calles, con indicac
 function stepsHTML(w){if(!w||!w.steps||!w.steps.length)return"";
   return `<ol class="wsteps">${w.steps.map(s=>`<li>${s.t}${s.m>=10?` <span class="muted">· ${fmt(s.m)}</span>`:""}</li>`).join("")}<li>🏁 Llegas a tu destino</li></ol>`}
 const SVGR=L.svg({padding:.6});let netHidden=false,drawId=0;
-function hideNetwork(){if(netHidden)return;netHidden=true;Object.values(layers).forEach(l=>map.removeLayer(l));if(map.hasLayer(stopLayer))map.removeLayer(stopLayer)}
+function hideNetwork(){clearLine();if(netHidden)return;netHidden=true;Object.values(layers).forEach(l=>map.removeLayer(l));if(map.hasLayer(stopLayer))map.removeLayer(stopLayer)}
 function showNetwork(){if(!netHidden)return;netHidden=false;Object.entries(layers).forEach(([c,l])=>{const b=document.querySelector(`#chips button[data-c="${c}"]`);if(!b||!b.classList.contains("off"))l.addTo(map)});stopsByZoom()}
 function drawIn(pl,ms,delay){ // anima la línea como si se fuera dibujando
   const el=pl.getElement&&pl.getElement();if(!el||!el.getTotalLength)return;
@@ -621,7 +639,7 @@ function showPlan(p){
     // paradas intermedias de este tramo
     l.dir.stops.forEach(st=>{if(!st.ll||st.bad||st.i==null||st.i<=from.i||st.i>=to.i)return;
       const k=(st.i-from.i)/Math.max(1,to.i-from.i);
-      setTimeout(()=>{if(my!==drawId)return;L.circleMarker(st.ll,{radius:4,color:"#fff",weight:2,fillColor:col,fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(tripLayer).bindPopup(`<b>${esc(st.name)}</b><br>${l.c} → ${esc(l.dk)}`)},delay+dur*k)});
+      setTimeout(()=>{if(my!==drawId)return;L.circleMarker(st.ll,{radius:4,color:"#fff",weight:2,fillColor:col,fillOpacity:1,renderer:SVGR,className:"popin",stop:1}).addTo(tripLayer).bindPopup(`<b>${esc(st.name)}</b><br>${l.c} → ${esc(l.dk)}`)},delay+dur*k)});
     L.circleMarker(from.ll,{radius:9,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(tripLayer).bindTooltip("Sube: "+from.name+" ("+l.c+")",{permanent:true,direction:"right",className:"lbl"});
     setTimeout(()=>{if(my!==drawId)return;L.circleMarker(to.ll,{radius:9,color:"#fff",weight:3,fillColor:"#dc2626",fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(tripLayer).bindTooltip("Bájate: "+to.name,{permanent:true,direction:"right",className:"lbl"})},delay+dur);
     if(j<p.legs.length-1) walkLine(to.ll,p.legs[j+1].b.s.ll);
@@ -891,7 +909,7 @@ function setDest(c,name){
   plan();
 }
 let pressT=null;
-map.on("click",e=>{destAddr="";const c=[e.latlng.lat,e.latlng.lng];
+map.on("click",e=>{const hl=lineAt(e);if(hl){selectLine(hl);return}if(SELL){clearLine();return}destAddr="";const c=[e.latlng.lat,e.latlng.lng];
   L.popup().setLatLng(c).setContent(`<button id="pd" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#111;color:#fff">🏁 Ir aquí</button><br><button id="po" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#16a34a;color:#fff">📍 Salir de aquí</button><br><button id="ps" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#b45309;color:#fff">📌 Guardar este lugar</button>`).openOn(map);
   setTimeout(()=>{$("pd").onclick=()=>{map.closePopup();setDest(c,"Punto en el mapa")};$("po").onclick=()=>{map.closePopup();originIsMe=false;setOrigin(c,"punto elegido en el mapa")};$("ps").onclick=()=>{map.closePopup();guardarLugar(c)}},0);
 });
@@ -1137,6 +1155,7 @@ setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("
 
 /* ---------- Limpiar todo ---------- */
 function clearAll(){
+  clearLine();
   dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;RT=null;rtId++;rtLayer.clearLayers();rtHid=false;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
   $("panel").innerHTML=`<div class="homehead"><h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><button class="nearbtn sm" id="nearbtn" onclick="toggleNear()">🚏 Rutas próximas <span class="chev">▾</span></button></div><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa.</p><div id="stopsec"></div>`;SC=null;
@@ -1318,7 +1337,7 @@ function showRouteFrom(code,to,ll,name){
   setTimeout(()=>{if(my!==rtId)return;L.polyline(after,{color:"#fff",weight:3,opacity:.9,dashArray:"1 18",lineCap:"round",renderer:SVGR,className:"flow",interactive:false}).addTo(rtLayer)},250+dur);
   const ahead=dir.stops.filter(st=>st.ll&&!st.bad&&st.i!=null&&st.i>i0);
   ahead.forEach((st,k)=>{const t=Math.round((dir.cum[st.i]-dir.cum[i0])/BUS);
-    setTimeout(()=>{if(my!==rtId)return;L.circleMarker(st.ll,{radius:5,color:"#fff",weight:2,fillColor:col,fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(rtLayer)
+    setTimeout(()=>{if(my!==rtId)return;L.circleMarker(st.ll,{radius:5,color:"#fff",weight:2,fillColor:col,fillOpacity:1,renderer:SVGR,className:"popin",stop:1}).addTo(rtLayer)
       .bindPopup(`<b>${esc(st.name)}</b><br>${code} → ${esc(to)}<br><span class="muted">~${Math.max(1,t)} min desde ${esc(name)}</span>`)},250+dur*((st.i-i0)/Math.max(1,line.length-1-i0)))});
   L.circleMarker(S.ll,{radius:9,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1,renderer:SVGR,className:"popin"}).addTo(rtLayer).bindTooltip("Subes aquí: "+name,{permanent:true,direction:"right",className:"lbl"});
   const end=line[line.length-1],tot=Math.round((dir.cum[line.length-1]-dir.cum[i0])/BUS);

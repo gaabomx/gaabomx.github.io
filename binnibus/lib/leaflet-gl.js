@@ -25,7 +25,7 @@
   /* ---------- Almacén de figuras (una fuente GeoJSON por tipo) ---------- */
   let FID = 0, Z = 0;
   class Store {
-    constructor(m) { this.m = m; this.lines = new Map(); this.circles = new Map(); this.fills = new Map(); this.dashLayers = new Set(); this.dirty = false; this.ready = false; }
+    constructor(m) { this.m = m; this.lines = new Map(); this.circles = new Map(); this.stops = new Map(); this.imgs = new Set(); this.fills = new Map(); this.dashLayers = new Set(); this.dirty = false; this.ready = false; }
     init() {
       const g = this.m.gl;
       const empty = { type: "FeatureCollection", features: [] };
@@ -42,6 +42,10 @@
         paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "fc"], "circle-opacity": ["get", "fo"],
           "circle-stroke-color": ["get", "c"], "circle-stroke-width": ["get", "w"], "circle-stroke-opacity": ["get", "o"],
           "circle-pitch-alignment": "map" } });
+      g.addSource("lf-stops", { type: "geojson", data: empty });
+      g.addLayer({ id: "lf-stop", type: "symbol", source: "lf-stops",
+        layout: { "icon-image": ["get", "img"], "icon-size": ["interpolate", ["linear"], ["zoom"], 12, .55, 15, .8, 18, 1.05],
+          "icon-allow-overlap": true, "icon-ignore-placement": true, "symbol-sort-key": ["get", "z"], "icon-pitch-alignment": "viewport" } });
       this.ready = true; this.flush();
     }
     dashLayer(dash, w) {
@@ -61,7 +65,25 @@
       g.getSource("lf-lines").setData(fc(this.lines));
       g.getSource("lf-fills").setData(fc(this.fills));
       g.getSource("lf-circles").setData(fc(this.circles));
+      g.getSource("lf-stops").setData(fc(this.stops));
     }
+  }
+
+  /* letrero de parada: cuadrito blanco con borde y camión del color de la ruta */
+  function stopImg(m, col) {
+    const id = "stop-" + col; if (m.store.imgs.has(id)) return id; m.store.imgs.add(id);
+    const r = 2, W = 26 * r, c = document.createElement("canvas"); c.width = c.height = W; const x = c.getContext("2d");
+    const rr = (a, b, w, h, k) => { x.beginPath(); x.moveTo(a + k, b); x.arcTo(a + w, b, a + w, b + h, k); x.arcTo(a + w, b + h, a, b + h, k); x.arcTo(a, b + h, a, b, k); x.arcTo(a, b, a + w, b, k); x.closePath(); };
+    x.shadowColor = "rgba(0,0,0,.35)"; x.shadowBlur = 3 * r; x.shadowOffsetY = r;
+    rr(2 * r, 2 * r, 22 * r, 22 * r, 6 * r); x.fillStyle = "#fff"; x.fill(); x.shadowColor = "transparent";
+    x.lineWidth = 2.4 * r; x.strokeStyle = col; x.stroke();
+    // camión
+    x.fillStyle = col; rr(7.5 * r, 6.5 * r, 11 * r, 11 * r, 2.4 * r); x.fill();
+    x.fillStyle = "#fff"; rr(9 * r, 8.2 * r, 8 * r, 4.2 * r, 1 * r); x.fill();
+    x.beginPath(); x.arc(10.3 * r, 15 * r, 1 * r, 0, 7); x.arc(15.7 * r, 15 * r, 1 * r, 0, 7); x.fill();
+    x.fillStyle = col; x.fillRect(9 * r, 17.3 * r, 2 * r, 2 * r); x.fillRect(15 * r, 17.3 * r, 2 * r, 2 * r);
+    const add = () => { try { if (!m.gl.hasImage(id)) m.gl.addImage(id, x.getImageData(0, 0, W, W), { pixelRatio: r }); } catch (e) {} };
+    m._loaded ? add() : m._q.unshift(add); return id;
   }
 
   /* ---------- Mapa ---------- */
@@ -89,7 +111,7 @@
         const ev = { latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng }, originalEvent: oe, _stop: false };
         if (this._loaded) {
           const p = e.point, t = 8;
-          const hits = this.gl.queryRenderedFeatures([[p.x - t, p.y - t], [p.x + t, p.y + t]], { layers: ["lf-circle"] });
+          const hits = this.gl.queryRenderedFeatures([[p.x - t, p.y - t], [p.x + t, p.y + t]], { layers: ["lf-circle", "lf-stop"] });
           let best = null, bd = 1e9;
           for (const h of hits) { const o = FIG.get(h.properties.id); if (!o || !o._clickable()) continue;
             const q = this.gl.project(h.geometry.coordinates), d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (d < bd) { bd = d; best = o; } }
@@ -98,7 +120,7 @@
         this.fire("click", ev);
       });
       this.gl.on("mousemove", e => { if (!this._loaded) return; const p = e.point, t = 6;
-        const h = this.gl.queryRenderedFeatures([[p.x - t, p.y - t], [p.x + t, p.y + t]], { layers: ["lf-circle"] }).some(f => { const o = FIG.get(f.properties.id); return o && o._clickable(); });
+        const h = this.gl.queryRenderedFeatures([[p.x - t, p.y - t], [p.x + t, p.y + t]], { layers: ["lf-circle", "lf-stop"] }).some(f => { const o = FIG.get(f.properties.id); return o && o._clickable(); });
         this.gl.getCanvas().style.cursor = h ? "pointer" : ""; });
       ["zoomend", "dragstart", "moveend", "movestart", "rotate", "pitch", "zoom", "move", "dragend"].forEach(k => this.gl.on(k, () => this.fire(k)));
     }
@@ -212,9 +234,11 @@
     getRadius() { return this.options.radius; }
     _anchor() { return this._ll; }
     _upd() { const m = this._map; if (!m) return; const o = this.options;
+      if (o.stop) { m.store.stops.set(this._id, { type: "Feature", properties: { id: this._id, img: stopImg(m, o.fillColor || o.color), z: this._z },
+        geometry: { type: "Point", coordinates: toLL(this._ll) } }); m.store.touch(); return; }
       m.store.circles.set(this._id, { type: "Feature", id: this._id, properties: { id: this._id, r: o.radius, fc: o.fillColor || o.color, fo: o.fillOpacity, c: o.color, w: o.weight, o: o.opacity, z: this._z },
         geometry: { type: "Point", coordinates: toLL(this._ll) } }); m.store.touch(); }
-    _del(m) { m.store.circles.delete(this._id); m.store.touch(); }
+    _del(m) { m.store.circles.delete(this._id); m.store.stops.delete(this._id); m.store.touch(); }
   }
 
   // círculo en metros (precisión del GPS)
