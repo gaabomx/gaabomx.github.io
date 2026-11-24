@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf-8"><pre id="o">probando…</pre><script>
+const T=[
+ ["tilejson","https://tiles.openfreemap.org/planet","json"],
+ ["font bold","https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf","buf"],
+ ["dem","https://s3.amazonaws.com/elevation-tiles-prod/terrarium/12/947/1850.png","buf"],
+ ["esri","https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/15/14531/7631","buf"]];
+(async()=>{let out=[];for(const [n,u,k] of T){try{const r=await fetch(u);let x="";if(k=="json"){const j=await r.json();x=JSON.stringify({tiles:j.tiles,layers:(j.vector_layers||[]).map(v=>v.id+":"+Object.keys(v.fields||{}).join("|")).filter(s=>/^(building|poi)/.test(s))})}else{x=(await r.arrayBuffer()).byteLength+" bytes"}out.push(n+" OK "+r.status+" "+x)}catch(e){out.push(n+" FAIL "+e)}}
+document.getElementById("o").textContent=out.join("\n\n")})();</script>
