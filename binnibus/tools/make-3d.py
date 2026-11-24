@@ -16,7 +16,10 @@ def rep(old, new, count=1):
 # 1) motor del mapa: MapLibre + capa compatible con Leaflet
 rep('<link rel="stylesheet" href="lib/leaflet.css">',
     '<link rel="stylesheet" href="lib/maplibre-gl.css">\n<link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>')
-rep('<script src="lib/leaflet.js"></script>', '''<script src="lib/maplibre-gl.js"></script>
+rep('<script src="lib/leaflet.js"></script>', '''<script>/* sin WebGL2 (celulares viejos) -> versión plana */
+(function(){var ok=false;try{var c=document.createElement("canvas");ok=!!(window.WebGL2RenderingContext&&c.getContext("webgl2"))}catch(e){}
+if(!ok||/[?&]plano/.test(location.search))location.replace("2d.html"+location.search+location.hash)})();</script>
+<script src="lib/maplibre-gl.js"></script>
 <script>
 /* Estilo 3D: satélite (lo agrega la página), relieve, edificios y negocios */
 window.BB_GL = {
@@ -33,7 +36,7 @@ window.BB_GL = {
     sky: { "sky-color": "#88b4e6", "horizon-color": "#d8e6f2", "fog-color": "#d8e6f2", "sky-horizon-blend": .6, "horizon-fog-blend": .6, "fog-ground-blend": .85, "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 10, 1, 14, .4] },
     layers: [
       { id: "bg", type: "background", paint: { "background-color": "#5b6450" } },
-      { id: "bb-buildings", type: "fill-extrusion", source: "ofm", "source-layer": "building", minzoom: 14.5,
+      { id: "bb-buildings", type: "fill-extrusion", source: "ofm", "source-layer": "building", minzoom: 14.5, filter: ["!=", ["get", "hide_3d"], true],
         paint: { "fill-extrusion-color": "#efe6d6",
           "fill-extrusion-height": ["max", 3, ["coalesce", ["get", "render_height"], 6]],
           "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
@@ -82,5 +85,6 @@ rep('function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%
 # el botón de norte también endereza la vista inclinada
 rep('$("compass").classList.toggle("on",n>1&&n<359)', '$("compass").classList.toggle("on",(n>1&&n<359))')
 
+s = s.replace("<!DOCTYPE html>", "<!DOCTYPE html>\n<!-- GENERADO por tools/make-3d.py desde 2d.html. Edita 2d.html y vuelve a correr el script. -->", 1)
 open(dst, "w", encoding="utf-8").write(s)
 print("ok ->", dst)

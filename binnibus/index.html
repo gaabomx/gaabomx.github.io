@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- GENERADO por tools/make-3d.py desde 2d.html. Edita 2d.html y vuelve a correr el script. -->
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -20,7 +21,8 @@
 <meta property="og:image" content="https://gaabomx.github.io/binnibus/icono.png">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"BinniBus Oaxaca","alternateName":["Binni Rutas Oax","Rutas BinniBus"],"url":"https://gaabomx.github.io/binnibus/","applicationCategory":"TravelApplication","operatingSystem":"Web","inLanguage":"es-MX","description":"Planeador de rutas del BinniBus en Oaxaca de Juárez: qué ruta tomar, paradas y camiones en vivo.","offers":{"@type":"Offer","price":"0","priceCurrency":"MXN"},"author":{"@type":"Person","name":"gaabomx"}}</script>
 <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
-<link rel="stylesheet" href="lib/leaflet.css">
+<link rel="stylesheet" href="lib/maplibre-gl.css">
+<link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap"></noscript>
@@ -153,6 +155,10 @@ body.hasdest .clear2{display:block}
 .mdet .chev{font-size:16px;color:var(--muted);transition:transform .25s}
 .mdet[open] .chev{transform:rotate(180deg)}
 .mdet[open] summary{margin-bottom:8px}
+.fab.dim{bottom:calc(58vh + 176px);font:800 14px Inter,system-ui,sans-serif;transition:bottom .28s}
+.maplibregl-popup-content{border-radius:12px;font:14px/1.4 Inter,system-ui,sans-serif;padding:10px 14px}
+.leaflet-tooltip{white-space:nowrap;border-radius:6px;pointer-events:none}
+.maplibregl-ctrl-attrib{font-size:10px}
 .compass{display:none;font-size:18px;transition:bottom .28s,opacity .2s}
 .compass.on{display:block}
 #needle{display:inline-block;color:#dc2626;transform:rotate(-90deg);transition:transform .1s linear}
@@ -239,6 +245,7 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
 </div>
 <div id="topmini"><button id="showtop">🔍 ¿A dónde vas?</button><button id="clearbtn" title="Limpiar">✕ Limpiar</button></div>
 
+<button class="fab dim" id="dimbtn" title="Cambiar vista 2D / 3D" aria-label="Vista 2D o 3D">2D</button>
 <button class="fab compass" id="compass" title="Norte" aria-label="Apuntar al norte"><span id="needle">➤</span></button>
 <button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
 <button class="seen" id="seenbtn">👀 Vi un Binni</button>
@@ -279,8 +286,55 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
   <div id="panel"></div>
 </div>
 
-<script src="lib/leaflet.js"></script>
-<script src="leaflet-rotate.js"></script>
+<script>/* sin WebGL2 (celulares viejos) -> versión plana */
+(function(){var ok=false;try{var c=document.createElement("canvas");ok=!!(window.WebGL2RenderingContext&&c.getContext("webgl2"))}catch(e){}
+if(!ok||/[?&]plano/.test(location.search))location.replace("2d.html"+location.search+location.hash)})();</script>
+<script src="lib/maplibre-gl.js"></script>
+<script>
+/* Estilo 3D: satélite (lo agrega la página), relieve, edificios y negocios */
+window.BB_GL = {
+  pitch: 50,
+  tilesBelow: "bb-buildings",
+  attribution: "Imágenes © Esri · © OpenStreetMap · OpenFreeMap · Relieve © Mapzen/AWS",
+  style: {
+    version: 8,
+    glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+    sources: {
+      ofm: { type: "vector", url: "https://tiles.openfreemap.org/planet" },
+      dem: { type: "raster-dem", tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], encoding: "terrarium", tileSize: 256, maxzoom: 14 }
+    },
+    sky: { "sky-color": "#88b4e6", "horizon-color": "#d8e6f2", "fog-color": "#d8e6f2", "sky-horizon-blend": .6, "horizon-fog-blend": .6, "fog-ground-blend": .85, "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 10, 1, 14, .4] },
+    layers: [
+      { id: "bg", type: "background", paint: { "background-color": "#5b6450" } },
+      { id: "bb-buildings", type: "fill-extrusion", source: "ofm", "source-layer": "building", minzoom: 14.5, filter: ["!=", ["get", "hide_3d"], true],
+        paint: { "fill-extrusion-color": "#efe6d6",
+          "fill-extrusion-height": ["max", 3, ["coalesce", ["get", "render_height"], 6]],
+          "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+          "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 14.5, 0, 15.5, .75] } },
+      { id: "bb-poi-dot", type: "circle", source: "ofm", "source-layer": "poi", minzoom: 15,
+        filter: ["has", "name"],
+        paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 3, 18, 5],
+          "circle-color": ["match", ["get", "class"],
+            ["grocery", "shop", "convenience", "clothing_store", "hardware", "mobile_phone", "furniture"], "#f97316",
+            ["restaurant", "fast_food", "cafe", "bar", "beer", "ice_cream", "bakery"], "#e11d48",
+            ["hospital", "pharmacy", "doctors", "dentist"], "#dc2626",
+            ["school", "college", "library", "kindergarten"], "#7c3aed",
+            ["bank", "atm"], "#0f766e", ["fuel"], "#2563eb", ["place_of_worship"], "#6b7280",
+            ["park", "playground", "garden"], "#16a34a", "#f59e0b"],
+          "circle-stroke-color": "#fff", "circle-stroke-width": 1.2, "circle-pitch-alignment": "map" } },
+      { id: "bb-poi-label", type: "symbol", source: "ofm", "source-layer": "poi", minzoom: 15,
+        filter: ["has", "name"],
+        layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Bold"], "text-size": ["interpolate", ["linear"], ["zoom"], 15, 10.5, 18, 13],
+          "text-anchor": "top", "text-offset": [0, .55], "text-max-width": 8, "symbol-sort-key": ["get", "rank"], "text-optional": true },
+        paint: { "text-color": "#fff", "text-halo-color": "rgba(20,16,12,.85)", "text-halo-width": 1.4 } }
+    ]
+  },
+  onLoad(gl) {
+    try { gl.setTerrain({ source: "dem", exaggeration: 1.25 }); } catch (e) {}
+  }
+};
+</script>
+<script src="lib/leaflet-gl.js"></script>
 <script src="routes.js"></script>
 <script src="stops.js"></script>
 <script>
@@ -583,7 +637,7 @@ function setHeading(h){HDG=((h%360)+360)%360;if(!hdgRAF)hdgRAF=requestAnimationF
 function hdgLoop(){hdgRAF=null;if(HDG==null||!me)return;
   if(HDGshow==null)HDGshow=HDG;let d=((HDG-HDGshow+540)%360)-180;HDGshow+=d*.25;
   const el=me.getElement&&me.getElement();const so=el&&el.querySelector(".sonar");
-  if(so){so.classList.add("hdg");const b=map.getBearing?map.getBearing():0;so.querySelector(".cone").style.transform=`rotate(${HDGshow+b}deg)`}
+  if(so){so.classList.add("hdg");const b=map.getBearing?map.getBearing():0;so.querySelector(".cone").style.transform=`rotate(${HDGshow-b}deg)`}
   if(Math.abs(d)>.3)hdgRAF=requestAnimationFrame(hdgLoop)}
 map.on("rotate",()=>{if(HDG!=null&&!hdgRAF)hdgRAF=requestAnimationFrame(hdgLoop)});
 function onOrient(e){let h=null;
@@ -797,7 +851,7 @@ map.on("click",e=>{destAddr="";const c=[e.latlng.lat,e.latlng.lng];
 const sheet=$("sheet"),fab=$("me");
 function setSheet(min){
   sheet.classList.toggle("min",min);sheet.style.transform="";
-  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
+  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("dimbtn").style.bottom=min?"calc(240px + env(safe-area-inset-bottom))":"calc(58vh + 176px)";$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
   if(min)sheet.scrollTop=0;
   $("peek").textContent=trip?`🟢 Viaje en curso · Bájate en ${trip.legs[trip.legs.length-1].a.s.name} ⌃`:plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
 }
@@ -1162,9 +1216,13 @@ setInterval(()=>{if(SC&&document.visibilityState==="visible")renderStopCard()},1
   $("mclose")&&$("mclose").addEventListener("click",()=>v.pause());})();
 
 /* ---------- Girar el mapa 360° ---------- */
-function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;
-  $("compass").classList.toggle("on",n>1&&n<359);$("needle").style.transform=`rotate(${-90-b}deg)`}
-map.on("rotate",upCompass);
+function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;try{upDim()}catch(e){}
+  $("compass").classList.toggle("on",(n>1&&n<359));$("needle").style.transform=`rotate(${-90-b}deg)`}
+map.on("rotate",upCompass);map.on("pitch",upCompass);
+/* 2D / 3D */
+function upDim(){$("dimbtn").textContent=map.getPitch()>5?"2D":"3D"}
+$("dimbtn").onclick=()=>{const p=map.getPitch()>5;map.gl.easeTo({pitch:p?0:55,duration:700});setTimeout(upDim,720)};
+map.on("pitch",upDim);
 $("compass").onclick=()=>{const b0=map.getBearing(),t0=performance.now();const target=Math.abs(b0)>180?(b0>0?360:-360):0;
   const st=t=>{const k=Math.min(1,(t-t0)/350),e=1-Math.pow(1-k,3);map.setBearing(b0+(target-b0)*e);if(k<1)requestAnimationFrame(st);else map.setBearing(0)};requestAnimationFrame(st)};
 upCompass();
