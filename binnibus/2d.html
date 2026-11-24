@@ -980,7 +980,7 @@ map.on("labelclick",e=>{if(e.lbl&&GEO[e.lbl])selectLine({c:e.lbl})});
 let PV=null;
 function pvSave(){if(map.gl)return{c:map.gl.getCenter(),z:map.gl.getZoom(),b:map.gl.getBearing(),p:map.gl.getPitch()};const c=map.getCenter();return{c,z:map.getZoom(),b:map.getBearing?map.getBearing():0}}
 function pvBack(v){if(!v)return;if(map.gl)map.gl.flyTo({center:v.c,zoom:v.z,bearing:v.b,pitch:v.p,duration:700,essential:true});else map.flyTo([v.c.lat,v.c.lng],v.z,{duration:.6})}
-map.on("click",e=>{if(SELL){clearLine();return}destAddr="";const c=[e.latlng.lat,e.latlng.lng];
+map.on("click",e=>{if(Date.now()-VCLOSED<700)return;if(SELL){clearLine();return}destAddr="";const c=[e.latlng.lat,e.latlng.lng];
   const v0=PV&&!PV.used?PV.v:pvSave();const me0={v:v0,used:false};PV=me0;
   L.popup().setLatLng(c).setContent(`<button id="pd" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#111;color:#fff">🏁 Ir aquí</button><br><button id="po" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#16a34a;color:#fff">📍 Salir de aquí</button><br><button id="ps" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#b45309;color:#fff">📌 Guardar este lugar</button>`).openOn(map);
   setTimeout(()=>{$("pd").onclick=()=>{me0.used=true;map.closePopup();setDest(c,"Punto en el mapa")};$("po").onclick=()=>{me0.used=true;map.closePopup();originIsMe=false;setOrigin(c,"punto elegido en el mapa")};$("ps").onclick=()=>{me0.used=true;map.closePopup();guardarLugar(c)}},0);
@@ -1307,6 +1307,10 @@ const g=groups.find(g=>D(g.ll,ll)<60);if(g)g.v.push(x);else groups.push({ll,v:[x
     const m=L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[18,18],iconAnchor:[8,8],html:`<div class="vgrp${open?" open":""}${x.s<180?" new":""}"><div class="vgh"><span class="vdots">${dots}</span><span class="vlab">Vieron un Binni</span><span class="vn">${g.v.length}</span><span class="chev">▾</span></div><div class="vgl"><div>${rows}</div></div></div>`}),zIndexOffset:-50}).addTo(seenLayer);
     m.on("click",()=>{if(map.getZoom()<13){map.setView(g.ll,15);return}const el=m.getElement().firstElementChild;const o=el.classList.toggle("open");o?OPENV.add(key):OPENV.delete(key);if(o)setTimeout(()=>fitMq(el),320)});
     if(open)setTimeout(()=>fitMq(m.getElement().firstElementChild),0)})}
+// tocar fuera del cuadro de reportes lo cierra (y ese toque no hace nada más en el mapa)
+var VCLOSED=0;
+document.addEventListener("pointerdown",e=>{const o=document.querySelectorAll(".vgrp.open");if(!o.length||e.target.closest(".vgrp"))return;
+  o.forEach(el=>{el.classList.remove("open");el.querySelectorAll(".vd").forEach(d=>d.classList.remove("mq"))});OPENV.clear();VCLOSED=Date.now()},true);
 function fitMq(el){ // destinos largos: el texto se desliza para leerse completo
   el.querySelectorAll(".vd").forEach(d=>{const w=d.firstElementChild.scrollWidth-d.clientWidth;d.classList.toggle("mq",w>2);if(w>2){d.style.setProperty("--dx",-w+"px");d.style.setProperty("--t",Math.max(4,w/18+3)+"s")}})}
 async function pollSeen(){if(document.visibilityState!=="visible")return;
