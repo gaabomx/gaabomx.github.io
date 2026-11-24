@@ -555,7 +555,7 @@ function draw(code){
   const g=GEO[code];if(!g)return;
   const grp=L.layerGroup(),c=COL[code]||"#0f766e";
   g.forEach((d,j)=>{
-    (NETPL[code]=NETPL[code]||[]).push(L.polyline(d.line,{color:c,weight:3,opacity:.6,dashArray:j?"6 6":null,smoothFactor:1.5,interactive:false}).addTo(grp));
+    (NETPL[code]=NETPL[code]||[]).push(L.polyline(d.line,{color:c,weight:3,opacity:.6,dashArray:j?"6 6":null,smoothFactor:1.5,interactive:false,arrows:false}).addTo(grp));
     d.stops.forEach(s=>{if(s.ll&&!s.bad)L.circleMarker(s.ll,{radius:5,color:"#fff",weight:1.5,fillColor:c,fillOpacity:1,stop:1}).addTo(stopLayer).on("click",e=>{L.DomEvent.stop(e);openStopCard(s.ll,s.name)})});
   });
   layers[code]=grp;grp.addTo(map);
@@ -1001,7 +1001,7 @@ function setDest(c,name){
   plan();
 }
 let pressT=null;
-map.on("click",e=>{const hl=lineAt(e);if(hl){selectLine(hl);return}if(SELL){clearLine();return}destAddr="";const c=[e.latlng.lat,e.latlng.lng];
+map.on("click",e=>{if(SELL){clearLine();return}destAddr="";const c=[e.latlng.lat,e.latlng.lng];
   L.popup().setLatLng(c).setContent(`<button id="pd" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#111;color:#fff">🏁 Ir aquí</button><br><button id="po" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#16a34a;color:#fff">📍 Salir de aquí</button><br><button id="ps" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#b45309;color:#fff">📌 Guardar este lugar</button>`).openOn(map);
   setTimeout(()=>{$("pd").onclick=()=>{map.closePopup();setDest(c,"Punto en el mapa")};$("po").onclick=()=>{map.closePopup();originIsMe=false;setOrigin(c,"punto elegido en el mapa")};$("ps").onclick=()=>{map.closePopup();guardarLugar(c)}},0);
 });
