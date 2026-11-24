@@ -298,7 +298,8 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
   <h1>Binni <b>Rutas</b></h1>
   <div class="sub">OAXACA</div>
 </div>
-<script>window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.classList.contains("out"))return;var w=Date.now()-(window.__spl0||0),d=Math.max(0,1400-w);setTimeout(function(){e.classList.add("out");setTimeout(function(){e.remove()},520)},d)};window.__spl0=Date.now();setTimeout(hideSplash,9000)</script>
+<script>var YO=(function(){try{return localStorage.getItem("bb-yo")==="1"}catch(e){return false}})(); // el dueño no cuenta en estadísticas
+window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.classList.contains("out"))return;var w=Date.now()-(window.__spl0||0),d=Math.max(0,1400-w);setTimeout(function(){e.classList.add("out");setTimeout(function(){e.remove()},520)},d)};window.__spl0=Date.now();setTimeout(hideSplash,9000)</script>
 <div id="map"></div>
 
 <div class="top" id="top">
@@ -1059,7 +1060,6 @@ const UA=navigator.userAgent,DISP=/iPhone/.test(UA)?"iphone":/iPad/.test(UA)?"ip
   addEventListener("pagehide",off);if(document.visibilityState==="visible")on();
 })();
 let lastLogged="";
-const YO=(()=>{try{return localStorage.getItem("bb-yo")==="1"}catch(e){return false}})(); // el dueño no cuenta en estadísticas
 function logSearch(){if(YO||!destName||destName===lastLogged||destName==="Punto en el mapa")return;lastLogged=destName;let cerca=plans.length>0;try{if(dest&&dest.length){if(!STOPIDX)buildStopIdx();cerca=STOPIDX.some(g=>D(dest,g.ll)<800)}}catch(e){}
   sb("bb_busqueda",{p_destino:destName,p_con_ruta:cerca})}
 
