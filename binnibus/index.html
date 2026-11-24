@@ -52,6 +52,8 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 .peek{display:none;font:800 15px Archivo;text-align:center;padding-bottom:6px}
 .sheet.min{transform:translateY(calc(100% - 54px - env(safe-area-inset-bottom)));overflow:hidden}
 .sheet.min .peek{display:block}
+.sheet.min.tripmid{transform:translateY(calc(100% - var(--mid,230px) - env(safe-area-inset-bottom)))}
+.peek.flip{animation:pkFlip .55s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 50%}
 .sheet.min.idle{transform:translateY(calc(100% - 196px - env(safe-area-inset-bottom)))}
 .pkinfo{display:flex;flex-direction:column;gap:6px;text-align:left;font:500 13px/1.3 Inter,system-ui,sans-serif;padding:2px 2px 4px}
 .pkinfo{perspective:700px}.pkinfo .r{display:flex;gap:8px;align-items:center;background:#f3ede2;border-radius:12px;padding:7px 10px;transform-origin:50% 50%;backface-visibility:hidden}
@@ -829,6 +831,7 @@ function buzz(){ // vibración: Android, iPhone (iOS 18+, truco del switch) y so
   try{if(actx){const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.18,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.25);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+.26)}}catch(e){}
 }
 function startTrip(p){
+  TMINI=false;
   p.dest=(dest||[]).slice();
   passed={};keepAwake(true);if(navigator.wakeLock&&!window.Capacitor)toast("🔆 La pantalla se queda encendida durante el viaje");try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume()}catch(e){}
   trip=p;warned={};TS=null;nat("start",{stop:p.legs[p.legs.length-1].a.s.name,route:p.legs.map(l=>l.c).join(" → ")});
@@ -840,7 +843,7 @@ function startTrip(p){
   if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
 new MutationObserver(()=>{if(trip&&!$("tripbar")){tripBar();shareUI&&shareUI()}}).observe($("panel"),{childList:true});
-function cancelTrip(){
+function cancelTrip(){TMINI=false;
   nat("end");stopShare(true);keepAwake(false);
   trip=null;warned={};$("alert").style.display="none";tripBar();if(!$("panel").children.length)setTimeout(clearAll,0);
   document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="Iniciar viaje · te aviso dónde bajar";b.style.background="";bindGo()});
@@ -934,7 +937,9 @@ function setSheet(min){
   if(min)sheet.scrollTop=0;
   $("peek").textContent=trip?`🟢 Viaje en curso · Bájate en ${trip.legs[trip.legs.length-1].a.s.name} ⌃`:plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
   const idle=min&&isIdle();sheet.classList.toggle("idle",idle);renderPeek();
-  if(idle)[fab,$("compass"),$("seenbtn"),$("dimbtn"),$("satbtn")].forEach(e=>{if(e&&e.style.bottom)e.style.bottom="calc("+e.style.bottom+" + 142px)"});
+  const tmid=min&&!!trip&&!TMINI;sheet.classList.toggle("tripmid",tmid);let extra=idle?142:0;
+  if(tmid){const m=midH();sheet.style.setProperty("--mid",m+"px");extra=m-54}
+  if(extra)[fab,$("compass"),$("seenbtn"),$("dimbtn"),$("satbtn")].forEach(e=>{if(e&&e.style.bottom)e.style.bottom="calc("+e.style.bottom+" + "+extra+"px)"});
   if(wasMin&&!min&&!NORV){const P=$("panel");P.classList.remove("rv");void P.offsetWidth;P.classList.add("rv");setTimeout(()=>P.classList.remove("rv"),900)}
 }
 /* resumen al entrar: lo más importante sin abrir el panel */
@@ -960,13 +965,20 @@ function renderPeek(){
   PKITEMS=[r1,r2];if(PKI>=PKITEMS.length)PKI=0;showPk(false);
 }
 setInterval(()=>{renderPeek();if(sheet.classList.contains("min")){const i=isIdle();if(i!==sheet.classList.contains("idle"))setSheet(true);else if(i)renderPeek()}},4000);
-let dragY=null,dragDY=0,dragStart=0;
+let dragY=null,dragDY=0,dragStart=0;var TMINI=false;
+function midH(){const tb=$("tripbar"),hd=$("handle");return Math.round((hd?hd.offsetHeight:40)+(tb?tb.offsetHeight:150)+16)}
+function minH(){return sheet.classList.contains("tripmid")?midH():sheet.classList.contains("idle")?196:54}
+function flipPeek(){const pk=$("peek");if(!pk)return;pk.classList.remove("flip");void pk.offsetWidth;pk.classList.add("flip")}
+new ResizeObserver(()=>{if(sheet.classList.contains("tripmid")){const m=midH();if(Math.abs(m-parseInt(sheet.style.getPropertyValue("--mid")||0))>4)setSheet(true)}}).observe($("panel"));
 function dStart(y){dragY=y;dragDY=0;dragStart=Date.now();sheet.style.transition="none"}
 function dMove(y){if(dragY===null)return;dragDY=y-dragY;const min=sheet.classList.contains("min");
   if(!min&&dragDY>0)sheet.style.transform=`translateY(${dragDY}px)`;
-  if(min&&dragDY<0)sheet.style.transform=`translateY(calc(100% - 54px + ${dragDY}px))`;}
+  if(min&&(dragDY<0||sheet.classList.contains("tripmid")))sheet.style.transform=`translateY(calc(100% - ${minH()}px + ${Math.max(dragDY,-9999)}px))`;}
 function dEnd(){if(dragY===null)return;sheet.style.transition="";const min=sheet.classList.contains("min");const quick=Date.now()-dragStart<250;
-  if(Math.abs(dragDY)<6)setSheet(!min); // toque = alternar
+  const tm=sheet.classList.contains("tripmid");
+  if(min&&trip&&TMINI&&(Math.abs(dragDY)<6||dragDY<-40||(quick&&dragDY<-15))){TMINI=false;setSheet(true)} // mini -> tarjeta del viaje
+  else if(min&&tm&&(dragDY>50||(quick&&dragDY>20))){TMINI=true;setSheet(true);flipPeek()} // tarjeta -> mini
+  else if(Math.abs(dragDY)<6)setSheet(!min); // toque = alternar
   else if(!min&&(dragDY>70||(quick&&dragDY>25)))setSheet(true);
   else if(min&&(dragDY<-40||(quick&&dragDY<-15)))setSheet(false);
   else setSheet(min);
@@ -1104,7 +1116,7 @@ function shareUI(){
       $("mdirs").innerHTML=`<p class="muted" style="margin:8px 0 4px">¿Qué dice el letrero del camión?</p>`+GEO[c].map((d,i)=>`<button class="mbtn" data-d="${i}" style="width:100%;margin-top:6px">${c} → ${esc(d.to)}</button>`).join("");
       $("mdirs").querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>{if(!me){toast("Activa tu ubicación para poder compartir.");return}closeMenu();startShare(c,GEO[c][x.dataset.d].to)})};mr.appendChild(bt)})}
 }
-function toast(t){let e=$("toast");if(!e){e=document.createElement("div");e.id="toast";document.body.appendChild(e)}e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),3500)}
+function toast(t){let e=$("toast");if(!e){e=document.createElement("div");e.id="toast";document.body.appendChild(e)}e.textContent=t;try{e.style.bottom=sheet.classList.contains("min")?`calc(${minH()+14}px + env(safe-area-inset-bottom))`:"calc(58vh + 14px)"}catch(x){}e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),3500)}
 const BUSMK=[];
 function glideBus(mk,to){const f=mk.getLatLng(),a=[f.lat,f.lng];if(D(a,to)<2)return;cancelAnimationFrame(mk._gl);const t0=performance.now(),dur=1600;
   const st=t=>{const k=Math.min(1,(t-t0)/dur),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;mk.setLatLng([a[0]+(to[0]-a[0])*e,a[1]+(to[1]-a[1])*e]);if(k<1)mk._gl=requestAnimationFrame(st)};mk._gl=requestAnimationFrame(st)}
