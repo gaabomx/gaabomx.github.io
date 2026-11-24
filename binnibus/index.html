@@ -941,6 +941,7 @@ function routeRows(box,q){routeHits(q).forEach(r=>{const d=document.createElemen
   d.onclick=()=>{box.style.display="none";$("q").blur();if(netHidden)clearAll();showNetwork();openLine(r[0])};box.appendChild(d)})}
 function openLine(c){const pts=[];(GEO[c]||[]).forEach(d=>d.line.forEach((p,i)=>{if(i%4===0)pts.push(p)}));selectLine({c});
   if(pts.length)map.flyToBounds(L.latLngBounds(pts),{padding:[50,50],paddingBottomRight:[0,140],duration:.8})}
+function simpleQ(q){return q.replace(/agencia\s+(municipal\s+|de\s+polic[ií]a\s+)?(de\s+)?/gi," ").replace(/^\s*(de|del|la|el)\s+/i,"").replace(/\b(agencia|agencia municipal|agencia de policia|agencia de policía|municipal|municipio|colonia|col\.?|fraccionamiento|fracc\.?|barrio|unidad habitacional|ex ?hacienda|paraje|ranchería|rancheria|pueblo|comunidad)(\s+(de|del|la|el))?\b/gi," ").replace(/\s+/g," ").trim()}
 async function search(q,auto){
   const box=$("sugg");const my=++sSeq;
   if(!auto){box.innerHTML='<div class="muted">Buscando en todo Oaxaca…</div>';box.style.display="block"}
@@ -960,13 +961,17 @@ async function search(q,auto){
   ]);
   if(my!==sSeq)return;
   r=r.concat(mine,a5,a1,a2,a3,a4);
+  // si no sale casi nada, quitar palabras genéricas ("agencia municipal de", "colonia"…) y volver a buscar
+  const q2=simpleQ(q);
+  if(q2&&norm(q2)!==nq&&r.filter(x=>x.ll[0]>16.6&&x.ll[0]<17.5).length<3){const [b1,b2,b3]=await Promise.all([photon(q2),photon(q2+" Oaxaca"),nomi(q2,", Oaxaca")]);if(my!==sSeq)return;r=r.concat(b1,b2,b3)}
   // quitar fuera de la zona y repetidos
   const seen=[];r=r.filter(x=>{if(x.ll[0]<16.6||x.ll[0]>17.5||x.ll[1]<-97.3||x.ll[1]>-96.2)return false;
     if(seen.some(y=>norm(y.name)===norm(x.name)&&D(y.ll,x.ll)<150))return false;seen.push(x);return true});
   if(!r.length&&routeHits(q).length){box.innerHTML="";routeRows(box,q);box.style.display="block";return}
   if(!r.length){box.innerHTML=`<div class="muted">No encontré "${esc(q)}" en los mapas. Si es una privada o lugar nuevo, toca el mapa donde está y elige <b>📌 Guardar este lugar</b>: la próxima vez sí sale.</div>`;box.style.display="block";return}
   const here=origin||[17.065,-96.72];
-  const pri=x=>x.kind==="_pin"?0:x.kind==="_mio"?1:x.kind==="_com"?2:norm(x.name).startsWith(nq)?3:norm(x.name).includes(nq)?4:5;
+  const toks=norm(simpleQ(q)||q).split(/\s+/).filter(t=>t.length>2);
+  const pri=x=>x.kind==="_pin"?0:x.kind==="_mio"?1:x.kind==="_com"?2:norm(x.name).startsWith(nq)?3:norm(x.name).includes(nq)?4:(toks.length&&toks.every(t=>norm(x.name+" "+(x.addr||"")).includes(t)))?4.5:5;
   r.sort((a,b)=>pri(a)-pri(b)||D(here,a.ll)-D(here,b.ll));
   box.innerHTML="";box.style.display="block";routeRows(box,q);
   r.slice(0,10).forEach(x=>{const d=document.createElement("div");
