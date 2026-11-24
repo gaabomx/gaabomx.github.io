@@ -1385,8 +1385,8 @@ function avisosDe(c){const m={};AVISOS.filter(a=>a.s<3600&&avRutas(a).includes(c
 function avisoTxt(codes,dl){const out=[];[...new Set(codes)].forEach(c=>avisosDe(c).forEach(a=>out.push(`⚠️ ${c}: ${AVN[a.t]} en su camino · ${hace(a.s)}${a.n>1?` · ${a.n} personas`:""}`)));if(out.length&&dl)out.push(`⏱️ Ya le sumé ~${dl} min a tu llegada`);return out.length?`<div class="avwarn">${out.join("<br>")}</div>`:""}
 function drawAvisos(){avLayer.clearLayers();const gs=[];
   // todos los reportes del mismo lugar (aunque sean de distinto tipo) se juntan en una sola marca
-  AVISOS.filter(a=>a.s<3600).forEach(a=>{const ll=[a.lat,a.lon];let g=gs.find(g=>D(g.ll,ll)<250);
-    if(!g){g={ll,n:0,s:1e9,T:{},rs:new Set()};gs.push(g)}else g.ll=[(g.ll[0]*g.n+ll[0])/(g.n+1),(g.ll[1]*g.n+ll[1])/(g.n+1)];
+  AVISOS.filter(a=>a.s<3600).forEach(a=>{const ll=[a.lat,a.lon];let g=gs.find(g=>D(g.ll,ll)<100); // solo se junta si está a menos de 100 m del primer reporte (la marca no se mueve)
+    if(!g){g={ll,n:0,s:1e9,T:{},rs:new Set()};gs.push(g)}
     g.n++;g.s=Math.min(g.s,a.s);const t=g.T[a.t]=g.T[a.t]||{n:0,s:1e9};t.n++;t.s=Math.min(t.s,a.s);avRutas(a).forEach(r=>g.rs.add(r))});
   try{const e=$("avcount");e.textContent=gs.length;e.classList.toggle("on",gs.length>0)}catch(e){}
   const SH={bloqueo:"Bloqueo",base:"No salen",trafico:"Tráfico"},ORD=["bloqueo","base","trafico"];
