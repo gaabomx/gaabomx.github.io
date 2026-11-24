@@ -155,7 +155,7 @@ body.hasdest .clear2{display:block}
 .mdet .chev{font-size:16px;color:var(--muted);transition:transform .25s}
 .mdet[open] .chev{transform:rotate(180deg)}
 .mdet[open] summary{margin-bottom:8px}
-#satbtn{bottom:calc(58vh + 230px)}.fab.dim{bottom:calc(58vh + 176px);font:800 14px Inter,system-ui,sans-serif;transition:bottom .28s}
+#satbtn{bottom:calc(58vh + 176px);right:66px!important}body.fleft #satbtn{left:66px!important}.fab.dim{bottom:calc(58vh + 176px);font:800 14px Inter,system-ui,sans-serif;transition:bottom .28s}
 .maplibregl-popup-content{border-radius:12px;font:14px/1.4 Inter,system-ui,sans-serif;padding:10px 14px}
 .leaflet-tooltip{white-space:nowrap;border-radius:6px;pointer-events:none}
 .maplibregl-ctrl-attrib{font-size:10px}
@@ -859,7 +859,7 @@ map.on("click",e=>{destAddr="";const c=[e.latlng.lat,e.latlng.lng];
 const sheet=$("sheet"),fab=$("me");
 function setSheet(min){
   sheet.classList.toggle("min",min);sheet.style.transform="";
-  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("dimbtn").style.bottom=min?"calc(240px + env(safe-area-inset-bottom))":"calc(58vh + 176px)";$("satbtn").style.bottom=min?"calc(294px + env(safe-area-inset-bottom))":"calc(58vh + 230px)";$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
+  fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("dimbtn").style.bottom=min?"calc(240px + env(safe-area-inset-bottom))":"calc(58vh + 176px)";$("satbtn").style.bottom=$("dimbtn").style.bottom;$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
   if(min)sheet.scrollTop=0;
   $("peek").textContent=trip?`🟢 Viaje en curso · Bájate en ${trip.legs[trip.legs.length-1].a.s.name} ⌃`:plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
 }
@@ -1232,7 +1232,7 @@ function upDim(){$("dimbtn").textContent=map.getPitch()>5?"2D":"3D"}
 $("dimbtn").onclick=()=>{const p=map.getPitch()>5;map.gl.easeTo({pitch:p?0:55,duration:700});setTimeout(upDim,720)};
 map.on("pitch",upDim);
 function upSat(){$("satbtn").textContent=BB_GL.mode()==="sat"?"🗺️":"🛰️"}
-$("satbtn").onclick=()=>{try{localStorage.setItem("bb-mapa",BB_GL.mode()==="sat"?"mapa":"sat")}catch(e){}map.refreshRasters();BB_GL.applyMode(map.gl);upSat()};upSat();
+$("satbtn").onclick=()=>{try{localStorage.setItem("bb-mapa",BB_GL.mode()==="sat"?"mapa":"sat")}catch(e){}map.refreshRasters();BB_GL.applyMode(map.gl);upSat();toast(BB_GL.mode()==="sat"?"🛰️ Vista satélite":"🗺️ Vista de mapa")};upSat();
 $("compass").onclick=()=>{const b0=map.getBearing(),t0=performance.now();const target=Math.abs(b0)>180?(b0>0?360:-360):0;
   const st=t=>{const k=Math.min(1,(t-t0)/350),e=1-Math.pow(1-k,3);map.setBearing(b0+(target-b0)*e);if(k<1)requestAnimationFrame(st);else map.setBearing(0)};requestAnimationFrame(st)};
 upCompass();

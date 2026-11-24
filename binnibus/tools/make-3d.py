@@ -79,16 +79,16 @@ rep('so.querySelector(".cone").style.transform=`rotate(${HDGshow+b}deg)`', 'so.q
 
 # 3) botón 2D / 3D
 rep('<button class="fab compass" id="compass"', '<button class="fab dim" id="satbtn" title="Mapa o satélite" aria-label="Mapa o satélite" style="font-size:20px">🛰️</button>\n<button class="fab dim" id="dimbtn" title="Cambiar vista 2D / 3D" aria-label="Vista 2D o 3D">2D</button>\n<button class="fab compass" id="compass"')
-rep('.compass{display:none;', '#satbtn{bottom:calc(58vh + 230px)}.fab.dim{bottom:calc(58vh + 176px);font:800 14px Inter,system-ui,sans-serif;transition:bottom .28s}\n.maplibregl-popup-content{border-radius:12px;font:14px/1.4 Inter,system-ui,sans-serif;padding:10px 14px}\n.leaflet-tooltip{white-space:nowrap;border-radius:6px;pointer-events:none}\n.maplibregl-ctrl-attrib{font-size:10px}\n.compass{display:none;')
+rep('.compass{display:none;', '#satbtn{bottom:calc(58vh + 176px);right:66px!important}body.fleft #satbtn{left:66px!important}.fab.dim{bottom:calc(58vh + 176px);font:800 14px Inter,system-ui,sans-serif;transition:bottom .28s}\n.maplibregl-popup-content{border-radius:12px;font:14px/1.4 Inter,system-ui,sans-serif;padding:10px 14px}\n.leaflet-tooltip{white-space:nowrap;border-radius:6px;pointer-events:none}\n.maplibregl-ctrl-attrib{font-size:10px}\n.compass{display:none;')
 rep('$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";',
-    '$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("dimbtn").style.bottom=min?"calc(240px + env(safe-area-inset-bottom))":"calc(58vh + 176px)";$("satbtn").style.bottom=min?"calc(294px + env(safe-area-inset-bottom))":"calc(58vh + 230px)";')
+    '$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("dimbtn").style.bottom=min?"calc(240px + env(safe-area-inset-bottom))":"calc(58vh + 176px)";$("satbtn").style.bottom=$("dimbtn").style.bottom;')
 rep('map.on("rotate",upCompass);', '''map.on("rotate",upCompass);map.on("pitch",upCompass);
 /* 2D / 3D */
 function upDim(){$("dimbtn").textContent=map.getPitch()>5?"2D":"3D"}
 $("dimbtn").onclick=()=>{const p=map.getPitch()>5;map.gl.easeTo({pitch:p?0:55,duration:700});setTimeout(upDim,720)};
 map.on("pitch",upDim);
 function upSat(){$("satbtn").textContent=BB_GL.mode()==="sat"?"🗺️":"🛰️"}
-$("satbtn").onclick=()=>{try{localStorage.setItem("bb-mapa",BB_GL.mode()==="sat"?"mapa":"sat")}catch(e){}map.refreshRasters();BB_GL.applyMode(map.gl);upSat()};upSat();''')
+$("satbtn").onclick=()=>{try{localStorage.setItem("bb-mapa",BB_GL.mode()==="sat"?"mapa":"sat")}catch(e){}map.refreshRasters();BB_GL.applyMode(map.gl);upSat();toast(BB_GL.mode()==="sat"?"🛰️ Vista satélite":"🗺️ Vista de mapa")};upSat();''')
 rep('function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;',
     'function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+360)%360;try{upDim()}catch(e){}')
 # el botón de norte también endereza la vista inclinada
