@@ -1137,7 +1137,7 @@ addEventListener("pagehide",()=>{if(SHARE)sb("bb_bus_ping",{p_sesion:SES,p_ruta:
 /* horario para reportar camiones (hora de Oaxaca): L–D 5:00–23:30; noches de vie, sáb y dom hasta las 4:00 */
 function horarioOk(d){d=d||new Date();let p={};try{new Intl.DateTimeFormat("en-US",{timeZone:"America/Mexico_City",hour12:false,weekday:"short",hour:"2-digit",minute:"2-digit"}).formatToParts(d).forEach(x=>p[x.type]=x.value)}catch(e){return true}
   const m=(+p.hour%24)*60+(+p.minute),wd=p.weekday;return (m>=300&&m<1410)||((wd==="Fri"||wd==="Sat"||wd==="Sun")&&m>=1410)||((wd==="Sat"||wd==="Sun"||wd==="Mon")&&m<240)}
-const HORARIO_TXT="Puedes reportar Binnis de 5:00 a 11:30 pm (viernes, sábado y domingo hasta las 4:00 am).";
+const HORARIO_TXT="Puedes reportar Binnis de 5:00 am a 11:30 pm (viernes, sábado y domingo hasta las 4:00 am).";
 function upHorario(){const ok=horarioOk();const sb2=$("seenbtn");if(sb2){sb2.classList.toggle("off",!ok)}
   const s2=$("sharebtn");if(s2&&!SHARE)s2.classList.toggle("off",!ok);if(!ok&&SHARE){stopShare(true);toast("Se terminó el horario para compartir camiones.")}}
 setInterval(upHorario,60000);
