@@ -416,7 +416,7 @@ window.BB_GL = {
 
 };
 </script>
-<script src="lib/leaflet-gl.js?v=58ea9abc"></script>
+<script src="lib/leaflet-gl.js?v=49ba1da7"></script>
 <script>/* si el mapa 3D no arranca (red lenta o bloqueada), pasar a la versión plana */
 setTimeout(function(){try{if(!map._loaded&&navigator.onLine!==false)location.replace("2d.html"+location.search+location.hash)}catch(e){}},30000);</script>
 <script src="routes.js?v=d4e93c8c"></script>
@@ -1001,6 +1001,7 @@ function setDest(c,name){
   plan();
 }
 let pressT=null;
+map.on("labelclick",e=>{if(e.lbl&&GEO[e.lbl])selectLine({c:e.lbl})});
 map.on("click",e=>{if(SELL){clearLine();return}destAddr="";const c=[e.latlng.lat,e.latlng.lng];
   L.popup().setLatLng(c).setContent(`<button id="pd" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#111;color:#fff">🏁 Ir aquí</button><br><button id="po" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#16a34a;color:#fff">📍 Salir de aquí</button><br><button id="ps" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#b45309;color:#fff">📌 Guardar este lugar</button>`).openOn(map);
   setTimeout(()=>{$("pd").onclick=()=>{map.closePopup();setDest(c,"Punto en el mapa")};$("po").onclick=()=>{map.closePopup();originIsMe=false;setOrigin(c,"punto elegido en el mapa")};$("ps").onclick=()=>{map.closePopup();guardarLugar(c)}},0);

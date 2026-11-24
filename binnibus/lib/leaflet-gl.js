@@ -98,6 +98,7 @@
     }
   }
 
+  const g0 = (g, id) => { try { return !!g.getLayer(id); } catch (e) { return false; } };
   function arrowAt(sg, d) { let lo = 0, hi = sg.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (sg.cum[m] <= d) lo = m; else hi = m; }
     const a = sg.pts[lo], b = sg.pts[hi], f = (d - sg.cum[lo]) / Math.max(1e-6, sg.cum[hi] - sg.cum[lo]);
     const y = Math.sin((b[0] - a[0]) * rad) * Math.cos(b[1] * rad), x = Math.cos(a[1] * rad) * Math.sin(b[1] * rad) - Math.sin(a[1] * rad) * Math.cos(b[1] * rad) * Math.cos((b[0] - a[0]) * rad);
@@ -149,11 +150,14 @@
           for (const h of hits) { const o = FIG.get(h.properties.id); if (!o || !o._clickable()) continue;
             const q = this.gl.project(h.geometry.coordinates), d = (q.x - p.x) ** 2 + (q.y - p.y) ** 2; if (d < bd) { bd = d; best = o; } }
           if (best) { best._click(ev); if (ev._stop || best._popup) return; }
+          // tocar la etiqueta de una ruta (RA-06…)
+          if (g0(this.gl, "lf-label")) { const lh = this.gl.queryRenderedFeatures([[p.x - 14, p.y - 14], [p.x + 14, p.y + 14]], { layers: ["lf-label"] });
+            if (lh.length && this.listens("labelclick")) { this.fire("labelclick", { lbl: lh[0].properties.lbl, latlng: ev.latlng }); return; } }
         }
         this.fire("click", ev);
       });
       this.gl.on("mousemove", e => { if (!this._loaded) return; const p = e.point, t = 6;
-        const h = this.gl.queryRenderedFeatures([[p.x - t, p.y - t], [p.x + t, p.y + t]], { layers: ["lf-circle", "lf-stop"] }).some(f => { const o = FIG.get(f.properties.id); return o && o._clickable(); });
+        const h = this.gl.queryRenderedFeatures([[p.x - t, p.y - t], [p.x + t, p.y + t]], { layers: ["lf-circle", "lf-stop"] }).some(f => { const o = FIG.get(f.properties.id); return o && o._clickable(); }) || (g0(this.gl, "lf-label") && this.gl.queryRenderedFeatures([[p.x - 10, p.y - 10], [p.x + 10, p.y + 10]], { layers: ["lf-label"] }).length > 0);
         this.gl.getCanvas().style.cursor = h ? "pointer" : ""; });
       ["zoomend", "dragstart", "moveend", "movestart", "rotate", "pitch", "zoom", "move", "dragend"].forEach(k => this.gl.on(k, () => this.fire(k)));
     }
