@@ -1347,8 +1347,8 @@ const minTxt=x=>x.s<60?"ahorita":Math.round(x.s/60)+" min";
 function drawSeen(){try{renderPeek()}catch(e){}seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<SEENMAX);
   const uniq=[],groups=[];
   [...SEEN].sort((a,b)=>a.s-b.s).forEach(x=>{const ll=[x.lat,x.lon];
-    if(uniq.some(y=>y.r===x.r&&D([y.lat,y.lon],ll)<120))return; // repetido: queda el más reciente
-    uniq.push(x);const g=groups.find(g=>D(g.ll,ll)<60);if(g)g.v.push(x);else groups.push({ll,v:[x]})});
+    uniq.push(x); // todos los reportes de la parada cuentan, aunque sean de la misma ruta
+const g=groups.find(g=>D(g.ll,ll)<60);if(g)g.v.push(x);else groups.push({ll,v:[x]})});
   groups.forEach(g=>{const x=g.v[0],op=v=>Math.max(.5,1-v.s/SEENMAX);
     if(g.v.length===1){ // una sola: puntito del color de la ruta; el nombre solo se ve de cerca
       L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[70,18],iconAnchor:[9,9],html:`<div class="vis${x.s<180?" new":""}" style="--c:${COL[x.r]||"#0f766e"};opacity:${op(x)}"><i></i><b>${x.r} · ${minTxt(x)}</b></div>`}),zIndexOffset:-100}).addTo(seenLayer)
