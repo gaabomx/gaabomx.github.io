@@ -334,8 +334,17 @@ footer { font-family: var(--mono); font-size: 12px; color: var(--muted); text-al
 .secreto .flecha{margin-left:auto;color:var(--muted);transition:transform .4s var(--ease)}
 .secreto:hover .flecha{transform:translateX(3px)}
 @media (prefers-reduced-motion:reduce){.secreto .foquito{animation:none}}
-.binni{margin-top:-6px}
-.binni .bicon{flex:none;width:30px;height:30px;border-radius:8px;object-fit:cover}
+.binni{margin-top:-6px;position:relative;overflow:hidden;background:radial-gradient(120% 140% at 0% 50%,#3a1a06 0%,#140a04 55%,#07040a 100%);border-color:rgba(249,115,22,.45)!important}
+.binni:hover,.binni:focus-visible{border-color:rgba(249,115,22,.85)!important;box-shadow:0 0 28px rgba(249,115,22,.22)!important}
+.binni .bicon{flex:none;height:30px;width:auto;object-fit:contain;filter:drop-shadow(0 0 8px rgba(249,115,22,.55));animation:bfloat 2.6s ease-in-out infinite}
+.binni b em{font-style:normal;background:linear-gradient(90deg,#f97316,#fb923c,#e11d48);-webkit-background-clip:text;background-clip:text;color:transparent}
+.binni small{color:#fdba74!important;opacity:.85}
+.binni .broad{position:absolute;left:52px;right:44px;bottom:6px;height:2px;background:repeating-linear-gradient(90deg,rgba(249,115,22,.55) 0 8px,transparent 8px 16px);animation:bdash .7s linear infinite}
+.binni .bbus{position:absolute;bottom:4px;left:52px;width:16px;height:7px;border-radius:2px;background:#f97316;box-shadow:0 0 8px rgba(249,115,22,.8);animation:bdrive 4s ease-in-out infinite}
+@keyframes bfloat{0%,100%{transform:none}50%{transform:translateY(-2px)}}
+@keyframes bdash{to{background-position:-16px 0}}
+@keyframes bdrive{0%{left:52px;opacity:0}10%{opacity:1}85%{opacity:1}100%{left:calc(100% - 60px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.binni .bicon,.binni .broad,.binni .bbus{animation:none}}
 
 </style>
 
@@ -356,9 +365,10 @@ footer { font-family: var(--mono); font-size: 12px; color: var(--muted); text-al
   </a>
 
   <a class="secreto binni k-anim" href="binnibus/">
-    <img class="bicon" src="binnibus/apple-touch-icon.png" alt="" aria-hidden="true">
-    <span><b>App de BinniBus</b><small>¿Qué camión tomo? Rutas en vivo en Oaxaca</small></span>
+    <img class="bicon" src="binnibus/logo.png" alt="" aria-hidden="true">
+    <span><b>App de Binni <em>Rutas</em></b><small>¿Qué camión tomo? Mapa 3D y rutas en vivo</small></span>
     <span class="flecha" aria-hidden="true">→</span>
+    <span class="broad" aria-hidden="true"></span><span class="bbus" aria-hidden="true"></span>
   </a>
 
   <button class="ini-btn" id="iniBtn" type="button" aria-haspopup="dialog">
