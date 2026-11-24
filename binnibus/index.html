@@ -65,7 +65,9 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 #linecard{position:fixed;left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 64px);z-index:1050;background:var(--card);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.3);padding:10px 12px;font-size:13px;transform:perspective(700px) rotateX(-90deg);transform-origin:50% 0;opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .25s}
 #linecard.on{transform:perspective(700px) rotateX(0);opacity:1;pointer-events:auto}
 #linecard .lc-h{display:flex;align-items:center;gap:8px}#linecard .lc-h b{font-size:15px}#linecard .lc-h button{margin-left:auto;border:0;background:#efe8dc;border-radius:999px;width:28px;height:28px;font-size:13px;cursor:pointer}
-#linecard .lc-r{margin-top:4px;color:var(--ink)}#linecard .lc-d{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}#linecard .lc-go{border:0;background:#1d1a16;color:#fff;border-radius:999px;padding:7px 12px;font:700 12.5px Inter,system-ui,sans-serif;cursor:pointer}#linecard .lc-go:active{transform:scale(.96)}
+#linecard .lc-r{margin-top:4px;color:var(--ink)}#linecard .lc-d{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.scr{position:relative}.scr .sgo{align-self:center;flex:none;margin-left:auto}
+.lc-go{border:0;background:#1d1a16;color:#fff;border-radius:999px;padding:7px 14px;font:700 12.5px Inter,system-ui,sans-serif;cursor:pointer}.lc-go:active{transform:scale(.96)}
+#linecard .lc-go{border:0;background:#1d1a16;color:#fff;border-radius:999px;padding:7px 12px;font:700 12.5px Inter,system-ui,sans-serif;cursor:pointer}#linecard .lc-go:active{transform:scale(.96)}
 .peek.flip{animation:pkFlip .55s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 50%}
 .sheet.min.idle{transform:translateY(calc(100% - 196px - env(safe-area-inset-bottom)))}
 .pkinfo{display:flex;flex-direction:column;gap:6px;text-align:left;font:500 13px/1.3 Inter,system-ui,sans-serif;padding:2px 2px 4px}
@@ -535,7 +537,10 @@ function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.set
   el.classList.remove("on");void el.offsetWidth;el.classList.add("on");$("lcx").onclick=e=>{e.stopPropagation();clearLine()};
   el.querySelectorAll(".lc-go").forEach(b=>b.onclick=e=>{e.stopPropagation();const d=GEO[h.c][+b.dataset.d];
     const st=d.stops.filter(x=>x.ll&&!x.bad),last=st[st.length-1]||{ll:d.line[d.line.length-1],name:d.to};
-    clearLine();ONLY={c:h.c,to:d.to};ONLYK=true;try{setDest(last.ll,`${d.to} (${h.c})`)}finally{ONLYK=false}})}
+    clearLine();goRoute(h.c,d.to)})}
+function goRoute(code,to){const d=(GEO[code]||[]).find(x=>x.to===to);if(!d)return;const st=d.stops.filter(x=>x.ll&&!x.bad),last=st[st.length-1]||{ll:d.line[d.line.length-1]};
+  if(SC){SC=null;clearRouteView();const el=$("stopsec");if(el){el.classList.remove("on");el.innerHTML=""}}
+  ONLY={c:code,to};ONLYK=true;try{setDest(last.ll,`${to} (${code})`)}finally{ONLYK=false}}
 function clearLine(){if(!SELL)return;SELL=null;for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle({opacity:.6,weight:3}));const el=$("linecard");if(el)el.classList.remove("on")}
 function draw(code){
   const g=GEO[code];if(!g)return;
@@ -1382,9 +1387,10 @@ function renderStopCard(){
    <div class="scl">${rows.length?rows.map((r,i)=>`<div class="scr${RT&&RT.code===r.code&&RT.to===r.to?" sel":""}" data-k="${i}" style="--i:${i}"><span class="badge" style="background:${COL[r.code]||"#0f766e"}">${r.code}</span><div class="sct"><b>→ ${esc(r.to)}</b>
      ${r.next?`<div class="nx">🔴 Llega en ${fmtT(r.next.t)}${r.next.src==="seen"?" <i>(lo vieron)</i>":""}${r.next.sure?"":" <i>· sentido sin confirmar</i>"}</div>`:""}
      ${r.last?`<div class="ps">✓ Ya pasó hace ~${Math.max(1,Math.round(r.last.t))} min</div>`:""}
-     ${!r.next&&!r.last?`<div class="nd">Sin reportes ahorita · pasa cada ~10–15 min</div>`:""}<div class="vr">${RT&&RT.code===r.code&&RT.to===r.to?"✓ Viendo su recorrido · toca para quitar":"🗺️ Ver por dónde pasa"}</div></div></div>`).join(""):`<p class="muted">No encontré rutas en esta parada.</p>`}</div>
+     ${!r.next&&!r.last?`<div class="nd">Sin reportes ahorita · pasa cada ~10–15 min</div>`:""}<div class="vr">${RT&&RT.code===r.code&&RT.to===r.to?"✓ Viendo su recorrido · toca para quitar":"🗺️ Ver por dónde pasa"}</div></div><button class="lc-go sgo" data-g="${i}">Ir</button></div>`).join(""):`<p class="muted">No encontré rutas en esta parada.</p>`}</div>
    <div class="scf"><span class="lvupd"><i></i>en vivo</span> · con lo que comparten y ven los usuarios</div></div>`;
   el.querySelector(".schd button").onclick=()=>toggleNear();
+  el.querySelectorAll(".sgo").forEach(b=>b.onclick=e=>{e.stopPropagation();goRoute(rows[+b.dataset.g].code,rows[+b.dataset.g].to)});
   el.querySelectorAll(".scr").forEach(row=>row.onclick=()=>{const r=rows[+row.dataset.k];
     if(RT&&RT.code===r.code&&RT.to===r.to)clearRouteView();else showRouteFrom(r.code,r.to,SC.ll,SC.name);renderStopCard()});
 }
