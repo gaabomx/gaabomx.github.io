@@ -1351,7 +1351,7 @@ upCompass();
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
 $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
-setTimeout(()=>{if(isIdle()&&!sheet.classList.contains("min"))setSheet(true);renderPeek()},700);
+setTimeout(renderPeek,700);
 try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");setTimeout(openMenu,900)}}catch(e){}
 (async()=>{
   let RAW={};try{RAW=await (await fetch("geo.json?v=3")).json()}catch(e){}
