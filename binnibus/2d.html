@@ -172,6 +172,15 @@ body.hasdest #clearbtn{display:block}
 @keyframes vp{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.8);opacity:0}}
 .vis b{display:none;font:700 10px Inter;color:#1d1a16;background:rgba(255,255,255,.92);padding:1px 5px;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.2);white-space:nowrap}
 .zclose .vis b{display:inline-block}
+.vgrp{position:absolute;left:0;top:0;width:max-content;transform-origin:22px 11px;background:#fff;border-radius:11px;box-shadow:0 2px 8px rgba(0,0,0,.3);font:700 11px Inter;color:#1d1a16;cursor:pointer;overflow:hidden;white-space:nowrap}
+.vgh{display:flex;align-items:center;gap:4px;height:22px;padding:0 6px 0 5px}
+.vdots{display:flex}.vdots i{width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;margin-left:-4px;box-shadow:0 0 0 .5px rgba(0,0,0,.2)}.vdots i:first-child{margin-left:0}
+.vgh .chev{font-size:9px;opacity:.6;transition:transform .25s}.vgrp.open .chev{transform:rotate(180deg)}
+.vgrp.new{animation:vgp 2.2s ease-out 2}@keyframes vgp{0%{box-shadow:0 0 0 0 rgba(250,204,21,.8),0 2px 8px rgba(0,0,0,.3)}100%{box-shadow:0 0 0 10px rgba(250,204,21,0),0 2px 8px rgba(0,0,0,.3)}}
+.vgl{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}.vgl>div{overflow:hidden}
+.vgrp.open .vgl{grid-template-rows:1fr}.vgrp.open .vgl>div{padding:2px 7px 6px}
+.vgr{display:flex;align-items:center;gap:5px;font-weight:600;font-size:11px;margin-top:4px;opacity:0;transform:translateY(-4px);transition:.25s}.vgrp.open .vgr{opacity:1;transform:none}
+.vgr .bd{color:#fff;font-weight:800;font-size:10px;padding:1px 5px;border-radius:6px}
 .clear2{display:none;border:0;background:#efe8dc!important;color:var(--ink)!important;border-radius:12px;width:40px;font-size:16px;cursor:pointer}
 body.hasdest .clear2{display:block}
 .sonar{position:relative;width:24px;height:24px;transform:translateZ(0)}
@@ -1269,14 +1278,23 @@ function snapSeen(k,di,c){ // pone la marca en la parada de esa ruta más cercan
   let bp=null,pd=1e9;dirs.forEach(d=>d.line.forEach(p=>{const x=D(c,p);if(x<pd){pd=x;bp=p}}));
   return bp&&pd<=1500?{ll:bp}:{ll:c};
 }
-function drawSeen(){try{renderPeek()}catch(e){}seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<1200);
-  const shown=[];
+const SEENMAX=1800,OPENV=new Set(); // los reportes duran 30 min; OPENV = grupos desplegados
+const minTxt=x=>x.s<60?"ahorita":Math.round(x.s/60)+" min";
+function drawSeen(){try{renderPeek()}catch(e){}seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<SEENMAX);
+  const uniq=[],groups=[];
   [...SEEN].sort((a,b)=>a.s-b.s).forEach(x=>{const ll=[x.lat,x.lon];
-    if(shown.some(y=>y.r===x.r&&D(y.ll,ll)<120))return; // repetido: queda el más reciente
-    const stack=shown.filter(y=>D(y.ll,ll)<60).length;shown.push({r:x.r,ll});
-    // marca discreta: puntito del color de la ruta; el nombre solo se ve de cerca y el detalle al tocarla
-    L.marker(ll,{icon:L.divIcon({className:"",iconSize:[70,18],iconAnchor:[9,9+stack*20],html:`<div class="vis${x.s<180?" new":""}" style="--c:${COL[x.r]||"#0f766e"};opacity:${Math.max(.5,1-x.s/1200)}"><i></i><b>${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</b></div>`}),zIndexOffset:-100-stack}).addTo(seenLayer)
-     .bindPopup(`<b>👀 Vieron la ${x.r}${x.d?" → "+esc(x.d):""}</b><br>${hace(x.s)}`)})}
+    if(uniq.some(y=>y.r===x.r&&D([y.lat,y.lon],ll)<120))return; // repetido: queda el más reciente
+    uniq.push(x);const g=groups.find(g=>D(g.ll,ll)<60);if(g)g.v.push(x);else groups.push({ll,v:[x]})});
+  groups.forEach(g=>{const x=g.v[0],op=v=>Math.max(.5,1-v.s/SEENMAX);
+    if(g.v.length===1){ // una sola: puntito del color de la ruta; el nombre solo se ve de cerca
+      L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[70,18],iconAnchor:[9,9],html:`<div class="vis${x.s<180?" new":""}" style="--c:${COL[x.r]||"#0f766e"};opacity:${op(x)}"><i></i><b>${x.r} · ${minTxt(x)}</b></div>`}),zIndexOffset:-100}).addTo(seenLayer)
+        .bindPopup(`<b>👀 Vieron la ${x.r}${x.d?" → "+esc(x.d):""}</b><br>${hace(x.s)}`);return}
+    // varias en la misma parada: cuadrito que se despliega
+    const key=g.ll.map(n=>n.toFixed(4)).join(),open=OPENV.has(key);
+    const dots=g.v.slice(0,3).map(v=>`<i style="background:${COL[v.r]||"#0f766e"}"></i>`).join("");
+    const rows=g.v.map(v=>`<div class="vgr"><span class="bd" style="background:${COL[v.r]||"#0f766e"}">${v.r}</span><span>${v.d?"→ "+esc(v.d)+" · ":""}${minTxt(v)}</span></div>`).join("");
+    const m=L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[44,22],iconAnchor:[22,11],html:`<div class="vgrp${open?" open":""}${x.s<180?" new":""}"><div class="vgh"><span class="vdots">${dots}</span><b>${g.v.length}</b><span class="chev">▾</span></div><div class="vgl"><div>${rows}</div></div></div>`}),zIndexOffset:-50}).addTo(seenLayer);
+    m.on("click",()=>{const el=m.getElement().firstElementChild;const o=el.classList.toggle("open");o?OPENV.add(key):OPENV.delete(key)})})}
 async function pollSeen(){if(document.visibilityState!=="visible")return;
   try{const r=await fetch(SBR+"bb_vistos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){SEEN=await r.json();drawSeen();updateLiveEta()}}catch(e){}}
 setInterval(pollSeen,20000);setInterval(()=>{SEEN.forEach(x=>x.s+=30);drawSeen()},30000);setTimeout(pollSeen,2000);
