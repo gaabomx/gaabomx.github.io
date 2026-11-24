@@ -152,9 +152,18 @@ body.rec #recbar{display:block}
 .lv div{background:#ecfdf3;border-radius:10px;padding:8px 4px}
 .lv b{display:block;font:900 18px Archivo;color:#166534}
 .lv span{font-size:11px;color:var(--muted)}
-.bus{display:inline-block;white-space:nowrap;background:var(--c);color:#fff;font:800 12px Archivo;padding:4px 8px;border-radius:10px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);animation:busp 2s infinite}
-.bus.mine{outline:3px solid #2563eb}
-@keyframes busp{50%{box-shadow:0 0 0 6px rgba(239,68,68,.25),0 2px 8px rgba(0,0,0,.4)}}
+.busend{transform:translate(-50%,-130%);white-space:nowrap;background:#fff;color:var(--c);font:800 11px Inter;padding:3px 7px;border-radius:8px;border:2px solid var(--c);box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.busw{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+.bus{position:relative;display:flex;align-items:center;gap:5px;white-space:nowrap;background:var(--c);color:#fff;font:800 12px Archivo;letter-spacing:.2px;padding:3px 9px 3px 3px;border-radius:999px;border:2px solid #fff}
+.bus .bi{width:20px;height:20px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center}
+.bus .bi svg{width:13px;height:13px;fill:var(--c)}
+.bus .lv{position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#22c55e;border:2px solid #fff}
+.bus .lv::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid #22c55e;animation:lvp 1.6s ease-out infinite}
+@keyframes lvp{0%{transform:scale(.8);opacity:.9}100%{transform:scale(2.4);opacity:0}}
+.busw .tail{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #fff;margin-top:-1px}
+.busw .tail::after{content:"";position:absolute;margin:-9px 0 0 -4px;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--c)}
+.busw .gd{width:10px;height:10px;border-radius:50%;background:var(--c);border:2px solid #fff;margin-top:1px}
+.busw.mine .gd{display:none}.busw.mine .bus{box-shadow:0 0 0 2px #2563eb}
 .go.share{background:#1d4ed8;margin-top:8px}.go.share.on{background:#7c2d12}
 .liveeta{color:#b91c1c;font-weight:700;font-size:13px;margin-top:4px}.liveeta:empty{display:none}
 #livecount:empty{display:none}
@@ -597,6 +606,15 @@ function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.set
 function goRoute(code,to){const d=(GEO[code]||[]).find(x=>x.to===to);if(!d)return;const st=d.stops.filter(x=>x.ll&&!x.bad),last=st[st.length-1]||{ll:d.line[d.line.length-1]};
   if(SC){SC=null;clearRouteView();const el=$("stopsec");if(el){el.classList.remove("on");el.innerHTML=""}}
   ONLY={c:code,to};ONLYK=true;try{setDest(last.ll,`${to} (${code})`)}finally{ONLYK=false}}
+// tocar un camión en vivo: se ilumina el tramo que le falta recorrer hasta su destino
+function selectBus(c,to,ll){const dir=(GEO[c]||[]).find(d=>d.to===to);if(!dir)return;
+  if(SELL)clearLine();SELL=c;for(const k in NETPL)NETPL[k].forEach(pl=>pl.setStyle({opacity:.08,weight:3}));
+  let bi=0,bd=1e9;dir.line.forEach((p,i)=>{const d=D(p,ll);if(d<bd){bd=d;bi=i}});
+  const rest=dir.line.slice(bi);if(rest.length<2)return;const col=COL[c]||"#0f766e";selLayer.clearLayers();
+  if(map.selShow)map.selShow([rest],col);else{L.polyline(rest,{color:"#fff",weight:13,interactive:false}).addTo(selLayer);L.polyline(rest,{color:col,weight:9,interactive:false}).addTo(selLayer)}
+  selLayer.addTo(map);
+  const end=dir.stops.filter(x=>x.ll&&!x.bad).pop();if(end)L.marker(end.ll,{icon:L.divIcon({className:"",iconSize:[0,0],iconAnchor:[0,0],html:`<div class="busend" style="--c:${col}">🏁 ${esc(to)}</div>`}),interactive:false}).addTo(selLayer);
+  try{map.fitBounds(L.latLngBounds(rest),{padding:[70,70],maxZoom:16})}catch(e){}}
 function clearLine(){if(!SELL)return;SELL=null;if(map.selClear)map.selClear();selLayer.clearLayers();map.removeLayer(selLayer);for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle({opacity:.6,weight:3}));const el=$("linecard");if(el)el.classList.remove("on")}
 function draw(code){
   const g=GEO[code];if(!g)return;
@@ -1256,7 +1274,9 @@ function renderMis(){
 
 /* ---------- Red en vivo: camiones compartidos por usuarios ---------- */
 let SHARE=null,lastPing=0,LIVE=[];const busLayer=L.layerGroup().addTo(map);
-function busIcon(r,col,me){const w=r.length>6?84:64;return L.divIcon({className:"",iconSize:[w,26],iconAnchor:[w/2,13],html:`<div class="bus${me?" mine":""}" style="--c:${col}">🚌 ${r}</div>`})}
+const BUSSVG='<svg viewBox="0 0 24 24"><path d="M6 2h12a3 3 0 0 1 3 3v11a2 2 0 0 1-1 1.7V20a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1H8v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-2.3A2 2 0 0 1 4 16V5a3 3 0 0 1 3-3zm0 4v5h12V6zm1.5 8a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>';
+// camión en vivo: globito del color de la ruta con su piquito señalando dónde va (no tapa tu puntito azul)
+function busIcon(r,col,me){const w=r.length>6?96:80,h=me?36:48;return L.divIcon({className:"",iconSize:[w,h],iconAnchor:[w/2,me?h+12:h-6],html:`<div class="busw${me?" mine":""}" style="--c:${col};width:${w}px"><div class="bus"><span class="bi">${BUSSVG}</span>${r}<span class="lv"></span></div><i class="tail"></i>${me?"":'<i class="gd"></i>'}</div>`})}
 function startShare(code,to){
   if(!horarioOk()){toast(HORARIO_TXT);return}
   SHARE={code,to,since:Date.now(),off:0};lastPing=0;
@@ -1314,7 +1334,8 @@ async function pollLive(){
     const html=`<b>🚌 ${x.r} → ${esc(x.d)}</b><br>En vivo · hace ${x.s} s${x.v?` · ${Math.round(x.v)} km/h`:""}<br><span style="color:#6b6358">${x.n>1?x.n+" personas a bordo comparten (posición combinada)":"1 persona a bordo comparte"}</span>`;
     let mk;
     if(m!=null){used.add(m);mk=old[m].mk;if(old[m].n!==x.n||old[m].mine!==!!mine)mk.setIcon(busIcon(x.r+(x.n>1?" ·"+x.n:""),COL[x.r]||"#0f766e",mine));mk.bindPopup(html);glideBus(mk,x.ll)}
-    else mk=L.marker(x.ll,{icon:busIcon(x.r+(x.n>1?" ·"+x.n:""),COL[x.r]||"#0f766e",mine),zIndexOffset:1000}).addTo(busLayer).bindPopup(html);
+    else{mk=L.marker(x.ll,{icon:busIcon(x.r+(x.n>1?" ·"+x.n:""),COL[x.r]||"#0f766e",mine),zIndexOffset:1000}).addTo(busLayer).bindPopup(html);
+      const R0=x.r,D0=x.d;mk.on("click",()=>{const l=mk.getLatLng();selectBus(R0,D0,[l.lat,l.lng])})}
     BUSMK.push({mk,r:x.r,d:x.d,n:x.n,mine:!!mine})});
   old.forEach((o,i)=>{if(!used.has(i))busLayer.removeLayer(o.mk)});
   updateLiveEta();if(SC)renderStopCard();renderPeek();
