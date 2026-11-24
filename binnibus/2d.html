@@ -44,6 +44,7 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 .sugg{background:var(--card);border-radius:12px;margin-top:6px;box-shadow:0 2px 12px rgba(0,0,0,.25);overflow:hidden;display:none}
 .sugg div{padding:11px 12px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer}
 .sugg div small{display:block;color:var(--muted);font-size:12px}
+.sugg .rhit{background:#fbf8f2}.sugg .rhit .badge{vertical-align:1px}
 .sugg .hh{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font:700 12px Inter;color:var(--muted);cursor:default;background:#f6f1e7}
 .sugg .hh button{border:0;background:none;color:#b91c1c;font:700 12px Inter;cursor:pointer}
 .sugg .hi{display:flex;align-items:center;gap:10px}.sugg .hi span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -868,9 +869,18 @@ let MIS=[];try{MIS=JSON.parse(localStorage.getItem("bb-mis")||"[]")}catch(e){}
 function saveMis(){try{localStorage.setItem("bb-mis",JSON.stringify(MIS))}catch(e){}renderQuick()}
 async function comunidad(q){try{const r=await fetch(SBR+"bb_lugares_buscar",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({p_q:q})});return r.ok?(await r.json()).map(x=>({name:x.nombre,addr:"Agregado por usuarios",kind:"_com",ll:[x.lat,x.lon]})):[]}catch(e){return []}}
 async function nomi(q,extra){const r=await nominatim(q+(extra||""));return r.map(x=>{const parts=x.display_name.split(",");return {name:parts[0],addr:parts.slice(1,4).join(","),kind:x.type,ll:[+x.lat,+x.lon]}})}
+function routeHits(q){const nq=norm(q).replace(/[^a-z0-9]/g,"");if(nq.length<2)return[];
+  return (window.R||[]).filter(r=>{if(!GEO[r[0]])return false;const k=norm(r[0]).replace(/[^a-z0-9]/g,"");
+    return k.includes(nq)||nq.length>3&&(norm(r[1]).replace(/[^a-z0-9]/g,"").includes(nq)||(r[2]&&norm(r[2]).replace(/[^a-z0-9]/g,"").includes(nq))||norm(r[3]).replace(/[^a-z0-9]/g,"").includes(nq))}).slice(0,8)}
+function routeRows(box,q){routeHits(q).forEach(r=>{const d=document.createElement("div");d.className="rhit";
+  d.innerHTML=`<span class="badge" style="background:${COL[r[0]]||"#0f766e"}">${r[0]}</span> <b>${esc(r[1])}</b>${r[2]?` <span class="muted">· ${esc(r[2])}</span>`:""}<small>🚌 Ruta · ${esc(r[3])}</small>`;
+  d.onclick=()=>{box.style.display="none";$("q").blur();if(netHidden)clearAll();showNetwork();openLine(r[0])};box.appendChild(d)})}
+function openLine(c){const pts=[];(GEO[c]||[]).forEach(d=>d.line.forEach((p,i)=>{if(i%4===0)pts.push(p)}));selectLine({c});
+  if(pts.length)map.flyToBounds(L.latLngBounds(pts),{padding:[50,50],paddingBottomRight:[0,140],duration:.8})}
 async function search(q,auto){
   const box=$("sugg");const my=++sSeq;
   if(!auto){box.innerHTML='<div class="muted">Buscando en todo Oaxaca…</div>';box.style.display="block"}
+  if(routeHits(q).length){box.innerHTML="";routeRows(box,q);if(!auto)box.insertAdjacentHTML("beforeend",'<div class="muted">Buscando lugares…</div>');box.style.display="block"}
   const nq=norm(q);
   // coordenadas o link de Google Maps con coordenadas
   const m=q.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/)||q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||q.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
@@ -889,11 +899,12 @@ async function search(q,auto){
   // quitar fuera de la zona y repetidos
   const seen=[];r=r.filter(x=>{if(x.ll[0]<16.6||x.ll[0]>17.5||x.ll[1]<-97.3||x.ll[1]>-96.2)return false;
     if(seen.some(y=>norm(y.name)===norm(x.name)&&D(y.ll,x.ll)<150))return false;seen.push(x);return true});
+  if(!r.length&&routeHits(q).length){box.innerHTML="";routeRows(box,q);box.style.display="block";return}
   if(!r.length){box.innerHTML=`<div class="muted">No encontré "${esc(q)}" en los mapas. Si es una privada o lugar nuevo, toca el mapa donde está y elige <b>📌 Guardar este lugar</b>: la próxima vez sí sale.</div>`;box.style.display="block";return}
   const here=origin||[17.065,-96.72];
   const pri=x=>x.kind==="_pin"?0:x.kind==="_mio"?1:x.kind==="_com"?2:norm(x.name).startsWith(nq)?3:norm(x.name).includes(nq)?4:5;
   r.sort((a,b)=>pri(a)-pri(b)||D(here,a.ll)-D(here,b.ll));
-  box.innerHTML="";box.style.display="block";
+  box.innerHTML="";box.style.display="block";routeRows(box,q);
   r.slice(0,10).forEach(x=>{const d=document.createElement("div");
     const tag=x.kind==="_mio"?"⭐ Tuyo":x.kind==="_com"?"👥 Usuarios":KIND[x.kind]||"";
     d.innerHTML=`${esc(x.name)}${tag?` <span class="muted">· ${tag}</span>`:""}<small>${esc(x.addr||"")}${origin?" · a "+fmt(D(origin,x.ll)):""}</small>`;
@@ -916,7 +927,7 @@ function showHist(){const box=$("sugg"),h=getHist();if($("q").value.trim().lengt
 $("sugg").addEventListener("mousedown",e=>e.preventDefault());
 $("q").addEventListener("focus",showHist);$("q").addEventListener("click",()=>{if(!$("q").value.trim())showHist()});
 $("q").addEventListener("blur",()=>setTimeout(()=>{const b=$("sugg");if(b.classList.contains("hist")&&!b.matches(":hover")&&document.activeElement!==$("q"))b.style.display="none"},250));
-$("q").addEventListener("input",()=>{clearTimeout(sTimer);const q=$("q").value.trim();$("sugg").classList.remove("hist");if(q.length<3){if(!q)showHist();else $("sugg").style.display="none";return}sTimer=setTimeout(()=>search(q,true),350)});
+$("q").addEventListener("input",()=>{clearTimeout(sTimer);const q=$("q").value.trim();$("sugg").classList.remove("hist");if(q.length<3){if(!q)showHist();else if(routeHits(q).length){const b=$("sugg");b.innerHTML="";routeRows(b,q);b.style.display="block"}else $("sugg").style.display="none";return}sTimer=setTimeout(()=>search(q,true),350)});
 $("sform").onsubmit=e=>{e.preventDefault();const q=$("q").value.trim();if(q)search(q);$("q").blur()};
 function setDest(c,name){
   if(!ONLYK)ONLY=null;
