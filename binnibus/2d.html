@@ -150,6 +150,7 @@ body.rec #recbar{display:block}
 .lv div{background:#ecfdf3;border-radius:10px;padding:8px 4px}
 .lv b{display:block;font:900 18px Archivo;color:#166534}
 .lv span{font-size:11px;color:var(--muted)}
+.fromrow{display:flex;align-items:center;gap:6px;margin:8px 0 4px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;font:500 13px Inter;color:#57534e}.fromrow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1d1a16}.fromrow button{flex:none;border:0;background:#16a34a;color:#fff;font:700 12px Inter;padding:6px 10px;border-radius:999px}
 .busend{transform:translate(-50%,-130%);white-space:nowrap;background:#fff;color:var(--c);font:800 11px Inter;padding:3px 7px;border-radius:8px;border:2px solid var(--c);box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .busw{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
 .bus{position:relative;display:flex;align-items:center;gap:5px;white-space:nowrap;background:var(--c);color:#fff;font:800 12px Archivo;letter-spacing:.2px;padding:3px 9px 3px 3px;border-radius:999px;border:2px solid #fff}
@@ -656,7 +657,7 @@ function renderPlans(){
   const dd=origin&&dest?D(origin,dest):0;
   const wd=dd*1.25,wt=Math.round(wd/WALK);
   const walkBest=!plans.length||wt<=plans[0].t+3;
-  let h=`<h2>${destName}</h2><div class="muted">${destAddr||""}</div>
+  let h=`<h2>${destName}</h2><div class="muted">${destAddr||""}</div><div class="fromrow">🟢 Desde: <b>${esc(ORIGNAME||"tu ubicación")}</b> <button type="button" onclick="$('from').onclick()">✏️ Cambiar origen</button></div>
   <div class="opt walk" style="cursor:default${walkBest?";border:2px solid var(--ink)":""}"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${walkBest?"⭐ Mejor · ":""}<span id="wd">${fmt(wd)} · ${wt} min</span> · llegas ${hora(wt)}</div></div>${walkTip(wd,wt,walkBest)}</div>`;
   if(!plans.length){
     h+=`<p>No encontré un BinniBus que te deje razonablemente cerca de aquí. Puede que no haya ruta por esa zona.</p>`;
@@ -804,7 +805,8 @@ $("me").addEventListener("click",startCompass);map.on("click",()=>startCompass()
 addEventListener("deviceorientationabsolute",onOrient,true);addEventListener("deviceorientation",onOrient,true);
 
 let me=null,acc=null,trip=null,warned={};
-function setOrigin(c,label){origin=c;$("from").textContent="📍 Desde: "+label;if(dest&&ready)plan()}
+var PICKFROM=false,ORIGNAME="tu ubicación";
+function setOrigin(c,label){origin=c;ORIGNAME=label;$("from").textContent="📍 Desde: "+label;if(dest&&ready)plan()}
 function onPos(p){
   const c=[p.coords.latitude,p.coords.longitude];
   if(!me){acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
@@ -989,7 +991,7 @@ function stopHits(q){try{
 async function search(q,auto){
   const box=$("sugg");const my=++sSeq;
   if(!auto){box.innerHTML='<div class="muted">Buscando en todo Oaxaca…</div>';box.style.display="block"}
-  if(routeHits(q).length){box.innerHTML="";routeRows(box,q);if(!auto)box.insertAdjacentHTML("beforeend",'<div class="muted">Buscando lugares…</div>');box.style.display="block"}
+  if(!PICKFROM&&routeHits(q).length){box.innerHTML="";routeRows(box,q);if(!auto)box.insertAdjacentHTML("beforeend",'<div class="muted">Buscando lugares…</div>');box.style.display="block"}
   const nq=norm(q);
   // coordenadas o link de Google Maps con coordenadas
   const m=q.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/)||q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||q.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
@@ -1011,17 +1013,17 @@ async function search(q,auto){
   // quitar fuera de la zona y repetidos
   const seen=[];r=r.filter(x=>{if(x.ll[0]<16.6||x.ll[0]>17.5||x.ll[1]<-97.3||x.ll[1]>-96.2)return false;
     if(seen.some(y=>norm(y.name)===norm(x.name)&&D(y.ll,x.ll)<150))return false;seen.push(x);return true});
-  if(!r.length&&routeHits(q).length){box.innerHTML="";routeRows(box,q);box.style.display="block";return}
+  if(!r.length&&!PICKFROM&&routeHits(q).length){box.innerHTML="";routeRows(box,q);box.style.display="block";return}
   if(!r.length){box.innerHTML=`<div class="muted">No encontré "${esc(q)}" en los mapas. Si es una privada o lugar nuevo, toca el mapa donde está y elige <b>📌 Guardar este lugar</b>: la próxima vez sí sale.</div>`;box.style.display="block";return}
   const here=origin||[17.065,-96.72];
   const toks=norm(simpleQ(q)||q).split(/\s+/).filter(t=>t.length>2);
   const pri=x=>x.kind==="_pin"?0:x.kind==="_mio"?1:x.kind==="_com"?2:x.kind==="_stop"?2.5:norm(x.name).startsWith(nq)?3:norm(x.name).includes(nq)?4:(toks.length&&toks.every(t=>norm(x.name+" "+(x.addr||"")).includes(t)))?4.5:5;
   r.sort((a,b)=>pri(a)-pri(b)||D(here,a.ll)-D(here,b.ll));
-  box.innerHTML="";box.style.display="block";routeRows(box,q);
+  box.innerHTML="";box.style.display="block";if(!PICKFROM)routeRows(box,q);
   r.slice(0,10).forEach(x=>{const d=document.createElement("div");
     const tag=x.kind==="_mio"?"⭐ Tuyo":x.kind==="_com"?"👥 Usuarios":x.kind==="_stop"?"":KIND[x.kind]||"";
     d.innerHTML=`${esc(x.name)}${tag?` <span class="muted">· ${tag}</span>`:""}<small>${esc(x.addr||"")}${origin?" · a "+fmt(D(origin,x.ll)):""}</small>`;
-    d.onclick=()=>{box.style.display="none";destAddr=x.addr||"";setDest(x.ll,x.name)};box.appendChild(d)});
+    d.onclick=()=>{box.style.display="none";if(PICKFROM){fromDone(x.ll,x.name);return}destAddr=x.addr||"";setDest(x.ll,x.name)};box.appendChild(d)});
   const add=document.createElement("div");add.innerHTML='<span class="muted">¿No está tu lugar? Toca el mapa donde está y elige <b>📌 Guardar este lugar</b>.</span>';add.onclick=()=>{box.style.display="none";setTop(false);setSheet(true)};box.appendChild(add);
 }
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -1046,7 +1048,7 @@ function setDest(c,name){
   if(!ONLYK)ONLY=null;
   try{addHist(c,name)}catch(e){}
   document.body.classList.add("hasdest");dest=c;destName=name;$("q").value=name;$("sugg").style.display="none";setSheet(false);
-  if(!origin){$("panel").innerHTML="<h2>"+esc(name)+"</h2><p>¿Desde dónde sales? Activa tu ubicación (botón 📍) o toca el mapa donde estás y elige <b>📍 Salir de aquí</b>.</p>";tripLayer.clearLayers();drawEnds();map.setView(c,15);pending=true;return}
+  if(!origin){$("panel").innerHTML="<h2>"+esc(name)+"</h2><p>¿Desde dónde sales? Activa tu ubicación (botón 📍), escribe el lugar o toca el mapa y elige <b>📍 Salir de aquí</b>.</p><button class=\"go\" onclick=\"$('from').onclick()\">🟢 Elegir desde dónde sale</button>";tripLayer.clearLayers();drawEnds();map.setView(c,15);pending=true;return}
   if(!ready){$("panel").innerHTML="<h2>"+esc(name)+"</h2><p>Cargando las rutas, en un segundo te doy las opciones…</p><div class='prog'><i style='width:60%'></i></div>";pending=true;return}
   plan();
 }
@@ -1205,8 +1207,13 @@ function renderQuick(){
 function confirmDel(x){const P=$("panel");setSheet(false);P.insertAdjacentHTML("afterbegin",`<div class="opt" id="delbox" style="cursor:default">¿Borrar <b>${esc(x.name)}</b> de tus lugares? <div style="display:flex;gap:8px;margin-top:8px"><button class="go" id="delok" style="margin:0;background:#b91c1c">Borrar</button><button class="go" id="delno" style="margin:0;background:#888">No</button></div></div>`);
   $("delno").onclick=()=>$("delbox").remove();$("delok").onclick=()=>{MIS=MIS.filter(y=>y!==x);saveMis();$("delbox").remove()};}
 renderQuick();
-$("from").onclick=()=>{setSheet(false);$("panel").insertAdjacentHTML("afterbegin",`<div class="opt" id="frombox" style="cursor:default"><b>¿Desde dónde sales?</b><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="go" id="fme" style="margin:0;flex:1">📍 Mi ubicación</button><button class="go" id="fmap" style="margin:0;flex:1;background:#444">🗺️ Elegir en el mapa</button></div>${MIS.length?`<div class="quick" style="margin-top:8px">${MIS.slice(0,4).map((x,i)=>`<button data-f="${i}" style="box-shadow:none;border:1px solid var(--line)">⭐ ${esc(x.name)}</button>`).join("")}</div>`:""}</div>`);
+// origen elegido desde la búsqueda (para guiar a otra persona que está en otro lugar)
+function fromDone(ll,name){name=String(name).replace(/^🚏 /,"");PICKFROM=false;originIsMe=false;$("q").value=dest?(destName||""):"";$("q").placeholder="¿A dónde vas? Tienda, lugar, calle…";setOrigin(ll,name);
+  try{L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#16a34a",fillOpacity:1}).addTo(selLayer)}catch(e){}
+  toast("🟢 Saliendo desde "+name+(dest?"":". Ahora busca a dónde va."));if(!dest){map.setView(ll,16);setTimeout(()=>$("q").focus(),300)}}
+$("from").onclick=()=>{setSheet(false);$("panel").insertAdjacentHTML("afterbegin",`<div class="opt" id="frombox" style="cursor:default"><b>¿Desde dónde sales?</b><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="go" id="fme" style="margin:0;flex:1">📍 Mi ubicación</button><button class="go" id="fmap" style="margin:0;flex:1;background:#444">🗺️ Elegir en el mapa</button></div><form id="fqf" style="display:flex;gap:6px;margin-top:8px"><input id="fq" placeholder="O escribe: colonia, calle, lugar…" style="flex:1;min-width:0;padding:10px;border:1px solid var(--line);border-radius:10px;font:500 15px Inter"><button class="go" style="margin:0;padding:0 14px">Buscar</button></form>${MIS.length?`<div class="quick" style="margin-top:8px">${MIS.slice(0,4).map((x,i)=>`<button data-f="${i}" style="box-shadow:none;border:1px solid var(--line)">⭐ ${esc(x.name)}</button>`).join("")}</div>`:""}</div>`);
   const fb=$("frombox");
+  $("fqf").onsubmit=e=>{e.preventDefault();const v=$("fq").value.trim();if(v.length<3)return;fb.remove();PICKFROM=true;$("q").value=v;$("q").placeholder="¿Desde dónde sales?";setSheet(true);setTop(true);search(v)};setTimeout(()=>{try{$("fq").focus()}catch(e){}},50);
   $("fme").onclick=()=>{fb.remove();originIsMe=true;if(me){setOrigin(me.getLatLng()&&[me.getLatLng().lat,me.getLatLng().lng],"tu ubicación");map.setView(me.getLatLng(),16)}else $("from").textContent="📍 Activa el permiso de ubicación del navegador"};
   $("fmap").onclick=()=>{fb.remove();setSheet(true);setTop(true);$("from").textContent="👆 Toca el mapa donde estás y elige Salir de aquí"};
   fb.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{const x=MIS[b.dataset.f];fb.remove();originIsMe=false;setOrigin(x.ll,x.name)});
