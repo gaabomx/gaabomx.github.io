@@ -180,9 +180,9 @@ body.hasdest #clearbtn{display:block}
 .vgh .chev{font-size:9px;opacity:.6;transition:transform .25s}.vgrp.open .chev{transform:rotate(180deg)}
 .vgrp.new{animation:vgp 2.2s ease-out 2}@keyframes vgp{0%{box-shadow:0 0 0 0 rgba(250,204,21,.8),0 2px 8px rgba(0,0,0,.3)}100%{box-shadow:0 0 0 10px rgba(250,204,21,0),0 2px 8px rgba(0,0,0,.3)}}
 .vgl{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}.vgl>div{overflow:hidden}
-.vgrp.open .vgl{grid-template-rows:1fr}.vgrp.open .vgl>div{padding:2px 7px 6px}
-.vgr{display:flex;align-items:center;gap:5px;font-weight:600;font-size:11px;margin-top:4px;opacity:0;transform:translateY(-4px);transition:.25s}.vgrp.open .vgr{opacity:1;transform:none}
-.vgr .bd{color:#fff;font-weight:800;font-size:10px;padding:1px 5px;border-radius:6px}
+.vgrp.open .vgl{grid-template-rows:1fr}.vgrp.open .vgl>div{padding:1px 6px 5px}
+.vgr{display:flex;align-items:center;gap:4px;font-weight:600;font-size:10px;margin-top:3px;max-width:118px;opacity:0;transform:translateY(-4px);transition:.25s}.vgrp.open .vgr{opacity:1;transform:none}
+.vgr .bd{flex:none;color:#fff;font-weight:800;font-size:9px;padding:1px 4px;border-radius:5px}.vgr .vt{flex:none}.vgr .vd{min-width:0;overflow:hidden;text-overflow:ellipsis;opacity:.65}
 .clear2{display:none;border:0;background:#efe8dc!important;color:var(--ink)!important;border-radius:12px;width:40px;font-size:16px;cursor:pointer}
 body.hasdest .clear2{display:block}
 .sonar{position:relative;width:24px;height:24px;transform:translateZ(0)}
@@ -1356,7 +1356,7 @@ const g=groups.find(g=>D(g.ll,ll)<60);if(g)g.v.push(x);else groups.push({ll,v:[x
     // varias en la misma parada: cuadrito que se despliega
     const key=g.ll.map(n=>n.toFixed(4)).join(),open=OPENV.has(key);
     const dots=g.v.slice(0,3).map(v=>`<i style="background:${COL[v.r]||"#0f766e"}"></i>`).join("");
-    const rows=g.v.map(v=>`<div class="vgr"><span class="bd" style="background:${COL[v.r]||"#0f766e"}">${v.r}</span><span>${v.d?"→ "+esc(v.d)+" · ":""}${minTxt(v)}</span></div>`).join("");
+    const rows=g.v.map(v=>`<div class="vgr"><span class="bd" style="background:${COL[v.r]||"#0f766e"}">${v.r}</span><span class="vt">${minTxt(v).replace(" min","m")}</span>${v.d?`<span class="vd">→ ${esc(v.d)}</span>`:""}</div>`).join("");
     const m=L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[44,22],iconAnchor:[22,11],html:`<div class="vgrp${open?" open":""}${x.s<180?" new":""}"><div class="vgh"><span class="vdots">${dots}</span><b>${g.v.length}</b><span class="chev">▾</span></div><div class="vgl"><div>${rows}</div></div></div>`}),zIndexOffset:-50}).addTo(seenLayer);
     m.on("click",()=>{const el=m.getElement().firstElementChild;const o=el.classList.toggle("open");o?OPENV.add(key):OPENV.delete(key)})})}
 async function pollSeen(){if(document.visibilityState!=="visible")return;
