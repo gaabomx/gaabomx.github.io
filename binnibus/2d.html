@@ -174,6 +174,9 @@ body.rec #recbar{display:block}
 #topmini #showtop{position:static;transform:none;display:block}
 #clearbtn{border:0;border-radius:999px;background:#1d1a16;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:9px 14px;font:700 14px Inter;cursor:pointer;display:none}
 body.hasdest #clearbtn{display:block}
+.avfab{position:fixed;right:12px;z-index:1000;width:44px;height:44px;border:0;border-radius:14px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none;transition:bottom .28s}
+.avfab svg{width:26px;height:26px}.avfab b{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#dc2626;color:#fff;font:800 10px/18px Inter;padding:0 4px;border:2px solid #fff;display:none}.avfab b.on{display:block}
+body.fleft .avfab{right:auto!important;left:12px}
 .seen{position:fixed;right:12px;white-space:nowrap;z-index:1000;border:0;border-radius:14px;padding:11px 12px;background:#facc15;color:#1d1a16;font:800 13px Inter;box-shadow:0 2px 10px rgba(0,0,0,.3);bottom:calc(58vh + 68px);transition:bottom .28s;cursor:pointer}
 .dlg{position:fixed;inset:0;z-index:2500;background:rgba(10,8,6,.45);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
 .dlg.on{opacity:1;pointer-events:auto}
@@ -370,7 +373,7 @@ window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.cl
 
 <button class="fab compass" id="compass" title="Norte" aria-label="Apuntar al norte"><span id="needle">➤</span></button>
 <button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
-<button class="seen" id="seenbtn">Vi un Binni</button>
+<button class="seen" id="seenbtn">Vi un Binni</button><button class="avfab" id="avbtn" aria-label="Avisar un problema"><svg viewBox="0 0 24 24"><path d="M12 2.5 1.5 21h21z" fill="#f59e0b" stroke="#1d1a16" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 9v5.5" stroke="#1d1a16" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.3" fill="#1d1a16"/></svg><b id="avcount"></b></button>
 <div class="dlg" id="recdlg"><div class="dlgbox"><div class="head"><b>🔴 Grabar recorrido</b><button class="mclose" id="recx">✕</button></div>
   <p class="muted" style="margin:4px 0 6px">¿Qué ruta vas a grabar?</p><select id="recr" class="recsel"></select>
   <p class="muted" style="margin:10px 0 6px">¿Qué dice su letrero? (hacia dónde va)</p><select id="recto" class="recsel"></select>
@@ -586,13 +589,16 @@ function plan(W0=1000,W1=900,now){
     if(home){P.classList.add("leave");return setTimeout(show,190)}return show()}
   plans=[];
   const codes=Object.keys(GEO);
+  // avisos de la gente: se suman al tiempo de llegada (tráfico alarga el viaje; bloqueo o camiones parados en la base, la espera)
+  const AVD={};try{AVISOS.filter(a=>a.s<3600).forEach(a=>{(AVD[a.r]=AVD[a.r]||new Set()).add(a.t)})}catch(e){}
+  const avDelay=(c,ride)=>{const t=AVD[c];if(!t)return 0;let d=0;if(t.has("trafico"))d+=Math.max(5,ride*.6);if(t.has("base"))d+=20;if(t.has("bloqueo"))d+=30;return Math.min(45,Math.round(d))};
   for(const c of codes) for(const [dk,dir] of legsFor(c)){
     const B=nearestStops(dir,origin,W0),A=nearestStops(dir,dest,W1);
     let best=null;
     for(const b of B) for(const a of A){ if(a.k<=b.k||a.s.i==null||b.s.i==null) continue;
       const rm=rideM(dir,b,a);if(rm<200)continue;
-      const t=wmin(b.d)+WAIT+rm/BUS+wmin(a.d),score=t+pen(b.d+a.d,1);
-      if(!best||score<best.score) best={t,score,legs:[{c,dk,dir,b,a,rm}],walk:[b.d,a.d]};
+      const dl=avDelay(c,rm/BUS),t=wmin(b.d)+WAIT+rm/BUS+wmin(a.d)+dl,score=t+pen(b.d+a.d,1);
+      if(!best||score<best.score) best={t,score,dl,legs:[{c,dk,dir,b,a,rm}],walk:[b.d,a.d]};
     }
     if(best) plans.push(best);
   }
@@ -615,9 +621,9 @@ function plan(W0=1000,W1=900,now){
         for(const q of L2){if(q.c2===c1)continue;const tw=D(s1.ll,q.s2.ll);if(tw>400)continue;
           for(const b of B){if(t1<=b.k)continue;const r1=rideM(d1,b,{s:s1});if(r1<200)continue;
             for(const a2 of Aof.get(q.d2)){if(a2.k<=q.t2)continue;const r2=rideM(q.d2,{s:q.s2},a2);if(r2<200)continue;
-              const t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a2.d),score=t+pen(b.d+tw+a2.d,2);
+              const dl=avDelay(c1,r1/BUS)+avDelay(q.c2,r2/BUS),t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a2.d)+dl,score=t+pen(b.d+tw+a2.d,2);
               const key=c1+k1+q.c2+q.k2;const ex=TB.get(key);
-              if(!ex||score<ex.score)TB.set(key,{key,t,score,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0},rm:r1},{c:q.c2,dk:q.k2,dir:q.d2,b:{s:q.s2,k:q.t2,d:tw},a:a2,rm:r2}],walk:[b.d,a2.d],tw});
+              if(!ex||score<ex.score)TB.set(key,{key,t,score,dl,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0},rm:r1},{c:q.c2,dk:q.k2,dir:q.d2,b:{s:q.s2,k:q.t2,d:tw},a:a2,rm:r2}],walk:[b.d,a2.d],tw});
             }}}}}
   }
   TB.forEach(v=>plans.push(v));
@@ -644,7 +650,7 @@ function renderPlans(){
     const L0=p.legs[0],L1=p.legs[p.legs.length-1];
     const walkT=Math.round(wmin(p.walk[0])+wmin(p.walk[1])+(p.tw?wmin(p.tw):0));
     h+=`<div class="opt${i===0&&!walkBest?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0&&!walkBest?"⭐ Mejor · ":""}~${Math.round(p.t)} min · llegas ${hora(p.t)}</div></div>
-    <div class="kind">${p.legs.length>1?'<span class="tag tr">🔁 1 transbordo</span>':'<span class="tag dr">✅ Directa</span>'}<span class="muted">🚶 ${fmt((p.walk[0]+p.walk[1]+(p.tw||0))*1.25)} a pie</span></div>${avisoTxt(p.legs.map(l=>l.c))}
+    <div class="kind">${p.legs.length>1?'<span class="tag tr">🔁 1 transbordo</span>':'<span class="tag dr">✅ Directa</span>'}<span class="muted">🚶 ${fmt((p.walk[0]+p.walk[1]+(p.tw||0))*1.25)} a pie</span></div>${avisoTxt(p.legs.map(l=>l.c),p.dl)}
     <div class="liveeta" data-eta="${i}"></div>
     <ul class="steps">
       <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
@@ -1357,20 +1363,21 @@ const hace=s=>s<60?"hace un momento":s<3600?`hace ${Math.round(s/60)} min`:`hace
 var SEENMODE="vi",AVISOS=[];
 const AVT=[["bloqueo","🚧","Bloqueo","Hay un bloqueo y no puede pasar"],["base","🅿️","No están saliendo","Los camiones siguen parados en la base"],["trafico","🚗","Mucho tráfico","Va muy lento, tardará más"]];
 const AVN={bloqueo:"🚧 Bloqueo",base:"🅿️ No están saliendo de la base",trafico:"🚗 Mucho tráfico"};
+function setSeenMode(m){const b=document.querySelector(`#seenmode [data-m="${m}"]`);if(b)b.onclick()}
 document.querySelectorAll("#seenmode button").forEach(b=>b.onclick=()=>{SEENMODE=b.dataset.m;document.querySelectorAll("#seenmode button").forEach(x=>x.classList.toggle("on",x===b));
   $("seenttl").textContent=SEENMODE==="av"?"⚠️ Avisar un problema":"👀 ¿Qué BinniBus viste?";
   $("seensub").textContent=SEENMODE==="av"?"Elige la ruta. Se avisa a todos durante 1 hora. Anónimo.":"Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.";$("seendirs").innerHTML=""});
 // avisos de la gente: bloqueo, no salen de la base, mucho tráfico (duran 1 hora)
 const avLayer=L.layerGroup().addTo(map);
 function avisosDe(c){const m={};AVISOS.filter(a=>a.r===c&&a.s<3600).forEach(a=>{(m[a.t]=m[a.t]||[]).push(a)});return Object.entries(m).map(([t,v])=>({t,n:v.length,s:Math.min(...v.map(x=>x.s))}))}
-function avisoTxt(codes){const out=[];[...new Set(codes)].forEach(c=>avisosDe(c).forEach(a=>out.push(`⚠️ ${c}: ${AVN[a.t]} · ${hace(a.s)}${a.n>1?` · ${a.n} personas`:""}`)));return out.length?`<div class="avwarn">${out.join("<br>")}</div>`:""}
-function drawAvisos(){avLayer.clearLayers();const gs=[];AVISOS.filter(a=>a.s<3600).forEach(a=>{const ll=[a.lat,a.lon];const g=gs.find(g=>g.r===a.r&&g.t===a.t&&D(g.ll,ll)<400);if(g)g.n++;else gs.push({r:a.r,t:a.t,ll,s:a.s,n:1})});
+function avisoTxt(codes,dl){const out=[];[...new Set(codes)].forEach(c=>avisosDe(c).forEach(a=>out.push(`⚠️ ${c}: ${AVN[a.t]} · ${hace(a.s)}${a.n>1?` · ${a.n} personas`:""}`)));if(out.length&&dl)out.push(`⏱️ Ya le sumé ~${dl} min a tu llegada`);return out.length?`<div class="avwarn">${out.join("<br>")}</div>`:""}
+function drawAvisos(){avLayer.clearLayers();try{const n=new Set(AVISOS.filter(a=>a.s<3600).map(a=>a.r+a.t)).size,e=$("avcount");e.textContent=n;e.classList.toggle("on",n>0)}catch(e){}const gs=[];AVISOS.filter(a=>a.s<3600).forEach(a=>{const ll=[a.lat,a.lon];const g=gs.find(g=>g.r===a.r&&g.t===a.t&&D(g.ll,ll)<400);if(g)g.n++;else gs.push({r:a.r,t:a.t,ll,s:a.s,n:1})});
   gs.forEach(g=>L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[0,0],iconAnchor:[0,0],html:`<div class="avmk">${AVN[g.t].split(" ")[0]}<b>${g.r}</b></div>`}),zIndexOffset:2100}).addTo(avLayer)
     .bindPopup(`<b>${AVN[g.t]}</b><br>Ruta ${g.r} · ${hace(g.s)}${g.n>1?`<br>${g.n} personas lo reportaron`:""}<br><span style="color:#6b6358">Reporte de usuarios</span>`));
   try{renderPeek()}catch(e){}}
 async function pollAvisos(){if(document.visibilityState!=="visible")return;try{const r=await fetch(SBR+"bb_avisos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){AVISOS=await r.json();drawAvisos();if(plans&&plans.length&&typeof renderPlans==="function")try{renderPlans()}catch(e){}}}catch(e){}}
 setInterval(pollAvisos,45000);setTimeout(pollAvisos,2500);setInterval(()=>{AVISOS.forEach(x=>x.s+=60);drawAvisos()},60000);
-function openSeen(){
+function openSeen(mode){if(mode)setSeenMode(mode);
   if(!me){toast("Activa tu ubicación para marcar dónde lo viste.");return}
   const c=[me.getLatLng().lat,me.getLatLng().lng];
   const near=Object.keys(GEO).map(k=>({k,d:Math.min(...GEO[k].map(d=>Math.min(...d.line.filter((p,i)=>i%2===0).map(p=>D(c,p)))))})).sort((a,b)=>a.d-b.d);
@@ -1398,7 +1405,14 @@ function openSeen(){
     const g2=document.createElement("div");g2.className="chips";g2.style.marginTop="8px";lejos.forEach(x=>g2.appendChild(mk(x,true)));det.appendChild(g2);if(!cerca.length)det.open=true;box.appendChild(det)}
   $("seendlg").classList.add("on");
 }
-$("seenbtn").onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openSeen()};$("seenx").onclick=()=>$("seendlg").classList.remove("on");
+$("seenbtn").onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openSeen("vi")};
+// botón ⚠️ justo arriba de "Vi un Binni": sigue su posición y lado
+(()=>{const sb2=$("seenbtn"),av=$("avbtn");const sync=()=>{const cs=getComputedStyle(sb2);av.style.bottom=`calc(${cs.bottom} + ${sb2.offsetHeight+8}px)`;av.style.transform=sb2.style.transform;av.style.display=cs.display==="none"||document.body.classList.contains("rec")?"none":"";
+  if(!document.body.classList.contains("fleft"))av.style.right=cs.right;else av.style.left=cs.left};
+  new MutationObserver(sync).observe(sb2,{attributes:true,attributeFilter:["style","class"]});new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:["class"]});
+  addEventListener("resize",sync);sb2.addEventListener("transitionend",sync);setTimeout(sync,0);setInterval(sync,1500);
+  av.onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openSeen("av")}})();
+$("seenx").onclick=()=>$("seendlg").classList.remove("on");
 $("seendlg").onclick=e=>{if(e.target.id==="seendlg")$("seendlg").classList.remove("on")};
 function snapSeen(k,di,c){ // pone la marca en la parada de esa ruta más cercana (o sobre la ruta)
   const dirs=di>=0?[GEO[k][di]]:GEO[k];let best=null,bd=1e9;
@@ -1437,7 +1451,7 @@ setInterval(pollSeen,20000);setInterval(()=>{SEEN.forEach(x=>x.s+=30);drawSeen()
 
 /* ---------- Botones flotantes: arrastrar a izquierda o derecha ---------- */
 try{if(localStorage.getItem("bb-fside")==="l")document.body.classList.add("fleft")}catch(e){}
-(()=>{const els=["me","compass","seenbtn"].map(id=>$(id));let x0=null,dx=0,moved=false;
+(()=>{const els=["me","compass","seenbtn","avbtn"].map(id=>$(id));let x0=null,dx=0,moved=false;
   const all=()=>els.forEach(e=>{e.style.transform=`translateX(${dx}px)`;e.classList.add("dragging")});
   const end=()=>{if(x0===null)return;const left=document.body.classList.contains("fleft");
     const r=$("me").getBoundingClientRect();const mid=(r.left+r.right)/2;
