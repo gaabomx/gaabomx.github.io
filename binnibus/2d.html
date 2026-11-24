@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script>/* computadoras Linux bloqueadas (no cuenta Android ni Chromebook; el dueño y las pruebas locales sí entran) */
+(function(){try{var u=navigator.userAgent,yo=false;try{yo=localStorage.getItem("bb-yo")==="1"}catch(e){}
+if(/Linux/.test(u)&&!/Android|CrOS/.test(u)&&!yo&&!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
+document.write('<style>html,body{margin:0;background:#1d1a16}</style></head><body><div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;font:600 17px system-ui;text-align:center;padding:24px">Binni Rutas no está disponible en este equipo.</div><plaintext style="display:none">')}}catch(e){}})();</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
