@@ -773,7 +773,7 @@ function startTrip(p){
 new MutationObserver(()=>{if(trip&&!$("tripbar")){tripBar();shareUI&&shareUI()}}).observe($("panel"),{childList:true});
 function cancelTrip(){
   nat("end");stopShare(true);keepAwake(false);
-  trip=null;warned={};$("alert").style.display="none";tripBar();
+  trip=null;warned={};$("alert").style.display="none";tripBar();if(!$("panel").children.length)setTimeout(clearAll,0);
   document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="Iniciar viaje · te aviso dónde bajar";b.style.background="";bindGo()});
   setSheet(false);
 }
@@ -1042,6 +1042,13 @@ function clearAll(){
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
   $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
   if(me)map.setView(me.getLatLng(),15);setTop(true);setSheet(false);
+  if(trip){ // con viaje activo: solo queda el seguimiento, lo demás se quita
+    dest=trip.dest.slice();destName="";$("panel").innerHTML="";tripBar();shareUI();
+    try{showPlan(trip)}catch(e){}
+    if(me){setFollow(true);map.flyTo(me.getLatLng(),17,{duration:.6})}
+    const L0=trip.legs[trip.legs.length-1];$("peek").textContent=`🟢 Viaje en curso · Bájate en ${L0.a.s.name} ⌃`;
+    if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
+  }
 }
 $("clearbtn").onclick=clearAll;$("clear2").onclick=clearAll;
 
