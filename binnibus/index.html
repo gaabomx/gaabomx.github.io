@@ -138,6 +138,12 @@ body.mopen .msec{opacity:1;transform:none}
 .how{list-style:none;padding:0;margin:0}
 .how li{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:8px 0}
 .how span{flex:none;width:24px;height:24px;border-radius:50%;background:var(--ok);color:#fff;font:800 13px/24px Inter;text-align:center}
+#recbar{display:none;position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 8px);z-index:1700;background:#1d1a16;color:#fff;border-radius:14px;padding:8px 10px;box-shadow:0 6px 20px rgba(0,0,0,.35);font:600 13px Inter}
+body.rec #recbar{display:block}
+#recbar .rbt{display:flex;align-items:center;gap:7px}#recbar .rbt i{width:10px;height:10px;border-radius:50%;background:#ef4444;animation:rblink 1s infinite}@keyframes rblink{50%{opacity:.25}}
+#recbar small{margin-left:auto;opacity:.75;font-weight:500}
+#recbar .rbb{display:flex;gap:8px;margin-top:7px}#recbar .rbb button{flex:1;border:0;border-radius:10px;padding:10px;font:700 14px Inter;background:#facc15;color:#1d1a16}#recbar #recend{background:#fff}
+.recsel{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font:500 15px Inter;background:#fff;color:var(--ink)}
 .mbtn{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px;font:600 13px Inter;color:var(--ink);cursor:pointer}
 .mis{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .mis span{flex:1}
@@ -360,6 +366,12 @@ window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.cl
 <button class="fab compass" id="compass" title="Norte" aria-label="Apuntar al norte"><span id="needle">➤</span></button>
 <button class="fab" id="me" style="bottom:calc(58vh + 12px)" title="Mi ubicación">📍</button>
 <button class="seen" id="seenbtn">Vi un Binni</button>
+<div class="dlg" id="recdlg"><div class="dlgbox"><div class="head"><b>🔴 Grabar recorrido</b><button class="mclose" id="recx">✕</button></div>
+  <p class="muted" style="margin:4px 0 6px">¿Qué ruta vas a grabar?</p><select id="recr" class="recsel"></select>
+  <p class="muted" style="margin:10px 0 6px">¿Qué dice su letrero? (hacia dónde va)</p><select id="recto" class="recsel"></select>
+  <input id="recto2" class="recsel" placeholder="Escribe hacia dónde va" style="display:none;margin-top:6px">
+  <button class="mbtn" id="recgo" style="width:100%;margin-top:12px;background:#b91c1c;color:#fff;border:0">🔴 Empezar a grabar</button></div></div>
+<div id="recbar"><div class="rbt"><i></i><b id="rect">Grabando</b><small id="recs"></small></div><div class="rbb"><button id="recstop">🚏 Parada</button><button id="recend">⏹ Terminar</button></div></div>
 <div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b>👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><p class="muted" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div id="seenroutes"></div><div id="seendirs"></div></div></div>
 <div class="alert" id="alert"></div>
 <div class="mscrim" id="mscrim"></div>
@@ -381,6 +393,7 @@ window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.cl
       <p class="muted">Así te queda en tu pantalla de inicio, con su ícono, y la abres como cualquier app. Son 5 toques:</p>
       <video id="appvid" src="como-app.mp4" poster="como-app.jpg" playsinline muted loop preload="none" controls></video>
       <p class="muted" style="margin-top:6px">En Android: Chrome → ⋮ → <b>Agregar a pantalla principal</b>.</p></details></section>
+    <section class="msec" id="recsec" style="--d:1;display:none"><h3>🔴 Grabar recorrido (solo tú)</h3><p class="muted">Súbete a la ruta, toca Grabar y deja la página abierta. Marca cada parada cuando el camión se detenga.</p><button class="mbtn" id="recopen" style="width:100%">🔴 Grabar un recorrido</button><div id="recpend"></div></section>
     <section class="msec" style="--d:1"><label class="tgl"><input type="checkbox" id="stopwarn"><span></span>🚏 Avisarme cuando pase cerca de una parada</label></section>
     <section class="msec" style="--d:1"><h3>⭐ Mis lugares</h3><div id="mmis"></div></section>
     <section class="msec" style="--d:2"><details class="mdet"><summary><h3>Rutas en el mapa</h3><span class="chev">▾</span></summary><p class="muted">Toca una ruta para mostrarla u ocultarla.</p><div class="chips" id="chips"></div>
@@ -822,6 +835,7 @@ function onPos(p){
   if(originIsMe) origin=c;
   if(trip) checkTrip(c,p.coords.speed);
   if(SHARE) pingShare(c,p.coords.speed);
+  if(REC) recPos(p);
   nearStop(c);
 }
 window.bbPos=onPos; // la app de iPhone manda aquí la ubicación también en segundo plano
@@ -845,7 +859,7 @@ if(/Instagram|FBAN|FBAV|TikTok/i.test(navigator.userAgent))setTimeout(()=>{if(!m
 /* pantalla siempre encendida mientras hay viaje */
 let wakeL=null;
 async function keepAwake(on){try{if(on){if(!wakeL&&navigator.wakeLock){wakeL=await navigator.wakeLock.request("screen");wakeL.addEventListener("release",()=>{wakeL=null})}}else if(wakeL){await wakeL.release();wakeL=null}}catch(e){}}
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&trip)keepAwake(true)});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&(trip||REC))keepAwake(true)});
 let originIsMe=true;
 function setFollow(v){FOLLOW=v;$("me").classList.toggle("follow",v)}
 $("me").onclick=()=>{if(!me)return;setFollow(true);map.flyTo(me.getLatLng(),Math.max(map.getZoom(),17),{duration:.6})};
@@ -1338,6 +1352,43 @@ function clearAll(){
 }
 $("clearbtn").onclick=clearAll;$("clear2").onclick=clearAll;
 
+
+/* ---------- Grabar recorrido (solo el admin): para actualizar rutas que cambiaron ---------- */
+var REC=null,recLine=null,recStops=L.layerGroup().addTo(map);
+function recSave(){try{REC?localStorage.setItem("bb-rec",JSON.stringify(REC)):localStorage.removeItem("bb-rec")}catch(e){}}
+function recKm(){let m=0;for(let i=1;i<REC.pts.length;i++)m+=D(REC.pts[i-1],REC.pts[i]);return m}
+function recUI(){if(!REC){document.body.classList.remove("rec");return}document.body.classList.add("rec");
+  $("rect").textContent=`Grabando ${REC.r} → ${REC.to}`;$("recs").textContent=`${fmt(recKm())} · ${REC.st.length} paradas`;
+  if(!recLine)recLine=L.polyline([],{color:"#ef4444",weight:5,opacity:.9,interactive:false}).addTo(map);recLine.setLatLngs(REC.pts.map(p=>[p[0],p[1]]))}
+function recPos(p){if(!REC||REC.pause)return;const c=p.coords;if(c.accuracy>45)return;
+  const pt=[+c.latitude.toFixed(6),+c.longitude.toFixed(6),Math.round(Date.now()/1000),Math.round(c.accuracy)];
+  const last=REC.pts[REC.pts.length-1];if(last&&D(last,pt)<8)return;
+  REC.pts.push(pt);recSave();recUI()}
+function recStart(r,to){REC={r,to,pts:[],st:[],t0:Date.now()};recSave();recUI();keepAwake(true);closeMenu();$("recdlg").classList.remove("on");
+  if(me){const l=me.getLatLng();recPos({coords:{latitude:l.lat,longitude:l.lng,accuracy:10}})}
+  toast("🔴 Grabando. Deja la página abierta y marca cada parada.")}
+$("recstop").onclick=()=>{if(!REC)return;if(!me){toast("Aún no tengo tu ubicación");return}const l=me.getLatLng();
+  const n=prompt("Nombre de la parada (puedes dejarlo vacío)","")||"";
+  REC.st.push([+l.lat.toFixed(6),+l.lng.toFixed(6),n.trim(),Math.round(Date.now()/1000)]);recSave();
+  L.circleMarker([l.lat,l.lng],{radius:6,color:"#fff",weight:2,fillColor:"#facc15",fillOpacity:1}).addTo(recStops);recUI();toast("🚏 Parada marcada"+(n?": "+n:""))};
+async function recUpload(R){try{const r=await fetch(SBR+"bb_grabacion_add",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({p_ruta:R.r,p_destino:R.to,p_puntos:R.pts,p_paradas:R.st})});return r.ok}catch(e){return false}}
+function recPendUI(){let P=[];try{P=JSON.parse(localStorage.getItem("bb-rec-pend")||"[]")}catch(e){}
+  $("recpend").innerHTML=P.length?`<p class="muted" style="margin-top:8px">${P.length} grabación(es) sin subir.</p><button class="mbtn" id="recretry" style="width:100%">⬆️ Subir ahora</button>`:"";
+  const b=$("recretry");if(b)b.onclick=async()=>{const left=[];for(const R of P){if(!(await recUpload(R)))left.push(R)}localStorage.setItem("bb-rec-pend",JSON.stringify(left));recPendUI();toast(left.length?"No se pudo subir, intenta con mejor señal":"✅ Grabaciones subidas")}}
+$("recend").onclick=async()=>{if(!REC)return;
+  if(REC.pts.length<5){if(confirm("Casi no hay recorrido grabado. ¿Descartar?")){REC=null;recSave();recLine&&recLine.setLatLngs([]);recStops.clearLayers();recUI();keepAwake(false)}return}
+  if(!confirm(`¿Terminar y guardar ${REC.r} → ${REC.to}? (${fmt(recKm())}, ${REC.st.length} paradas)`))return;
+  const R=REC;REC=null;recSave();recUI();if(!trip)keepAwake(false);
+  if(await recUpload(R))toast("✅ Recorrido guardado. Ya lo puedo usar para actualizar la ruta.");
+  else{let P=[];try{P=JSON.parse(localStorage.getItem("bb-rec-pend")||"[]")}catch(e){}P.push(R);localStorage.setItem("bb-rec-pend",JSON.stringify(P));recPendUI();toast("Sin señal: se guardó en tu celular. Súbelo desde el menú.")}
+  setTimeout(()=>{recLine&&recLine.setLatLngs([]);recStops.clearLayers()},4000)};
+$("recopen").onclick=()=>{const sel=$("recr");sel.innerHTML=(window.R||[]).map(x=>`<option value="${x[0]}">${x[0]} · ${esc(x[3]||"")}</option>`).join("");
+  const fill=()=>{const k=sel.value,d=(GEO[k]||[]).map(x=>x.to).filter((v,i,a)=>v&&a.indexOf(v)===i);$("recto").innerHTML=d.map(t=>`<option>${esc(t)}</option>`).join("")+'<option value="_otro">Otro…</option>';$("recto2").style.display=d.length?"none":"block"};
+  sel.onchange=fill;fill();$("recto").onchange=()=>{$("recto2").style.display=$("recto").value==="_otro"?"block":"none"};$("recdlg").classList.add("on")};
+$("recx").onclick=()=>$("recdlg").classList.remove("on");
+$("recgo").onclick=()=>{const r=$("recr").value;let to=$("recto").value;if(to==="_otro"||!to)to=$("recto2").value.trim();if(!to){toast("Escribe hacia dónde va");return}recStart(r,to)};
+if(YO){$("recsec").style.display="";recPendUI();try{const x=JSON.parse(localStorage.getItem("bb-rec")||"null");if(x&&x.pts){REC=x;recUI();keepAwake(true);
+  x.st.forEach(p=>L.circleMarker([p[0],p[1]],{radius:6,color:"#fff",weight:2,fillColor:"#facc15",fillOpacity:1}).addTo(recStops));toast("🔴 Sigues grabando "+x.r)}}catch(e){}}
 /* ---------- Vi un BinniBus ---------- */
 let SEEN=[];const seenLayer=L.layerGroup().addTo(map);
 const hace=s=>s<60?"hace un momento":s<3600?`hace ${Math.round(s/60)} min`:`hace ${Math.round(s/3600)} h`;
@@ -1429,7 +1480,7 @@ function buildStopIdx(){ // junta paradas de todas las rutas (las del mismo punt
     if(!f){f={ll:st.ll,name:st.name,r:new Set()};STOPIDX.push(f);const k=la+"_"+lo;if(!g.has(k))g.set(k,[]);g.get(k).push(f)}
     f.r.add(code)})));
 }
-function nearStop(c){
+function nearStop(c){if(REC)return;
   if(!stopOn||!ready)return;const now=Date.now();if(now-lastNear<3000)return;lastNear=now;
   if(!STOPIDX)buildStopIdx();
   let best=null,bd=1e9;for(const g of STOPIDX){const d=D(c,g.ll);if(d<bd){bd=d;best=g}}
