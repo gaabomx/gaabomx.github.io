@@ -179,6 +179,7 @@ body.hasdest .clear2{display:block}
 .flow{animation:flow 1.1s linear infinite}
 @keyframes flow{to{stroke-dashoffset:-19}}
 .walkline{animation:wl 1.6s linear infinite}
+.opt .kind{display:flex;gap:8px;align-items:center;margin-top:5px;font-size:12px}.opt .tag{font-weight:700;border-radius:999px;padding:2px 8px}.opt .tag.dr{background:#dcfce7;color:#166534}.opt .tag.tr{background:#fef3c7;color:#92400e}
 @keyframes wl{to{stroke-dashoffset:-20}}
 .popin{animation:popin .35s cubic-bezier(.3,1.6,.5,1) both;transform-box:fill-box;transform-origin:center}
 @keyframes popin{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
@@ -509,6 +510,8 @@ function legsFor(code){if(ONLY&&code!==ONLY.c)return[];return (GEO[code]||[]).fi
 function nearestStops(dir,pt,maxD){return dir.stops.map((s,k)=>({s,k,d:s.ll&&!s.bad?D(pt,s.ll):1e9})).filter(x=>x.d<maxD)}
 const WALK=75,BUS=280,WAIT=8; // m/min caminando, m/min camión (~17 km/h), min de espera
 const wmin=m=>m*1.25/WALK; // la calle real es ~25% más larga que la línea recta
+// caminar mucho cansa: después de 400 m cada minuto a pie cuenta doble; cada transbordo suma 3 min de molestia
+const pen=(m,n)=>Math.max(0,m*1.25-400)/WALK+(n>1?3:0);
 function rideM(dir,b,a){return Math.max(0,dir.cum[a.s.i]-dir.cum[b.s.i])}
 function plan(W0=1000,W1=900,now){
   if(!now&&W0===1000){const P=$("panel"),home=!!document.querySelector("#panel .homehead");
@@ -521,8 +524,8 @@ function plan(W0=1000,W1=900,now){
     let best=null;
     for(const b of B) for(const a of A){ if(a.k<=b.k||a.s.i==null||b.s.i==null) continue;
       const rm=rideM(dir,b,a);if(rm<200)continue;
-      const t=wmin(b.d)+WAIT+rm/BUS+wmin(a.d);
-      if(!best||t<best.t) best={t,score:t,legs:[{c,dk,dir,b,a,rm}],walk:[b.d,a.d]};
+      const t=wmin(b.d)+WAIT+rm/BUS+wmin(a.d),score=t+pen(b.d+a.d,1);
+      if(!best||score<best.score) best={t,score,legs:[{c,dk,dir,b,a,rm}],walk:[b.d,a.d]};
     }
     if(best) plans.push(best);
   }
@@ -545,17 +548,17 @@ function plan(W0=1000,W1=900,now){
         for(const q of L2){if(q.c2===c1)continue;const tw=D(s1.ll,q.s2.ll);if(tw>400)continue;
           for(const b of B){if(t1<=b.k)continue;const r1=rideM(d1,b,{s:s1});if(r1<200)continue;
             for(const a2 of Aof.get(q.d2)){if(a2.k<=q.t2)continue;const r2=rideM(q.d2,{s:q.s2},a2);if(r2<200)continue;
-              const t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a2.d);
+              const t=wmin(b.d)+WAIT+r1/BUS+wmin(tw)+WAIT+r2/BUS+wmin(a2.d),score=t+pen(b.d+tw+a2.d,2);
               const key=c1+k1+q.c2+q.k2;const ex=TB.get(key);
-              if(!ex||t<ex.t)TB.set(key,{key,t,score:t,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0},rm:r1},{c:q.c2,dk:q.k2,dir:q.d2,b:{s:q.s2,k:q.t2,d:tw},a:a2,rm:r2}],walk:[b.d,a2.d],tw});
+              if(!ex||score<ex.score)TB.set(key,{key,t,score,legs:[{c:c1,dk:k1,dir:d1,b,a:{s:s1,k:t1,d:0},rm:r1},{c:q.c2,dk:q.k2,dir:q.d2,b:{s:q.s2,k:q.t2,d:tw},a:a2,rm:r2}],walk:[b.d,a2.d],tw});
             }}}}}
   }
   TB.forEach(v=>plans.push(v));
   if(!plans.length&&W0<2500)return plan(W0+700,W1+700,true);
-  plans.sort((x,y)=>x.t-y.t);
-  // transbordos solo si ahorran al menos 5 min frente a la mejor directa
+  plans.sort((x,y)=>x.score-y.score);
+  // transbordo solo si sale mejor que la mejor directa (contando lo que caminas)
   const direct=plans.filter(p=>p.legs.length===1);
-  if(direct.length){const bt=direct[0].t;plans=plans.filter(p=>p.legs.length===1||p.t<bt-5)}
+  if(direct.length){const bs=direct[0].score;plans=plans.filter(p=>p.legs.length===1||p.score<bs-2)}
   const seen=new Set();plans=plans.filter(p=>{const k=p.legs.map(l=>l.c).join();if(seen.has(k))return false;seen.add(k);return true}).slice(0,4);
   renderPlans();
 }
@@ -574,6 +577,7 @@ function renderPlans(){
     const L0=p.legs[0],L1=p.legs[p.legs.length-1];
     const walkT=Math.round(wmin(p.walk[0])+wmin(p.walk[1])+(p.tw?wmin(p.tw):0));
     h+=`<div class="opt${i===0&&!walkBest?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0&&!walkBest?"⭐ Mejor · ":""}~${Math.round(p.t)} min · llegas ${hora(p.t)}</div></div>
+    <div class="kind">${p.legs.length>1?'<span class="tag tr">🔁 1 transbordo</span>':'<span class="tag dr">✅ Directa</span>'}<span class="muted">🚶 ${fmt((p.walk[0]+p.walk[1]+(p.tw||0))*1.25)} a pie</span></div>
     <div class="liveeta" data-eta="${i}"></div>
     <ul class="steps">
       <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
