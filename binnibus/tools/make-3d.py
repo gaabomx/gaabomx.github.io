@@ -95,6 +95,8 @@ rep('function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%
 # el botón de norte también endereza la vista inclinada
 rep('$("compass").classList.toggle("on",n>1&&n<359)', '$("compass").classList.toggle("on",(n>1&&n<359))')
 
+# 2d.html es la copia de respaldo y lleva noindex; la página pública (index.html) sí debe salir en Google
+s = s.replace('<meta name="robots" content="noindex">\n', "", 1)
 s = s.replace("<!DOCTYPE html>", "<!DOCTYPE html>\n<!-- GENERADO por tools/make-3d.py desde 2d.html. Edita 2d.html y vuelve a correr el script. -->", 1)
 # evitar que el celular use versiones viejas guardadas (caché)
 import hashlib, os
