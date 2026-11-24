@@ -54,3 +54,8 @@ Apple pide capturas de iPhone de 6.9" (1320 × 2868) o 6.5" (1284 × 2778). Toma
 2. La ruta dibujada en el mapa.
 3. Un viaje en curso con km, minutos y hora de llegada.
 4. El menú con "¿Cómo funciona?".
+
+## Nota para la revisión de Apple (ubicación en segundo plano)
+Pega esto en "Notas para el revisor" de App Store Connect:
+
+> La app usa la ubicación en segundo plano solo mientras el usuario tiene un viaje activo (botón "Iniciar viaje"). Sirve para avisarle con una notificación en cada parada y cuando debe bajarse del camión, aunque tenga el celular bloqueado. Al terminar o cancelar el viaje se deja de usar la ubicación. Para probar: busca "Zócalo", elige una opción y toca "Iniciar viaje".

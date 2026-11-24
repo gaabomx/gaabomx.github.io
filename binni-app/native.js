@@ -5,6 +5,8 @@
   const LN = C.Plugins.LocalNotifications;
   const HP = C.Plugins.Haptics;
   const SB = C.Plugins.StatusBar;
+  const BG = C.Plugins.BackgroundGeolocation;
+  let bgId = null;
   const ID_BAJADA = 1001, ID_LLEGADA = 1002, ID_AVISO = 1003;
   let permiso = false, ultimoAviso = 0;
 
@@ -38,6 +40,20 @@
   // La página llama a esta función en cada momento del viaje.
   window.bbNative = async function (evento, d) {
     if (evento === "start") {
+      // ubicación en vivo aunque la pantalla esté bloqueada
+      if (BG && !bgId && window.bbPos) {
+        try {
+          bgId = await BG.addWatcher({
+            backgroundTitle: "Viaje en curso",
+            backgroundMessage: "Te aviso en cada parada y cuando debas bajarte.",
+            requestPermissions: true, stale: false, distanceFilter: 15
+          }, (loc, err) => {
+            if (err || !loc) return;
+            window.bbPos({ coords: { latitude: loc.latitude, longitude: loc.longitude,
+              accuracy: loc.accuracy, speed: loc.speed, heading: loc.bearing } });
+          });
+        } catch (e) {}
+      }
       vibrar(false);
       await pedirPermiso();
     } else if (evento === "eta") {
@@ -57,6 +73,7 @@
       if (document.visibilityState !== "visible")
         await programar(1004, "🚏 Parada cerca", `${d.name} · ${d.routes}`, 0);
     } else if (evento === "end") {
+      if (BG && bgId) { try { await BG.removeWatcher({ id: bgId }); } catch (e) {} bgId = null; }
       ultimoAviso = 0;
       await cancelar([ID_BAJADA, ID_LLEGADA, ID_AVISO]);
     }

@@ -608,7 +608,7 @@ addEventListener("deviceorientationabsolute",onOrient,true);addEventListener("de
 
 let me=null,acc=null,trip=null,warned={};
 function setOrigin(c,label){origin=c;$("from").textContent="📍 Desde: "+label;if(dest&&ready)plan()}
-navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
+function onPos(p){
   const c=[p.coords.latitude,p.coords.longitude];
   if(!me){acc=L.circle(c,{radius:p.coords.accuracy,color:"#2563eb",weight:1,fillOpacity:.12}).addTo(map);
     me=L.marker(c,{icon:L.divIcon({className:"",iconSize:[24,24],iconAnchor:[12,12],html:'<div class="sonar"><i></i><i></i><i></i><span class="cone"></span><b></b></div>'}),zIndexOffset:2000,keyboard:false}).addTo(map).bindPopup("Estás aquí · en vivo");
@@ -619,7 +619,13 @@ navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
   if(trip) checkTrip(c,p.coords.speed);
   if(SHARE) pingShare(c,p.coords.speed);
   nearStop(c);
-},()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+}
+window.bbPos=onPos; // la app de iPhone manda aquí la ubicación también en segundo plano
+navigator.geolocation&&navigator.geolocation.watchPosition(onPos,()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+/* pantalla siempre encendida mientras hay viaje */
+let wakeL=null;
+async function keepAwake(on){try{if(on){if(!wakeL&&navigator.wakeLock){wakeL=await navigator.wakeLock.request("screen");wakeL.addEventListener("release",()=>{wakeL=null})}}else if(wakeL){await wakeL.release();wakeL=null}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&trip)keepAwake(true)});
 let originIsMe=true;
 function setFollow(v){FOLLOW=v;$("me").classList.toggle("follow",v)}
 $("me").onclick=()=>{if(!me)return;setFollow(true);map.flyTo(me.getLatLng(),Math.max(map.getZoom(),17),{duration:.6})};
@@ -692,7 +698,7 @@ function buzz(){ // vibración: Android, iPhone (iOS 18+, truco del switch) y so
   try{if(actx){const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.18,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.25);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+.26)}}catch(e){}
 }
 function startTrip(p){
-  passed={};try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume()}catch(e){}
+  passed={};keepAwake(true);if(navigator.wakeLock&&!window.Capacitor)toast("🔆 La pantalla se queda encendida durante el viaje");try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume()}catch(e){}
   trip=p;warned={};TS=null;nat("start",{stop:p.legs[p.legs.length-1].a.s.name,route:p.legs.map(l=>l.c).join(" → ")});
   tripBar();
   document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="✓ Viaje iniciado · Cancelar";b.style.background="#b91c1c";b.onclick=e=>{e.stopPropagation();cancelTrip()}});
@@ -702,7 +708,7 @@ function startTrip(p){
   if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
 function cancelTrip(){
-  nat("end");stopShare(true);
+  nat("end");stopShare(true);keepAwake(false);
   trip=null;warned={};$("alert").style.display="none";tripBar();
   document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="Iniciar viaje · te aviso dónde bajar";b.style.background="";bindGo()});
   setSheet(false);

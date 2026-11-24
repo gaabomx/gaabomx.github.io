@@ -43,6 +43,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Durante un viaje usamos tu ubicación aunque tengas el celular bloqueado, para avisarte en cada parada y cuando debas bajarte. Solo mientras el viaje está activo.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Usamos tu ubicación para decirte qué BinniBus te sirve, dónde subir y avisarte cuando ya casi llegas a tu parada.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
