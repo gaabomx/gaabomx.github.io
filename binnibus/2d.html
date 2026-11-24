@@ -625,7 +625,23 @@ function onPos(p){
   nearStop(c);
 }
 window.bbPos=onPos; // la app de iPhone manda aquí la ubicación también en segundo plano
-navigator.geolocation&&navigator.geolocation.watchPosition(onPos,()=>{$("from").textContent="📍 Activa la ubicación o toca el mapa para elegir desde dónde sales"},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+/* ubicación robusta: si falla (p. ej. el navegador de Instagram tarda en dar permiso) se vuelve a intentar sola */
+let geoW=null,geoT=null,geoTry=0,geoOK=false;
+function geoErr(e){
+  if(!me)$("from").textContent=e&&e.code===1?"📍 Permite la ubicación o toca el mapa para elegir desde dónde sales":"📍 Buscando tu ubicación…";
+  clearTimeout(geoT);geoT=setTimeout(geoStart,Math.min(8000,1500*(++geoTry)));
+}
+function geoOn(p){geoOK=true;geoTry=0;onPos(p)}
+function geoStart(){if(!navigator.geolocation)return;
+  try{if(geoW!=null)navigator.geolocation.clearWatch(geoW)}catch(e){}
+  navigator.geolocation.getCurrentPosition(geoOn,()=>{},{enableHighAccuracy:false,maximumAge:60000,timeout:10000});
+  geoW=navigator.geolocation.watchPosition(geoOn,geoErr,{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+geoStart();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&(!me||!geoOK))geoStart()});
+addEventListener("focus",()=>{if(!me)geoStart()});
+$("me").addEventListener("click",()=>{if(!me){toast("📍 Buscando tu ubicación…");geoTry=0;geoStart()}});
+if(/Instagram|FBAN|FBAV|TikTok/i.test(navigator.userAgent))setTimeout(()=>{if(!me)toast("Si no sale tu ubicación, toca ⋯ y elige «Abrir en el navegador»")},6000);
 /* pantalla siempre encendida mientras hay viaje */
 let wakeL=null;
 async function keepAwake(on){try{if(on){if(!wakeL&&navigator.wakeLock){wakeL=await navigator.wakeLock.request("screen");wakeL.addEventListener("release",()=>{wakeL=null})}}else if(wakeL){await wakeL.release();wakeL=null}}catch(e){}}
