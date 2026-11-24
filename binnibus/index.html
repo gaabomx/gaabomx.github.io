@@ -685,7 +685,14 @@ function tripBar(){
   if(!bar){bar=document.createElement("div");bar.id="tripbar";bar.className="opt";bar.style.cssText="border:2px solid #16a34a;cursor:default;margin-top:0";$("panel").prepend(bar)}
   bar.innerHTML=html+'<button class="go share" id="sharebtn"></button><div class="live"><div class="muted" style="margin-top:6px">📍 Esperando tu ubicación para calcular en vivo…</div></div>';$("cancelTrip").onclick=cancelTrip;$("sharebtn").onclick=()=>{if(SHARE)stopShare();else{const L=trip.legs[TS?TS.leg:0];if(TS)TS.onBus=true;startShare(L.c,L.dk)}};shareUI();if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
+let passed={},actx=null;
+function buzz(){ // vibración: Android, iPhone (iOS 18+, truco del switch) y sonido corto
+  try{navigator.vibrate&&navigator.vibrate([180,90,180])}catch(e){}
+  try{let l=$("hapt");if(!l){l=document.createElement("label");l.id="hapt";l.style.cssText="position:fixed;left:-99px;top:-99px;opacity:0";l.innerHTML='<input type="checkbox" switch>';document.body.appendChild(l)}l.click()}catch(e){}
+  try{if(actx){const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.18,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.25);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+.26)}}catch(e){}
+}
 function startTrip(p){
+  passed={};try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume()}catch(e){}
   trip=p;warned={};TS=null;nat("start",{stop:p.legs[p.legs.length-1].a.s.name,route:p.legs.map(l=>l.c).join(" → ")});
   tripBar();
   document.querySelectorAll(".go[data-go]").forEach(b=>{b.textContent="✓ Viaje iniciado · Cancelar";b.style.background="#b91c1c";b.onclick=e=>{e.stopPropagation();cancelTrip()}});
@@ -710,6 +717,8 @@ function checkTrip(c,sp){
     if(d<450&&!warned[j]){warned[j]=1;nat("warn",{stop:s.name,change:j<trip.legs.length-1?trip.legs[j+1].c:null});const a=$("alert");a.innerHTML=`🔔 ¡Prepárate!<br>Bájate en <u>${s.name}</u><br><small style="font:600 14px Inter">${j<trip.legs.length-1?"ahí cambias a la "+trip.legs[j+1].c:"ya casi llegas"}</small>`;a.style.display="block";
       try{navigator.vibrate&&navigator.vibrate([400,150,400,150,600])}catch(e){}
       setTimeout(()=>a.style.display="none",9000)}});
+  trip&&trip.legs.forEach((l,j)=>{const st=l.dir.stops;for(let k=l.b.k+1;k<l.a.k;k++){const x=st[k];if(!x.ll||x.bad||passed[j+"_"+k])continue;
+    if(D(c,x.ll)<45){for(let q=l.b.k+1;q<=k;q++)passed[j+"_"+q]=1;const f=l.a.k-k;buzz();toast(`🚏 ${x.name} · faltan ${f} parada${f>1?"s":""}`);nat("stop",{name:x.name,routes:`faltan ${f} parada${f>1?"s":""}`});break}}});
   if(trip&&D(c,dest)<60)arrived();
 }
 $("alert").onclick=()=>$("alert").style.display="none";
