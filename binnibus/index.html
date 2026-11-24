@@ -61,6 +61,7 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 .sheet.min .peek{display:block}
 .sheet.min.tripmid{transform:translateY(calc(100% - var(--mid,230px) - env(safe-area-inset-bottom)))}
 .sheet.gone{transform:translateY(calc(100% + 30px))!important;transition:transform .45s cubic-bezier(.4,0,.2,1)!important}
+.seen.off,#sharebtn.off{opacity:.45;filter:grayscale(.6)}
 #showsheet{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));z-index:1001;transform:translate(-50%,40px) scale(.9);opacity:0;pointer-events:none;border:0;border-radius:999px;background:var(--card);color:var(--ink);box-shadow:0 6px 20px rgba(0,0,0,.3);padding:10px 18px;font:800 14px Inter,system-ui,sans-serif;max-width:86vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .45s cubic-bezier(.22,1.4,.36,1),opacity .25s}
 #showsheet.on{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto}
 #linecard{position:fixed;left:10px;right:10px;top:calc(max(10px,env(safe-area-inset-top)) + 64px);z-index:1050;background:var(--card);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.3);padding:10px 12px;font-size:13px;transform:perspective(700px) rotateX(-90deg);transform-origin:50% 0;opacity:0;pointer-events:none;transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .25s}
@@ -1179,6 +1180,7 @@ function renderMis(){
 let SHARE=null,lastPing=0,LIVE=[];const busLayer=L.layerGroup().addTo(map);
 function busIcon(r,col,me){const w=r.length>6?84:64;return L.divIcon({className:"",iconSize:[w,26],iconAnchor:[w/2,13],html:`<div class="bus${me?" mine":""}" style="--c:${col}">🚌 ${r}</div>`})}
 function startShare(code,to){
+  if(!horarioOk()){toast(HORARIO_TXT);return}
   SHARE={code,to,since:Date.now(),off:0};lastPing=0;
   if(me)pingShare([me.getLatLng().lat,me.getLatLng().lng],null);
   shareUI();toast(`📡 Compartiendo la ${code} en vivo. ¡Gracias por apoyar!`);
@@ -1195,9 +1197,17 @@ function pingShare(c,sp){
   sb("bb_bus_ping",{p_sesion:SES,p_ruta:SHARE.code,p_destino:SHARE.to,p_lat:c[0],p_lon:c[1],p_vel:sp!=null&&sp>=0?Math.round(sp*3.6):null,p_activo:true});
 }
 addEventListener("pagehide",()=>{if(SHARE)sb("bb_bus_ping",{p_sesion:SES,p_ruta:SHARE.code,p_destino:SHARE.to,p_lat:17,p_lon:-96.7,p_vel:null,p_activo:false})});
+/* horario para reportar camiones (hora de Oaxaca): L–D 5:00–23:30; noches de vie y sáb hasta las 4:00 */
+function horarioOk(d){d=d||new Date();let p={};try{new Intl.DateTimeFormat("en-US",{timeZone:"America/Mexico_City",hour12:false,weekday:"short",hour:"2-digit",minute:"2-digit"}).formatToParts(d).forEach(x=>p[x.type]=x.value)}catch(e){return true}
+  const m=(+p.hour%24)*60+(+p.minute),wd=p.weekday;return (m>=300&&m<1410)||((wd==="Fri"||wd==="Sat")&&m>=1410)||((wd==="Sat"||wd==="Sun")&&m<240)}
+const HORARIO_TXT="Puedes reportar Binnis de 5:00 a 11:30 pm (viernes y sábado hasta las 4:00 am).";
+function upHorario(){const ok=horarioOk();const sb2=$("seenbtn");if(sb2){sb2.classList.toggle("off",!ok)}
+  const s2=$("sharebtn");if(s2&&!SHARE)s2.classList.toggle("off",!ok);if(!ok&&SHARE){stopShare(true);toast("Se terminó el horario para compartir camiones.")}}
+setInterval(upHorario,60000);
 function shareUI(){
   const b=$("sharebtn");if(b){const L0=trip&&trip.legs[TS?TS.leg:0];b.textContent=SHARE?`📡 Compartiendo la ${SHARE.code} en vivo · Dejar de compartir`:`🚌 Estoy arriba del Binni${L0?" "+L0.c:""}`;b.classList.toggle("on",!!SHARE)}
   const m=$("mshare");if(m)m.innerHTML=SHARE?`<p>📡 Compartiendo la <b>${SHARE.code}</b> → ${esc(SHARE.to)}</p><button class="mbtn" id="mstop" style="width:100%">Dejar de compartir</button>`:`<p class="muted">¿Vas arriba de un BinniBus? Compártelo y los demás verán por dónde viene. Es anónimo: solo se ve el camión, sin nombre, y se borra a los 2 minutos.</p><div id="mroutes" class="chips"></div><div id="mdirs"></div>`;
+  upHorario();
   if(SHARE){const x=$("mstop");if(x)x.onclick=()=>stopShare()}
   else{const mr=$("mroutes");if(mr)Object.keys(GEO).sort().forEach(c=>{const bt=document.createElement("button");bt.textContent=c;bt.style.background=COL[c]||"#0f766e";bt.onclick=()=>{
       $("mdirs").innerHTML=`<p class="muted" style="margin:8px 0 4px">¿Qué dice el letrero del camión?</p>`+GEO[c].map((d,i)=>`<button class="mbtn" data-d="${i}" style="width:100%;margin-top:6px">${c} → ${esc(d.to)}</button>`).join("");
@@ -1288,7 +1298,7 @@ function openSeen(){
     const g2=document.createElement("div");g2.className="chips";g2.style.marginTop="8px";lejos.forEach(x=>g2.appendChild(mk(x,true)));det.appendChild(g2);if(!cerca.length)det.open=true;box.appendChild(det)}
   $("seendlg").classList.add("on");
 }
-$("seenbtn").onclick=openSeen;$("seenx").onclick=()=>$("seendlg").classList.remove("on");
+$("seenbtn").onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openSeen()};$("seenx").onclick=()=>$("seendlg").classList.remove("on");
 $("seendlg").onclick=e=>{if(e.target.id==="seendlg")$("seendlg").classList.remove("on")};
 function snapSeen(k,di,c){ // pone la marca en la parada de esa ruta más cercana (o sobre la ruta)
   const dirs=di>=0?[GEO[k][di]]:GEO[k];let best=null,bd=1e9;
