@@ -188,7 +188,7 @@ txt.addEventListener("input", () => {
   const n = txt.value.length;
   cuenta.textContent = n + " / 600";
   cuenta.classList.toggle("cerca", n > 540);
-  btn.disabled = txt.value.trim().length === 0;
+  btn.disabled = txt.value.trim().length === 0 || pareceBasura(txt.value);
   estado.textContent = ""; estado.classList.remove("error");
 });
 
@@ -197,7 +197,7 @@ document.getElementById("forma").addEventListener("submit", async (e) => {
   e.preventDefault();
   const texto = txt.value.trim();
   if (!texto) return;
-  if (pareceBasura(texto)) { aviso("Escribe tu opinión de verdad, por favor 🙂 (no se aceptan pruebas como \"test\").", true); return; }
+  if (pareceBasura(texto)) return;
   if (Date.now() - ultimo < 15000) { aviso("Espera unos segundos antes de mandar otro.", true); return; }
   btn.disabled = true; aviso("enviando…");
   try {
@@ -213,7 +213,8 @@ document.getElementById("forma").addEventListener("submit", async (e) => {
     gracias.classList.add("ver");
     setTimeout(() => { gracias.classList.remove("ver"); b.classList.remove("enviando"); b.classList.add("tiembla"); }, 2600);
   } catch (err) {
-    aviso(err.message === "basura" ? "Escribe tu opinión de verdad, por favor 🙂 (no se aceptan pruebas ni mensajes repetidos)." : err.message === "spam" ? "Hay muchos mensajes ahora mismo. Intenta en un minuto." : "No se pudo enviar. Revisa tu conexión e intenta otra vez.", true);
+    if (err.message === "basura") { aviso(""); btn.disabled = true; return; }
+    aviso(err.message === "spam" ? "Hay muchos mensajes ahora mismo. Intenta en un minuto." : "No se pudo enviar. Revisa tu conexión e intenta otra vez.", true);
     btn.disabled = false;
   }
 });
