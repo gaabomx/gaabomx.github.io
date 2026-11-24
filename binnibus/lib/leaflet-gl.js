@@ -171,19 +171,32 @@
       g.addLayer({ id: "sel-glow", type: "line", source: "sel", layout: lay, paint: { "line-width": 22, "line-blur": 10, "line-gradient": grad(col, 0), "line-opacity": .55 } }, below);
       g.addLayer({ id: "sel-case", type: "line", source: "sel", layout: lay, paint: { "line-width": 13, "line-gradient": grad("#ffffff", 0) } }, below);
       g.addLayer({ id: "sel-main", type: "line", source: "sel", layout: lay, paint: { "line-width": 8, "line-gradient": grad(col, 0) } }, below);
-      g.addLayer({ id: "sel-arrow", type: "symbol", source: "sel", layout: { "symbol-placement": "line", "symbol-spacing": ["interpolate", ["linear"], ["zoom"], 11, 45, 17, 80], "icon-image": "lf-chev",
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 11, .45, 17, .7], "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-rotation-alignment": "map", "icon-pitch-alignment": "map" }, paint: { "icon-opacity": 0 } }, below);
+      // flechitas que avanzan a lo largo de la línea, en el sentido del camión
+      g.addSource("sel-pts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      g.addLayer({ id: "sel-arrow", type: "symbol", source: "sel-pts", layout: { "icon-image": "lf-chev", "icon-rotate": ["get", "r"], "icon-size": ["interpolate", ["linear"], ["zoom"], 11, .42, 17, .62],
+        "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-rotation-alignment": "map", "icon-pitch-alignment": "map" }, paint: { "icon-opacity": 0 } }, below);
+      const segs = lines.map(l => { const pts = l.map(toLL), cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + dist([pts[i - 1][1], pts[i - 1][0]], [pts[i][1], pts[i][0]])); return { pts, cum, L: cum[cum.length - 1] }; });
+      const at = (sg, d) => { let lo = 0, hi = sg.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (sg.cum[m] <= d) lo = m; else hi = m; }
+        const a = sg.pts[lo], b = sg.pts[hi], f = (d - sg.cum[lo]) / Math.max(1e-6, sg.cum[hi] - sg.cum[lo]);
+        const y = Math.sin((b[0] - a[0]) * rad) * Math.cos(b[1] * rad), xx = Math.cos(a[1] * rad) * Math.sin(b[1] * rad) - Math.sin(a[1] * rad) * Math.cos(b[1] * rad) * Math.cos((b[0] - a[0]) * rad);
+        return [[a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f], Math.atan2(y, xx) / rad - 90]; };
+      let phase = 0, lastT = 0; this._selPts = t => { const z = g.getZoom(), mpp = 156543.03 * Math.cos(17.06 * rad) / Math.pow(2, z + 1), sp = 34 * mpp;
+        phase = (phase + (lastT ? (t - lastT) : 0) / 1000 * sp * 1.1) % sp; lastT = t; const feats = [];
+        const b = g.getBounds(), pad = .01;
+        for (const sg of segs) for (let d = phase; d < sg.L; d += sp) { const [c, r] = at(sg, d);
+          if (c[0] < b.getWest() - pad || c[0] > b.getEast() + pad || c[1] < b.getSouth() - pad || c[1] > b.getNorth() + pad) continue; feats.push({ type: "Feature", properties: { r }, geometry: { type: "Point", coordinates: c } }); if (feats.length > 600) break; }
+        this._selFeats = feats; const src = g.getSource("sel-pts"); if (src) src.setData({ type: "FeatureCollection", features: feats }); };
       const t0 = performance.now(), DUR = 1100; const seq = [[0,4,3],[.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],[0,.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,.5]];
       let k = 0, last = 0;
       const step = t => { if (!g.getLayer("sel-main")) return; const e = Math.min(1, (t - t0) / DUR), p = 1 - Math.pow(1 - e, 3);
         if (e < 1) { g.setPaintProperty("sel-glow", "line-gradient", grad(col, p)); g.setPaintProperty("sel-case", "line-gradient", grad("#ffffff", p)); g.setPaintProperty("sel-main", "line-gradient", grad(col, p)); }
         else if (!this._selDone) { this._selDone = 1; g.setPaintProperty("sel-arrow", "icon-opacity", 1); }
         if (e >= 1) { g.setPaintProperty("sel-glow", "line-opacity", .35 + .25 * Math.sin((t - t0) / 380));
-          if (t - last > 70) { last = t; g.setPaintProperty("sel-arrow", "icon-opacity", .7 + .3 * Math.sin((t - t0) / 260)); } }
+          if (t - last > 45) { last = t; this._selPts(t); } }
         this._selRAF = requestAnimationFrame(step); };
       this._selDone = 0; this._selRAF = requestAnimationFrame(step); }); return this; }
     selClear() { cancelAnimationFrame(this._selRAF); const g = this.gl; if (!g || !g.getStyle()) return this;
-      ["sel-arrow", "sel-main", "sel-case", "sel-glow"].forEach(id => { if (g.getLayer(id)) g.removeLayer(id); }); if (g.getSource("sel")) g.removeSource("sel"); return this; }
+      ["sel-arrow", "sel-main", "sel-case", "sel-glow"].forEach(id => { if (g.getLayer(id)) g.removeLayer(id); }); if (g.getSource("sel")) g.removeSource("sel"); if (g.getSource("sel-pts")) g.removeSource("sel-pts"); return this; }
     refreshRasters() { const f = window.BB_GL && window.BB_GL.rasterVisible; if (!f) return this;
       this._layers.forEach(l => { if (l._sid && l.url && this.gl.getLayer(l._sid)) this.gl.setLayoutProperty(l._sid, "visibility", f(l.url) ? "visible" : "none"); }); return this; }
   }
