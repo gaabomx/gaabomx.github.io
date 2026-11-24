@@ -156,6 +156,27 @@
     addLayer(l) { l.addTo(this); return this; }
     removeLayer(l) { if (l && l._map === this) l.remove(); return this; }
     invalidateSize() { this.gl.resize(); return this; }
+    /* línea seleccionada: se dibuja de punta a punta, brilla y lleva flechitas que fluyen */
+    selShow(lines, col) { this.whenReady(() => { const g = this.gl; this.selClear(true);
+      const fc = { type: "FeatureCollection", features: lines.map(l => ({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: l.map(toLL) } })) };
+      g.addSource("sel", { type: "geojson", data: fc, lineMetrics: true });
+      const below = g.getLayer("lf-circle") ? "lf-circle" : undefined, lay = { "line-cap": "round", "line-join": "round" };
+      const grad = (c, p) => ["step", ["line-progress"], c, Math.max(0.0001, Math.min(1, p)), "rgba(0,0,0,0)"];
+      g.addLayer({ id: "sel-glow", type: "line", source: "sel", layout: lay, paint: { "line-width": 22, "line-blur": 10, "line-gradient": grad(col, 0), "line-opacity": .55 } }, below);
+      g.addLayer({ id: "sel-case", type: "line", source: "sel", layout: lay, paint: { "line-width": 13, "line-gradient": grad("#ffffff", 0) } }, below);
+      g.addLayer({ id: "sel-main", type: "line", source: "sel", layout: lay, paint: { "line-width": 8, "line-gradient": grad(col, 0) } }, below);
+      g.addLayer({ id: "sel-flow", type: "line", source: "sel", layout: { "line-cap": "butt", "line-join": "round" }, paint: { "line-width": 3, "line-color": "#ffffff", "line-opacity": 0, "line-dasharray": [0, 4, 3] } }, below);
+      const t0 = performance.now(), DUR = 1100; const seq = [[0,4,3],[.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],[0,.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,.5]];
+      let k = 0, last = 0;
+      const step = t => { if (!g.getLayer("sel-main")) return; const e = Math.min(1, (t - t0) / DUR), p = 1 - Math.pow(1 - e, 3);
+        if (e < 1) { g.setPaintProperty("sel-glow", "line-gradient", grad(col, p)); g.setPaintProperty("sel-case", "line-gradient", grad("#ffffff", p)); g.setPaintProperty("sel-main", "line-gradient", grad(col, p)); }
+        else if (!this._selDone) { this._selDone = 1; g.setPaintProperty("sel-flow", "line-opacity", .95); }
+        if (e >= 1) { g.setPaintProperty("sel-glow", "line-opacity", .35 + .25 * Math.sin((t - t0) / 380));
+          if (t - last > 70) { last = t; g.setPaintProperty("sel-flow", "line-dasharray", seq[k = (k + 1) % seq.length]); } }
+        this._selRAF = requestAnimationFrame(step); };
+      this._selDone = 0; this._selRAF = requestAnimationFrame(step); }); return this; }
+    selClear() { cancelAnimationFrame(this._selRAF); const g = this.gl; if (!g || !g.getStyle()) return this;
+      ["sel-flow", "sel-main", "sel-case", "sel-glow"].forEach(id => { if (g.getLayer(id)) g.removeLayer(id); }); if (g.getSource("sel")) g.removeSource("sel"); return this; }
     refreshRasters() { const f = window.BB_GL && window.BB_GL.rasterVisible; if (!f) return this;
       this._layers.forEach(l => { if (l._sid && l.url && this.gl.getLayer(l._sid)) this.gl.setLayoutProperty(l._sid, "visibility", f(l.url) ? "visible" : "none"); }); return this; }
   }

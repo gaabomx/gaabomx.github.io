@@ -535,7 +535,7 @@ function lineAt(e){if(netHidden)return null;const p=map.latLngToContainerPoint([
 const selLayer=L.layerGroup();
 function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle(c===h.c?{opacity:0}:{opacity:.08,weight:3}));
   selLayer.clearLayers();const col=COL[h.c]||"#0f766e";
-  (GEO[h.c]||[]).forEach(d=>{L.polyline(d.line,{color:"#000",weight:16,opacity:.25,interactive:false}).addTo(selLayer);
+  if(map.selShow)map.selShow((GEO[h.c]||[]).map(d=>d.line),col);else (GEO[h.c]||[]).forEach(d=>{L.polyline(d.line,{color:"#000",weight:16,opacity:.25,interactive:false}).addTo(selLayer);
     L.polyline(d.line,{color:"#fff",weight:13,opacity:1,interactive:false}).addTo(selLayer);
     L.polyline(d.line,{color:col,weight:9,opacity:1,interactive:false}).addTo(selLayer)});
   selLayer.addTo(map);
@@ -550,7 +550,7 @@ function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.set
 function goRoute(code,to){const d=(GEO[code]||[]).find(x=>x.to===to);if(!d)return;const st=d.stops.filter(x=>x.ll&&!x.bad),last=st[st.length-1]||{ll:d.line[d.line.length-1]};
   if(SC){SC=null;clearRouteView();const el=$("stopsec");if(el){el.classList.remove("on");el.innerHTML=""}}
   ONLY={c:code,to};ONLYK=true;try{setDest(last.ll,`${to} (${code})`)}finally{ONLYK=false}}
-function clearLine(){if(!SELL)return;SELL=null;selLayer.clearLayers();map.removeLayer(selLayer);for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle({opacity:.6,weight:3}));const el=$("linecard");if(el)el.classList.remove("on")}
+function clearLine(){if(!SELL)return;SELL=null;if(map.selClear)map.selClear();selLayer.clearLayers();map.removeLayer(selLayer);for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle({opacity:.6,weight:3}));const el=$("linecard");if(el)el.classList.remove("on")}
 function draw(code){
   const g=GEO[code];if(!g)return;
   const grp=L.layerGroup(),c=COL[code]||"#0f766e";
