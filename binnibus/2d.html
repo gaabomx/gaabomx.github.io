@@ -174,9 +174,9 @@ body.rec #recbar{display:block}
 #topmini #showtop{position:static;transform:none;display:block}
 #clearbtn{border:0;border-radius:999px;background:#1d1a16;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:9px 14px;font:700 14px Inter;cursor:pointer;display:none}
 body.hasdest #clearbtn{display:block}
-.avfab{position:fixed;left:12px;z-index:1000;width:44px;height:44px;border:0;border-radius:14px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none;transition:bottom .28s}
+.avfab{position:fixed;right:12px;z-index:1000;width:44px;height:44px;border:0;border-radius:14px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none;transition:bottom .28s}
 .avfab svg,.avfab b{pointer-events:none}.avfab svg{width:26px;height:26px}.avfab b{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#dc2626;color:#fff;font:800 10px/18px Inter;padding:0 4px;border:2px solid #fff;display:none}.avfab b.on{display:block}
-body.fleft .avfab{left:auto!important;right:12px}
+
 .seen{position:fixed;right:12px;white-space:nowrap;z-index:1000;border:0;border-radius:14px;padding:11px 12px;background:#facc15;color:#1d1a16;font:800 13px Inter;box-shadow:0 2px 10px rgba(0,0,0,.3);bottom:calc(58vh + 68px);transition:bottom .28s;cursor:pointer}
 .dlg{position:fixed;inset:0;z-index:2500;background:rgba(10,8,6,.45);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
 .dlg.on{opacity:1;pointer-events:auto}
@@ -1445,11 +1445,15 @@ function openSeen(mode){if(mode)setSeenMode(mode);
   $("seendlg").classList.add("on");
 }
 $("seenbtn").onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openSeen("vi")};
-// botón ⚠️ arriba a la izquierda, debajo de la barra de búsqueda (del lado contrario a los otros botones) (sin amontonarse con los de abajo)
-(()=>{const sb2=$("seenbtn"),av=$("avbtn");const sync=()=>{let y=10;document.querySelectorAll("#top,#top .chips,#from").forEach(e=>{const r=e.getBoundingClientRect();if(r.height&&getComputedStyle(e).display!=="none"&&r.bottom>y&&r.top<innerHeight/2)y=r.bottom});
-  av.style.top=(y+10)+"px";av.style.bottom="auto";av.style.display=document.body.classList.contains("rec")?"none":""};
-  new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:["class"]});
-  addEventListener("resize",sync);setTimeout(sync,0);setInterval(sync,1000);
+// botón ⚠️ justo arriba de "Vi un Binni" (si ahí chocaría con 🛰️/3D, se pone a un lado de "Vi un Binni")
+(()=>{const sb2=$("seenbtn"),av=$("avbtn");const sync=()=>{const cs=getComputedStyle(sb2),left=document.body.classList.contains("fleft");
+  av.style.top="auto";av.style.transform=sb2.style.transform;av.style.display=cs.display==="none"||document.body.classList.contains("rec")?"none":"";
+  const side=left?"left":"right";av.style.left=av.style.right="";
+  av.style.bottom=`calc(${cs.bottom} + ${sb2.offsetHeight+8}px)`;av.style[side]=cs[side];
+  const a=av.getBoundingClientRect(),hit=["satbtn","dimbtn"].some(id=>{const e=$(id);if(!e||getComputedStyle(e).display==="none")return false;const r=e.getBoundingClientRect();return r.width&&!(r.right<a.left||r.left>a.right||r.bottom<a.top-4||r.top>a.bottom+4)});
+  if(hit){const r=sb2.getBoundingClientRect();av.style.bottom=`calc(${cs.bottom} + ${(sb2.offsetHeight-44)/2}px)`;av.style[side]=(left?r.right+8:innerWidth-r.left+8)+"px"}};
+  new MutationObserver(sync).observe(sb2,{attributes:true,attributeFilter:["style","class"]});new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:["class"]});
+  addEventListener("resize",sync);sb2.addEventListener("transitionend",sync);setTimeout(sync,0);setInterval(sync,1000);
   av.onclick=()=>{if(!horarioOk()){toast(HORARIO_TXT);return}openAviso()}})();
 // ⚠️ reportar un incidente donde está la persona (sin elegir ruta)
 function openAviso(){if(!me){toast("📍 Activa tu ubicación para reportar lo que pasa donde estás.");try{geoTry=0;geoStart()}catch(e){}return}
@@ -1500,7 +1504,7 @@ setInterval(pollSeen,20000);setInterval(()=>{SEEN.forEach(x=>x.s+=30);drawSeen()
 
 /* ---------- Botones flotantes: arrastrar a izquierda o derecha ---------- */
 try{if(localStorage.getItem("bb-fside")==="l")document.body.classList.add("fleft")}catch(e){}
-(()=>{const els=["me","compass","seenbtn"].map(id=>$(id));let x0=null,dx=0,moved=false;
+(()=>{const els=["me","compass","seenbtn","avbtn"].map(id=>$(id));let x0=null,dx=0,moved=false;
   const all=()=>els.forEach(e=>{e.style.transform=`translateX(${dx}px)`;e.classList.add("dragging")});
   const end=()=>{if(x0===null)return;const left=document.body.classList.contains("fleft");
     const r=$("me").getBoundingClientRect();const mid=(r.left+r.right)/2;
