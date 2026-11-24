@@ -219,10 +219,13 @@ document.getElementById("forma").addEventListener("submit", async (e) => {
   }
 });
 // mensajes de prueba o sin sentido ("test", "prueba", "gbg", "aaaa")
+const EQUIPO_BLOQUEADO = /Linux/.test(navigator.userAgent) && !/Android|CrOS/.test(navigator.userAgent);
 function pareceBasura(t) {
+  if (EQUIPO_BLOQUEADO) return true;
   const n = t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), l = n.replace(/[^a-z]/g, "");
   return l.length < 4 || /^(test|tests|testing|teste|tset|prueba|pruebas|probando|probar|tst|asd|asdf|qwe|qwerty|xd|jaja|ja|aaa|a)+$/.test(l)
-    || /^\s*(test\w*|prueba\w*|probando)[\s\d!.?]*$/.test(n) || !/[aeiou]/.test(l) || /^(.)\1+$/.test(l);
+    || /^\s*(test\w*|prueba\w*|probando)[\s\d!.?]*$/.test(n) || !/[aeiou]/.test(l) || /^(.)\1+$/.test(l)
+    || /(^| )(put[oa]s?|putit[oa]s?|putaz[oa]|pendej[oa]s?|pendejadas?|mierdas?|mamadas?|mamon(a|es)?|vergas?|vrga|verguiza|ching(a|as|ada|adas|ado|ar|ues|en|on|ones)|chingatumadre|culer[oa]s?|cabron(a|es)?|jot[oa]s?|pinches?|idiotas?|estupid[oa]s?|imbecil(es)?|maric[oa]n?(es)?|marica|zorras?|perras?|hdp|ptm|pndj|mrd|alv|nmms|malparid[oa]|hijo de (tu|su) puta|tu madre|mam[ae]n|mames|cagad[ao]s?|ojete)( |$)/.test(" " + n.replace(/[^a-z]+/g, " ").trim() + " ");
 }
 function aviso(t, error) { estado.textContent = t; estado.classList.toggle("error", !!error); }
 </script>
