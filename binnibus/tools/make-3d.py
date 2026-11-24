@@ -56,7 +56,7 @@ window.BB_GL = {
     // las paradas de camión de OpenStreetMap se confunden con las del BinniBus: fuera
     if (has("poi_transit")) gl.setFilter("poi_transit", ["match", ["get", "class"], ["airport", "rail"], true, false]);
     // sin neblina en el horizonte (se veía difuminado arriba)
-    try { gl.setSky({ "sky-color": "#bcd9f2", "horizon-color": "#bcd9f2", "fog-color": "#bcd9f2", "sky-horizon-blend": 0, "horizon-fog-blend": 0, "fog-ground-blend": 1, "atmosphere-blend": 0 }); } catch (e) {}
+    try { gl.setSky({ "sky-color": "#8fbde8", "horizon-color": "#e6eff7", "fog-color": "#e6eff7", "sky-horizon-blend": .6, "horizon-fog-blend": .15, "fog-ground-blend": 1, "atmosphere-blend": 0 }); } catch (e) {}
     window.BB_GL.applyMode(gl);
   },
   applyMode(gl) {
@@ -72,7 +72,7 @@ window.BB_GL = {
 </script>
 <script src="lib/leaflet-gl.js"></script>
 <script>/* si el mapa 3D no arranca (red lenta o bloqueada), pasar a la versión plana */
-setTimeout(function(){try{if(!map._loaded)location.replace("2d.html"+location.search+location.hash)}catch(e){}},20000);</script>''')
+setTimeout(function(){try{if(!map._loaded&&navigator.onLine!==false)location.replace("2d.html"+location.search+location.hash)}catch(e){}},30000);</script>''')
 rep('<script src="leaflet-rotate.js"></script>\n', '')
 
 # 2) los marcadores no giran con el mapa en MapLibre: el cono va al revés
@@ -80,7 +80,7 @@ rep('so.querySelector(".cone").style.transform=`rotate(${HDGshow+b}deg)`', 'so.q
 
 # 3) botón 2D / 3D
 rep('<button class="fab compass" id="compass"', '<button class="fab dim" id="satbtn" title="Mapa o satélite" aria-label="Mapa o satélite" style="font-size:20px">🛰️</button>\n<button class="fab dim" id="dimbtn" title="Cambiar vista 2D / 3D" aria-label="Vista 2D o 3D">2D</button>\n<button class="fab compass" id="compass"')
-rep('.compass{display:none;', '#satbtn{bottom:calc(58vh + 176px);right:66px!important}body.fleft #satbtn{left:66px!important}.fab.dim{bottom:calc(58vh + 176px);font:800 14px Inter,system-ui,sans-serif;transition:bottom .28s}\n.maplibregl-popup-content{border-radius:12px;font:14px/1.4 Inter,system-ui,sans-serif;padding:10px 14px}\n.leaflet-tooltip{white-space:nowrap;border-radius:6px;pointer-events:none}\n.maplibregl-ctrl-attrib{font-size:10px}\n.compass{display:none;')
+rep('.compass{display:none;', '#map{background:#cfe2f3!important}\n#satbtn{bottom:calc(58vh + 176px);right:66px!important}body.fleft #satbtn{left:66px!important}.fab.dim{bottom:calc(58vh + 176px);font:800 14px Inter,system-ui,sans-serif;transition:bottom .28s}\n.maplibregl-popup-content{border-radius:12px;font:14px/1.4 Inter,system-ui,sans-serif;padding:10px 14px}\n.leaflet-tooltip{white-space:nowrap;border-radius:6px;pointer-events:none}\n.maplibregl-ctrl-attrib{font-size:10px}\n.compass{display:none;')
 rep('$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";',
     '$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("dimbtn").style.bottom=min?"calc(240px + env(safe-area-inset-bottom))":"calc(58vh + 176px)";$("satbtn").style.bottom=$("dimbtn").style.bottom;')
 rep('map.on("rotate",upCompass);', '''map.on("rotate",upCompass);map.on("pitch",upCompass);

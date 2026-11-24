@@ -111,11 +111,13 @@
       const W = this.gl.getContainer().clientWidth, H = this.gl.getContainer().clientHeight;
       const k = Math.min(1, (W - 40) / Math.max(1, left + right), (H - 40) / Math.max(1, top + bottom));
       return { top: top * k, left: left * k, right: right * k, bottom: bottom * k }; }
-    _fit(b, o, dur) { o = o || {}; const g = this.gl, pitch = g.getPitch(), bearing = g.getBearing();
+    _fit(b, o, dur) { o = o || {}; const g = this.gl, bearing = g.getBearing();
+      // al encuadrar con el panel abierto, menos inclinación para que no se vea el horizonte
+      const pitch = Math.min(g.getPitch(), (o.paddingBottomRight && o.paddingBottomRight[1] > 150) ? 30 : 45);
       const cam = g.cameraForBounds(b._gl(), { padding: this._bpad(o), bearing, maxZoom: (o.maxZoom || 18) - ZO });
       if (!cam) return this;
       const z = Math.min((o.maxZoom || 18) - ZO, cam.zoom - (pitch > 5 ? 0.35 + pitch / 200 : 0));
-      g.flyTo({ center: cam.center, zoom: z, bearing, pitch, duration: dur, essential: true }); return this; }
+      g.flyTo({ center: cam.center, zoom: z, bearing, pitch, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: dur, essential: true }); return this; }
     fitBounds(b, o) { return this._fit(b, o, 600); }
     flyToBounds(b, o) { o = o || {}; return this._fit(b, o, (o.duration != null ? o.duration : .8) * 1000); }
     getZoom() { return this.gl.getZoom() + ZO; }

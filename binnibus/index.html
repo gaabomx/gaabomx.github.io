@@ -52,7 +52,7 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 .peek{display:none;font:800 15px Archivo;text-align:center;padding-bottom:6px}
 .sheet.min{transform:translateY(calc(100% - 54px - env(safe-area-inset-bottom)));overflow:hidden}
 .sheet.min .peek{display:block}
-.sheet.min.idle{transform:translateY(calc(100% - 146px - env(safe-area-inset-bottom)))}
+.sheet.min.idle{transform:translateY(calc(100% - 196px - env(safe-area-inset-bottom)))}
 .pkinfo{display:flex;flex-direction:column;gap:6px;text-align:left;font:500 13px/1.3 Inter,system-ui,sans-serif;padding:2px 2px 4px}
 .pkinfo{perspective:700px}.pkinfo .r{display:flex;gap:8px;align-items:center;background:#f3ede2;border-radius:12px;padding:7px 10px;transform-origin:50% 50%;backface-visibility:hidden}
 .pkinfo.flip .r{animation:pkFlip .55s cubic-bezier(.4,0,.2,1) both}
@@ -168,6 +168,7 @@ body.hasdest .clear2{display:block}
 .mdet .chev{font-size:16px;color:var(--muted);transition:transform .25s}
 .mdet[open] .chev{transform:rotate(180deg)}
 .mdet[open] summary{margin-bottom:8px}
+#map{background:#cfe2f3!important}
 #satbtn{bottom:calc(58vh + 176px);right:66px!important}body.fleft #satbtn{left:66px!important}.fab.dim{bottom:calc(58vh + 176px);font:800 14px Inter,system-ui,sans-serif;transition:bottom .28s}
 .maplibregl-popup-content{border-radius:12px;font:14px/1.4 Inter,system-ui,sans-serif;padding:10px 14px}
 .leaflet-tooltip{white-space:nowrap;border-radius:6px;pointer-events:none}
@@ -268,10 +269,8 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
   <img class="logo" src="logo.png" alt="">
   <h1>Binni <b>Rutas</b></h1>
   <div class="sub">OAXACA</div>
-  <div class="road"><span class="stop" style="left:30%"></span><span class="stop" style="left:62%"></span><span class="stop" style="right:0"></span><span class="spbus"><i><svg width="46" height="26" viewBox="0 0 46 26"><rect x="1" y="2" width="42" height="18" rx="5" fill="#f97316"/><rect x="5" y="5" width="8" height="7" rx="1.5" fill="#fff7ed"/><rect x="15" y="5" width="8" height="7" rx="1.5" fill="#fff7ed"/><rect x="25" y="5" width="8" height="7" rx="1.5" fill="#fff7ed"/><rect x="35" y="5" width="6" height="11" rx="1.5" fill="#fff7ed"/><rect x="1" y="14" width="42" height="2" fill="#c2410c"/><circle cx="11" cy="21" r="4" fill="#1c1917" stroke="#fdba74" stroke-width="1.5"/><circle cx="33" cy="21" r="4" fill="#1c1917" stroke="#fdba74" stroke-width="1.5"/><rect x="43" y="11" width="2" height="3" fill="#fde68a"/></svg></i></span></div>
-  <div class="txt" id="spltxt">Cargando el mapa…</div>
 </div>
-<script>window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.classList.contains("out"))return;var w=Date.now()-(window.__spl0||0),d=Math.max(0,1400-w);setTimeout(function(){e.classList.add("out");setTimeout(function(){e.remove()},520)},d)};window.__spl0=Date.now();setTimeout(function(){var t=document.getElementById("spltxt");if(t)t.textContent="Buscando las rutas del Binni…"},1600);setTimeout(hideSplash,9000)</script>
+<script>window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.classList.contains("out"))return;var w=Date.now()-(window.__spl0||0),d=Math.max(0,1400-w);setTimeout(function(){e.classList.add("out");setTimeout(function(){e.remove()},520)},d)};window.__spl0=Date.now();setTimeout(hideSplash,9000)</script>
 <div id="map"></div>
 
 <div class="top" id="top">
@@ -371,7 +370,7 @@ window.BB_GL = {
     // las paradas de camión de OpenStreetMap se confunden con las del BinniBus: fuera
     if (has("poi_transit")) gl.setFilter("poi_transit", ["match", ["get", "class"], ["airport", "rail"], true, false]);
     // sin neblina en el horizonte (se veía difuminado arriba)
-    try { gl.setSky({ "sky-color": "#bcd9f2", "horizon-color": "#bcd9f2", "fog-color": "#bcd9f2", "sky-horizon-blend": 0, "horizon-fog-blend": 0, "fog-ground-blend": 1, "atmosphere-blend": 0 }); } catch (e) {}
+    try { gl.setSky({ "sky-color": "#8fbde8", "horizon-color": "#e6eff7", "fog-color": "#e6eff7", "sky-horizon-blend": .6, "horizon-fog-blend": .15, "fog-ground-blend": 1, "atmosphere-blend": 0 }); } catch (e) {}
     window.BB_GL.applyMode(gl);
   },
   applyMode(gl) {
@@ -387,7 +386,7 @@ window.BB_GL = {
 </script>
 <script src="lib/leaflet-gl.js"></script>
 <script>/* si el mapa 3D no arranca (red lenta o bloqueada), pasar a la versión plana */
-setTimeout(function(){try{if(!map._loaded)location.replace("2d.html"+location.search+location.hash)}catch(e){}},20000);</script>
+setTimeout(function(){try{if(!map._loaded&&navigator.onLine!==false)location.replace("2d.html"+location.search+location.hash)}catch(e){}},30000);</script>
 <script src="routes.js"></script>
 <script src="stops.js"></script>
 <script>
@@ -925,17 +924,19 @@ function setSheet(min){
   fab.style.bottom=min?"calc(76px + env(safe-area-inset-bottom))":"calc(58vh + 12px)";$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"calc(58vh + 122px)";$("dimbtn").style.bottom=min?"calc(240px + env(safe-area-inset-bottom))":"calc(58vh + 176px)";$("satbtn").style.bottom=$("dimbtn").style.bottom;$("seenbtn").style.bottom=min?"calc(132px + env(safe-area-inset-bottom))":"calc(58vh + 68px)";
   if(min)sheet.scrollTop=0;
   $("peek").textContent=trip?`🟢 Viaje en curso · Bájate en ${trip.legs[trip.legs.length-1].a.s.name} ⌃`:plans.length?`${plans[0].legs.map(l=>l.c).join(" → ")} · Bájate en ${plans[0].legs[plans[0].legs.length-1].a.s.name} ⌃`:"Desliza hacia arriba para ver opciones ⌃";
-  const idle=min&&isIdle();sheet.classList.toggle("idle",idle);if(idle)renderPeek();
-  if(idle)[fab,$("compass"),$("seenbtn"),$("dimbtn"),$("satbtn")].forEach(e=>{if(e&&e.style.bottom)e.style.bottom="calc("+e.style.bottom+" + 92px)"});
+  const idle=min&&isIdle();sheet.classList.toggle("idle",idle);renderPeek();
+  if(idle)[fab,$("compass"),$("seenbtn"),$("dimbtn"),$("satbtn")].forEach(e=>{if(e&&e.style.bottom)e.style.bottom="calc("+e.style.bottom+" + 142px)"});
   if(wasMin&&!min){const P=$("panel");P.classList.remove("rv");void P.offsetWidth;P.classList.add("rv");setTimeout(()=>P.classList.remove("rv"),900)}
 }
 /* resumen al entrar: lo más importante sin abrir el panel */
-function pkFlip(){document.querySelectorAll(".pkinfo").forEach(e=>{e.classList.remove("flip");void e.offsetWidth;e.classList.add("flip")})}
-setInterval(()=>{if(isIdle())pkFlip()},8000);
+let PKITEMS=[],PKI=0;
+function showPk(flip){const hi=$("homeinfo");if(!hi||!PKITEMS.length)return;const h=`<div class="r">${PKITEMS[PKI]}</div>`;
+  if(hi._h!==h||flip){hi.innerHTML=h;hi._h=h;hi.classList.remove("flip");void hi.offsetWidth;hi.classList.add("flip")}}
+setInterval(()=>{if(isIdle()&&PKITEMS.length>1){PKI=(PKI+1)%PKITEMS.length;showPk(true)}},5000);
 function isIdle(){return !trip&&!plans.length&&!dest}
 function hace2(sec){sec=Math.max(0,Math.round(sec));return sec<60?"ahorita":sec<3600?`hace ${Math.round(sec/60)} min`:`hace ${Math.round(sec/3600)} h`}
 function renderPeek(){
-  const pk=$("peek"),hi=$("homeinfo");if(!isIdle()||(!hi&&!(pk&&sheet.classList.contains("min"))))return;
+  if(!isIdle()||!$("homeinfo"))return;
   const here=me?[me.getLatLng().lat,me.getLatLng().lng]:(origin||null);
   const obs=[].concat((LIVE||[]).map(x=>({r:x.r,d:x.d,ll:x.ll,s:x.s,live:1})),(SEEN||[]).map(x=>({r:x.r,d:x.d,ll:[x.lat,x.lon],s:x.s})));
   let bus=null;if(here){obs.forEach(x=>{const d=D(here,x.ll);if(d<2500&&(!bus||x.s<bus.s))bus=Object.assign({dist:d},x)})}
@@ -947,9 +948,7 @@ function renderPeek(){
   if(here&&ready){try{if(!STOPIDX)buildStopIdx();let best=null,bd=1e9;for(const g of STOPIDX){const d=D(here,g.ll);if(d<bd){bd=d;best=g}}
     if(best&&bd<1500)r2=`<span>🚏</span><span>Parada más cerca: <b>${esc(best.name)}</b> · ${fmt(bd)} · ${[...best.r].sort().slice(0,4).join(", ")}${best.r.size>4?"…":""}</span>`}catch(e){}}
   if(!r2)r2=`<span>📍</span><span>${me?"Cargando paradas cercanas…":"Activa tu ubicación para ver tu parada más cerca"}</span>`;
-  const html=`<div class="pkinfo"><div class="r">${r1}</div><div class="r">${r2}</div><div class="hint">Desliza ⌃ para ver más</div></div>`;
-  if(pk&&sheet.classList.contains("min")&&pk._h!==html){pk.innerHTML=html;pk._h=html;pkFlip()}
-  const hh=`<div class="r">${r1}</div><div class="r">${r2}</div>`;if(hi&&hi._h!==hh){hi.innerHTML=hh;hi._h=hh;pkFlip()}
+  PKITEMS=[r1,r2];if(PKI>=PKITEMS.length)PKI=0;showPk(false);
 }
 setInterval(()=>{renderPeek();if(sheet.classList.contains("min")){const i=isIdle();if(i!==sheet.classList.contains("idle"))setSheet(true);else if(i)renderPeek()}},4000);
 let dragY=null,dragDY=0,dragStart=0;
@@ -1351,7 +1350,7 @@ upCompass();
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
 $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
-setTimeout(renderPeek,700);
+setTimeout(()=>{renderPeek();if(isIdle()&&!sheet.classList.contains("min"))setSheet(true)},700);
 try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");setTimeout(openMenu,900)}}catch(e){}
 (async()=>{
   let RAW={};try{RAW=await (await fetch("geo.json?v=3")).json()}catch(e){}
