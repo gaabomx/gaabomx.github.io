@@ -60,6 +60,11 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 .pkinfo .hint{text-align:center;font:700 12px Inter;color:var(--muted)}
 @keyframes pkFlip{0%{transform:rotateX(-90deg);opacity:0}100%{transform:rotateX(0);opacity:1}}
 @keyframes pkIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#panel.leave>*{animation:pkOut .19s ease-in both}
+@keyframes pkOut{to{opacity:0;transform:translateY(-12px) scale(.98)}}
+#panel.flipin{perspective:900px}
+#panel.flipin .opt{animation:pkFlip .55s cubic-bezier(.4,0,.2,1) both;transform-origin:50% 0;backface-visibility:hidden}
+#panel.flipin .opt:nth-of-type(2){animation-delay:.09s}#panel.flipin .opt:nth-of-type(3){animation-delay:.18s}#panel.flipin .opt:nth-of-type(4){animation-delay:.27s}#panel.flipin .opt:nth-of-type(n+5){animation-delay:.34s}
 #panel.rv>*{animation:pkIn .45s cubic-bezier(.22,1,.36,1) both}
 #panel.rv>*:nth-child(2){animation-delay:.06s}#panel.rv>*:nth-child(3){animation-delay:.12s}#panel.rv>*:nth-child(4){animation-delay:.18s}#panel.rv>*:nth-child(n+5){animation-delay:.24s}
 .fab{transition:bottom .28s}
@@ -452,7 +457,9 @@ const WALK=75,BUS=280,WAIT=8; // m/min caminando, m/min camión (~17 km/h), min 
 const wmin=m=>m*1.25/WALK; // la calle real es ~25% más larga que la línea recta
 function rideM(dir,b,a){return Math.max(0,dir.cum[a.s.i]-dir.cum[b.s.i])}
 function plan(W0=1000,W1=900,now){
-  if(!now&&W0===1000){$("panel").innerHTML=`<h2>${esc(destName||"")}</h2><p class="muted">Buscando las mejores rutas…</p><div class="prog"><i style="width:70%"></i></div>`;setSheet(false);return setTimeout(()=>plan(W0,W1,true),30)}
+  if(!now&&W0===1000){const P=$("panel"),home=!!document.querySelector("#panel .homehead");
+    const show=()=>{P.classList.remove("leave");P.innerHTML=`<h2>${esc(destName||"")}</h2><p class="muted">Buscando las mejores rutas…</p><div class="prog"><i style="width:70%"></i></div>`;NORV=true;setSheet(false);NORV=false;setTimeout(()=>plan(W0,W1,true),30)};
+    if(home){P.classList.add("leave");return setTimeout(show,190)}return show()}
   plans=[];
   const codes=Object.keys(GEO);
   for(const c of codes) for(const [dk,dir] of legsFor(c)){
@@ -522,7 +529,7 @@ function renderPlans(){
     </ul>${i===0?`<button class="go" data-go="${i}">Iniciar viaje · te aviso dónde bajar</button>`:""}</div>`;
   });
   if(plans.length)h+=`<p class="muted">Tiempos aproximados: incluyen ~${WAIT} min de espera por camión; el tráfico puede cambiarlos.</p>`;
-  P.innerHTML=h;setSheet(false);logSearch();updateLiveEta();
+  P.innerHTML=h;NORV=true;setSheet(false);NORV=false;P.classList.remove("flipin");void P.offsetWidth;P.classList.add("flipin");clearTimeout(P._fl);P._fl=setTimeout(()=>P.classList.remove("flipin"),1600);logSearch();updateLiveEta();
   P.querySelectorAll(".opt[data-i]").forEach(o=>o.onclick=e=>{if(e.target.dataset.go)return;P.querySelectorAll(".opt[data-i]").forEach(x=>x.classList.remove("on"));o.classList.add("on");
     const old=P.querySelector(".go");if(old)old.remove();o.insertAdjacentHTML("beforeend",`<button class="go" data-go="${o.dataset.i}">Iniciar viaje · te aviso dónde bajar</button>`);bindGo();showPlan(plans[o.dataset.i])});
   bindGo();
@@ -1212,7 +1219,7 @@ function stopStatus(ll){
   return out.sort((a,b)=>rank(a)-rank(b));
 }
 function stopSec(){let el=$("stopsec");if(!el){el=document.createElement("div");el.id="stopsec";$("panel").prepend(el)}return el}
-let NORV=false;
+var NORV=false;
 function openStopCard(ll,name,dist){SC={ll,name,dist};const el=stopSec();el.classList.remove("on");renderStopCard();
   const wasMin=sheet.classList.contains("min");
   if(wasMin){sheet.style.transition="transform .55s cubic-bezier(.22,1,.36,1)";NORV=true;setSheet(false);NORV=false;sheet.style.transition="transform .55s cubic-bezier(.22,1,.36,1)";setTimeout(()=>{sheet.style.transition=""},650)}
