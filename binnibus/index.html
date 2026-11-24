@@ -168,7 +168,12 @@ body.hasdest #clearbtn{display:block}
 .dlg.on .dlgbox{transform:none}
 .dlgbox .head{display:flex;justify-content:space-between;align-items:center}
 .dlgbox .head b{font:900 18px Archivo}
-.vis{display:inline-block;white-space:nowrap;background:#facc15;color:#1d1a16;font:800 11px Inter;padding:3px 7px;border-radius:10px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.vis{position:relative;display:flex;align-items:center;gap:4px;pointer-events:auto}
+.vis i{flex:none;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);background:var(--c)}
+.vis.new i::after{content:"";position:absolute;left:-3px;top:-3px;width:20px;height:20px;border-radius:50%;border:2px solid var(--c);animation:vp 2.2s ease-out 3;opacity:0}
+@keyframes vp{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.8);opacity:0}}
+.vis b{display:none;font:700 10px Inter;color:#1d1a16;background:rgba(255,255,255,.92);padding:1px 5px;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.2);white-space:nowrap}
+.zclose .vis b{display:inline-block}
 .clear2{display:none;border:0;background:#efe8dc!important;color:var(--ink)!important;border-radius:12px;width:40px;font-size:16px;cursor:pointer}
 body.hasdest .clear2{display:block}
 .sonar{position:relative;width:24px;height:24px;transform:translateZ(0)}
@@ -566,6 +571,7 @@ function draw(code){
 }
 function stopsByZoom(){const z=map.getZoom();if(z>=15&&!map.hasLayer(stopLayer))stopLayer.addTo(map);else if(z<15&&map.hasLayer(stopLayer))map.removeLayer(stopLayer)}
 map.on("zoomend",stopsByZoom);
+function zClose(){const c=$("map");c.classList.toggle("zclose",map.getZoom()>=15)}map.on("zoomend",zClose);setTimeout(zClose,0);
 
 /* ---------- 3. Planear viaje ---------- */
 let origin=null,dest=null,destName="",tripLayer=L.layerGroup().addTo(map),plans=[],active=null;
@@ -1332,7 +1338,8 @@ function drawSeen(){try{renderPeek()}catch(e){}seenLayer.clearLayers();SEEN=SEEN
   [...SEEN].sort((a,b)=>a.s-b.s).forEach(x=>{const ll=[x.lat,x.lon];
     if(shown.some(y=>y.r===x.r&&D(y.ll,ll)<120))return; // repetido: queda el más reciente
     const stack=shown.filter(y=>D(y.ll,ll)<60).length;shown.push({r:x.r,ll});
-    L.marker(ll,{icon:L.divIcon({className:"",iconSize:[96,24],iconAnchor:[48,12+stack*28],html:`<div class="vis" style="opacity:${Math.max(.45,1-x.s/1200)}">👀 ${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</div>`}),zIndexOffset:900-stack}).addTo(seenLayer)
+    // marca discreta: puntito del color de la ruta; el nombre solo se ve de cerca y el detalle al tocarla
+    L.marker(ll,{icon:L.divIcon({className:"",iconSize:[70,18],iconAnchor:[9,9+stack*20],html:`<div class="vis${x.s<180?" new":""}" style="--c:${COL[x.r]||"#0f766e"};opacity:${Math.max(.5,1-x.s/1200)}"><i></i><b>${x.r} · ${x.s<60?"ahorita":Math.round(x.s/60)+" min"}</b></div>`}),zIndexOffset:-100-stack}).addTo(seenLayer)
      .bindPopup(`<b>👀 Vieron la ${x.r}${x.d?" → "+esc(x.d):""}</b><br>${hace(x.s)}`)})}
 async function pollSeen(){if(document.visibilityState!=="visible")return;
   try{const r=await fetch(SBR+"bb_vistos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){SEEN=await r.json();drawSeen();updateLiveEta()}}catch(e){}}
