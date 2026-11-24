@@ -334,6 +334,9 @@ footer { font-family: var(--mono); font-size: 12px; color: var(--muted); text-al
 .secreto .flecha{margin-left:auto;color:var(--muted);transition:transform .4s var(--ease)}
 .secreto:hover .flecha{transform:translateX(3px)}
 @media (prefers-reduced-motion:reduce){.secreto .foquito{animation:none}}
+.binni{margin-top:10px}
+.binni .bicon{flex:none;width:30px;height:30px;border-radius:8px;object-fit:cover}
+
 </style>
 
 <div class="mesh" aria-hidden="true"></div>
@@ -349,6 +352,12 @@ footer { font-family: var(--mono); font-size: 12px; color: var(--muted); text-al
   <a class="secreto k-anim" href="mensaje">
     <span class="foquito" aria-hidden="true"></span>
     <span><b>Déjame tu opinión</b><small>Tu opinión es anónima</small></span>
+    <span class="flecha" aria-hidden="true">→</span>
+  </a>
+
+  <a class="secreto binni k-anim" href="binnibus/">
+    <img class="bicon" src="binnibus/apple-touch-icon.png" alt="" aria-hidden="true">
+    <span><b>App de BinniBus</b><small>¿Qué camión tomo? Rutas en vivo en Oaxaca</small></span>
     <span class="flecha" aria-hidden="true">→</span>
   </a>
 
