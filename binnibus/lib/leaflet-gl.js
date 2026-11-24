@@ -71,7 +71,7 @@
       this._q = []; this._layers = new Set(); this._popups = new Set(); this._loaded = false;
       const S = window.BB_GL || {};
       this.gl = new GL.Map({ container: id, style: S.style || { version: 8, sources: {}, layers: [] },
-        center: [-96.7266, 17.0654], zoom: 13, pitch: S.pitch || 0, bearing: 0, maxPitch: 75,
+        center: [-96.7266, 17.0654], zoom: 13, pitch: S.pitch || 0, bearing: 0, maxPitch: 60,
         attributionControl: false, fadeDuration: 150, pitchWithRotate: true, dragRotate: true,
         touchPitch: true, cooperativeGestures: false });
       this.gl.addControl(new GL.AttributionControl({ compact: true, customAttribution: S.attribution || "" }), "bottom-left");

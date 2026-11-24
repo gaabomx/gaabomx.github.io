@@ -54,10 +54,12 @@ html,body{margin:0;height:100%;background:var(--card);color:var(--ink);font:15px
 .sheet.min .peek{display:block}
 .sheet.min.idle{transform:translateY(calc(100% - 146px - env(safe-area-inset-bottom)))}
 .pkinfo{display:flex;flex-direction:column;gap:6px;text-align:left;font:500 13px/1.3 Inter,system-ui,sans-serif;padding:2px 2px 4px}
-.pkinfo .r{display:flex;gap:8px;align-items:center;background:#f3ede2;border-radius:12px;padding:7px 10px;animation:pkIn .45s cubic-bezier(.22,1,.36,1) both}
-.pkinfo .r:nth-child(2){animation-delay:.08s}.pkinfo .r b{font-weight:700}
+.pkinfo{perspective:700px}.pkinfo .r{display:flex;gap:8px;align-items:center;background:#f3ede2;border-radius:12px;padding:7px 10px;transform-origin:50% 50%;backface-visibility:hidden}
+.pkinfo.flip .r{animation:pkFlip .55s cubic-bezier(.4,0,.2,1) both}
+.pkinfo.flip .r:nth-child(2){animation-delay:.12s}.pkinfo .r b{font-weight:700}
 .pkinfo .r .bd{color:#fff;border-radius:6px;padding:1px 6px;font:700 11px Inter;flex:none}
 .pkinfo .hint{text-align:center;font:700 12px Inter;color:var(--muted)}
+@keyframes pkFlip{0%{transform:rotateX(-90deg);opacity:0}100%{transform:rotateX(0);opacity:1}}
 @keyframes pkIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 #panel.rv>*{animation:pkIn .45s cubic-bezier(.22,1,.36,1) both}
 #panel.rv>*:nth-child(2){animation-delay:.06s}#panel.rv>*:nth-child(3){animation-delay:.12s}#panel.rv>*:nth-child(4){animation-delay:.18s}#panel.rv>*:nth-child(n+5){animation-delay:.24s}
@@ -336,7 +338,7 @@ if(!ok||/[?&]plano/.test(location.search))location.replace("2d.html"+location.se
 <script>
 /* Estilo 3D: satélite (lo agrega la página), relieve, edificios y negocios */
 window.BB_GL = {
-  pitch: 55,
+  pitch: 45,
   tilesBelow: "building-3d",
   attribution: "© OpenStreetMap · OpenFreeMap · Imágenes © Esri",
   style: "https://tiles.openfreemap.org/styles/liberty",
@@ -368,7 +370,8 @@ window.BB_GL = {
       gl.setPaintProperty(id, "text-color", "#4b3f33"); gl.setPaintProperty(id, "text-halo-width", 1.5); });
     // las paradas de camión de OpenStreetMap se confunden con las del BinniBus: fuera
     if (has("poi_transit")) gl.setFilter("poi_transit", ["match", ["get", "class"], ["airport", "rail"], true, false]);
-    try { gl.setSky({ "sky-color": "#9cc3ec", "horizon-color": "#e8eef4", "fog-color": "#eef1f4", "sky-horizon-blend": .7, "horizon-fog-blend": .5, "fog-ground-blend": .9, "atmosphere-blend": 0 }); } catch (e) {}
+    // sin neblina en el horizonte (se veía difuminado arriba)
+    try { gl.setSky({ "sky-color": "#bcd9f2", "horizon-color": "#bcd9f2", "fog-color": "#bcd9f2", "sky-horizon-blend": 0, "horizon-fog-blend": 0, "fog-ground-blend": 1, "atmosphere-blend": 0 }); } catch (e) {}
     window.BB_GL.applyMode(gl);
   },
   applyMode(gl) {
@@ -927,10 +930,12 @@ function setSheet(min){
   if(wasMin&&!min){const P=$("panel");P.classList.remove("rv");void P.offsetWidth;P.classList.add("rv");setTimeout(()=>P.classList.remove("rv"),900)}
 }
 /* resumen al entrar: lo más importante sin abrir el panel */
+function pkFlip(){document.querySelectorAll(".pkinfo").forEach(e=>{e.classList.remove("flip");void e.offsetWidth;e.classList.add("flip")})}
+setInterval(()=>{if(isIdle())pkFlip()},8000);
 function isIdle(){return !trip&&!plans.length&&!dest}
 function hace2(sec){sec=Math.max(0,Math.round(sec));return sec<60?"ahorita":sec<3600?`hace ${Math.round(sec/60)} min`:`hace ${Math.round(sec/3600)} h`}
 function renderPeek(){
-  const pk=$("peek");if(!pk||!sheet.classList.contains("min")||!isIdle())return;
+  const pk=$("peek"),hi=$("homeinfo");if(!isIdle()||(!hi&&!(pk&&sheet.classList.contains("min"))))return;
   const here=me?[me.getLatLng().lat,me.getLatLng().lng]:(origin||null);
   const obs=[].concat((LIVE||[]).map(x=>({r:x.r,d:x.d,ll:x.ll,s:x.s,live:1})),(SEEN||[]).map(x=>({r:x.r,d:x.d,ll:[x.lat,x.lon],s:x.s})));
   let bus=null;if(here){obs.forEach(x=>{const d=D(here,x.ll);if(d<2500&&(!bus||x.s<bus.s))bus=Object.assign({dist:d},x)})}
@@ -943,9 +948,10 @@ function renderPeek(){
     if(best&&bd<1500)r2=`<span>🚏</span><span>Parada más cerca: <b>${esc(best.name)}</b> · ${fmt(bd)} · ${[...best.r].sort().slice(0,4).join(", ")}${best.r.size>4?"…":""}</span>`}catch(e){}}
   if(!r2)r2=`<span>📍</span><span>${me?"Cargando paradas cercanas…":"Activa tu ubicación para ver tu parada más cerca"}</span>`;
   const html=`<div class="pkinfo"><div class="r">${r1}</div><div class="r">${r2}</div><div class="hint">Desliza ⌃ para ver más</div></div>`;
-  if(pk._h!==html){pk.innerHTML=html;pk._h=html}
+  if(pk&&sheet.classList.contains("min")&&pk._h!==html){pk.innerHTML=html;pk._h=html;pkFlip()}
+  const hh=`<div class="r">${r1}</div><div class="r">${r2}</div>`;if(hi&&hi._h!==hh){hi.innerHTML=hh;hi._h=hh;pkFlip()}
 }
-setInterval(()=>{if(sheet.classList.contains("min")){const i=isIdle();if(i!==sheet.classList.contains("idle"))setSheet(true);else if(i)renderPeek()}},4000);
+setInterval(()=>{renderPeek();if(sheet.classList.contains("min")){const i=isIdle();if(i!==sheet.classList.contains("idle"))setSheet(true);else if(i)renderPeek()}},4000);
 let dragY=null,dragDY=0,dragStart=0;
 function dStart(y){dragY=y;dragDY=0;dragStart=Date.now();sheet.style.transition="none"}
 function dMove(y){if(dragY===null)return;dragDY=y-dragY;const min=sheet.classList.contains("min");
@@ -1116,7 +1122,7 @@ async function pollLive(){
     else mk=L.marker(x.ll,{icon:busIcon(x.r+(x.n>1?" ·"+x.n:""),COL[x.r]||"#0f766e",mine),zIndexOffset:1000}).addTo(busLayer).bindPopup(html);
     BUSMK.push({mk,r:x.r,d:x.d,n:x.n,mine:!!mine})});
   old.forEach((o,i)=>{if(!used.has(i))busLayer.removeLayer(o.mk)});
-  updateLiveEta();if(SC)renderStopCard();
+  updateLiveEta();if(SC)renderStopCard();renderPeek();
   const n=$("livecount");if(n)n.textContent=g.length?`🔴 ${g.length} ${g.length===1?"camión":"camiones"} en vivo`:"";
 }
 function busEta(l){ // ¿viene un camión de esta ruta/dirección antes de tu parada?
@@ -1137,7 +1143,7 @@ setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("
 function clearAll(){
   dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;RT=null;rtId++;rtLayer.clearLayers();rtHid=false;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
-  $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
+  $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
   if(me)map.setView(me.getLatLng(),15);setTop(true);setSheet(false);
   if(trip){ // con viaje activo: solo queda el seguimiento, lo demás se quita
     dest=trip.dest.slice();destName="";$("panel").innerHTML="";tripBar();shareUI();
@@ -1182,7 +1188,7 @@ function snapSeen(k,di,c){ // pone la marca en la parada de esa ruta más cercan
   let bp=null,pd=1e9;dirs.forEach(d=>d.line.forEach(p=>{const x=D(c,p);if(x<pd){pd=x;bp=p}}));
   return bp&&pd<=1500?{ll:bp}:{ll:c};
 }
-function drawSeen(){seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<1200);
+function drawSeen(){try{renderPeek()}catch(e){}seenLayer.clearLayers();SEEN=SEEN.filter(x=>x.s<1200);
   const shown=[];
   [...SEEN].sort((a,b)=>a.s-b.s).forEach(x=>{const ll=[x.lat,x.lon];
     if(shown.some(y=>y.r===x.r&&D(y.ll,ll)<120))return; // repetido: queda el más reciente
@@ -1334,7 +1340,7 @@ function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%360)+
 map.on("rotate",upCompass);map.on("pitch",upCompass);
 /* 2D / 3D */
 function upDim(){$("dimbtn").textContent=map.getPitch()>5?"2D":"3D"}
-$("dimbtn").onclick=()=>{const p=map.getPitch()>5;map.gl.easeTo({pitch:p?0:55,duration:700});setTimeout(upDim,720)};
+$("dimbtn").onclick=()=>{const p=map.getPitch()>5;map.gl.easeTo({pitch:p?0:45,duration:700});setTimeout(upDim,720)};
 map.on("pitch",upDim);
 function upSat(){$("satbtn").textContent=BB_GL.mode()==="sat"?"🗺️":"🛰️"}
 $("satbtn").onclick=()=>{try{localStorage.setItem("bb-mapa",BB_GL.mode()==="sat"?"mapa":"sat")}catch(e){}map.refreshRasters();BB_GL.applyMode(map.gl);upSat();toast(BB_GL.mode()==="sat"?"🛰️ Vista satélite":"🗺️ Vista de mapa")};upSat();
@@ -1344,7 +1350,8 @@ upCompass();
 
 /* ---------- 6. Arranque ---------- */
 let ready=false,pending=false;
-$("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
+$("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><div id="homeinfo" class="pkinfo"></div><p class="muted">Busca un lugar arriba o toca el mapa. ¿Primera vez? Abre el <b>☰ Menú</b>.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div><div class="muted" id="st">Cargando rutas…</div><div class="prog"><i id="pb"></i></div>`;
+setTimeout(()=>{if(isIdle()&&!sheet.classList.contains("min"))setSheet(true);renderPeek()},700);
 try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");setTimeout(openMenu,900)}}catch(e){}
 (async()=>{
   let RAW={};try{RAW=await (await fetch("geo.json?v=3")).json()}catch(e){}

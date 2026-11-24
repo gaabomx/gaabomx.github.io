@@ -23,7 +23,7 @@ if(!ok||/[?&]plano/.test(location.search))location.replace("2d.html"+location.se
 <script>
 /* Estilo 3D: satélite (lo agrega la página), relieve, edificios y negocios */
 window.BB_GL = {
-  pitch: 55,
+  pitch: 45,
   tilesBelow: "building-3d",
   attribution: "© OpenStreetMap · OpenFreeMap · Imágenes © Esri",
   style: "https://tiles.openfreemap.org/styles/liberty",
@@ -55,7 +55,8 @@ window.BB_GL = {
       gl.setPaintProperty(id, "text-color", "#4b3f33"); gl.setPaintProperty(id, "text-halo-width", 1.5); });
     // las paradas de camión de OpenStreetMap se confunden con las del BinniBus: fuera
     if (has("poi_transit")) gl.setFilter("poi_transit", ["match", ["get", "class"], ["airport", "rail"], true, false]);
-    try { gl.setSky({ "sky-color": "#9cc3ec", "horizon-color": "#e8eef4", "fog-color": "#eef1f4", "sky-horizon-blend": .7, "horizon-fog-blend": .5, "fog-ground-blend": .9, "atmosphere-blend": 0 }); } catch (e) {}
+    // sin neblina en el horizonte (se veía difuminado arriba)
+    try { gl.setSky({ "sky-color": "#bcd9f2", "horizon-color": "#bcd9f2", "fog-color": "#bcd9f2", "sky-horizon-blend": 0, "horizon-fog-blend": 0, "fog-ground-blend": 1, "atmosphere-blend": 0 }); } catch (e) {}
     window.BB_GL.applyMode(gl);
   },
   applyMode(gl) {
@@ -85,7 +86,7 @@ rep('$("compass").style.bottom=min?"calc(186px + env(safe-area-inset-bottom))":"
 rep('map.on("rotate",upCompass);', '''map.on("rotate",upCompass);map.on("pitch",upCompass);
 /* 2D / 3D */
 function upDim(){$("dimbtn").textContent=map.getPitch()>5?"2D":"3D"}
-$("dimbtn").onclick=()=>{const p=map.getPitch()>5;map.gl.easeTo({pitch:p?0:55,duration:700});setTimeout(upDim,720)};
+$("dimbtn").onclick=()=>{const p=map.getPitch()>5;map.gl.easeTo({pitch:p?0:45,duration:700});setTimeout(upDim,720)};
 map.on("pitch",upDim);
 function upSat(){$("satbtn").textContent=BB_GL.mode()==="sat"?"🗺️":"🛰️"}
 $("satbtn").onclick=()=>{try{localStorage.setItem("bb-mapa",BB_GL.mode()==="sat"?"mapa":"sat")}catch(e){}map.refreshRasters();BB_GL.applyMode(map.gl);upSat();toast(BB_GL.mode()==="sat"?"🛰️ Vista satélite":"🗺️ Vista de mapa")};upSat();''')
