@@ -53,6 +53,13 @@
       x.strokeStyle = "rgba(20,16,12,.55)"; x.lineWidth = 5 * A; arrow();
       x.strokeStyle = "#ffffff"; x.lineWidth = 2.4 * A; arrow();
       try { g.addImage("lf-chev", x.getImageData(0, 0, W, W), { pixelRatio: A }); } catch (e) {}
+      // etiqueta con la clave de la ruta sobre su línea (RA-06…), para saber cuál es cuál sin tocarla
+      g.addLayer({ id: "lf-label", type: "symbol", source: "lf-lines", minzoom: 12.6,
+        filter: ["all", ["!=", ["get", "lbl"], ""], [">", ["to-number", ["get", "o"], 1], .3]],
+        layout: { "symbol-placement": "line", "symbol-spacing": ["interpolate", ["linear"], ["zoom"], 12.6, 220, 16, 320], "text-field": ["get", "lbl"],
+          "text-font": ["Noto Sans Bold"], "text-size": ["interpolate", ["linear"], ["zoom"], 12.6, 10.5, 16, 13], "text-letter-spacing": .04,
+          "text-padding": 6, "text-allow-overlap": false, "symbol-avoid-edges": true, "text-rotation-alignment": "map", "text-pitch-alignment": "viewport", "text-keep-upright": true },
+        paint: { "text-color": "#ffffff", "text-halo-color": ["get", "c"], "text-halo-width": 3.2, "text-halo-blur": 0 } });
       // flujo de flechas en todas las rutas (se mueven en el sentido del camión)
       g.addSource("lf-pts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       g.addLayer({ id: "lf-arrows", type: "symbol", source: "lf-pts", minzoom: 12.3, layout: { "icon-image": "lf-chev", "icon-rotate": ["get", "r"], "icon-size": ["interpolate", ["linear"], ["zoom"], 12.3, .34, 17, .55],
@@ -281,7 +288,7 @@
     _anchor() { const l = this._lls; return l.length ? l[Math.floor(l.length / 2)] : { lat: 0, lng: 0 }; }
     _feat() { const o = this.options, dash = o.dashArray ? String(o.dashArray) : "";
       const col = String(o.color || "").toLowerCase(), arrow = (o.arrows !== false && col !== "#000" && col !== "#fff" && col !== "#ffffff" && dash !== "2 8" && (o.opacity == null || o.opacity > .3)) ? 1 : 0;
-      return { type: "Feature", id: this._id, properties: { id: this._id, c: o.color, w: o.weight, o: o.opacity, dash, z: this._z, arrow },
+      return { type: "Feature", id: this._id, properties: { id: this._id, c: o.color, w: o.weight, o: o.opacity, dash, z: this._z, arrow, lbl: o.label || "" },
         geometry: { type: "LineString", coordinates: this._lls.map(toLL) } }; }
     _upd() { const m = this._map; if (!m) return; const o = this.options; if (o.className === "flow") return; if (o.dashArray) m.store.dashLayer(String(o.dashArray), o.weight);
       if (this._lls.length < 2) m.store.lines.delete(this._id); else m.store.lines.set(this._id, this._feat()); m.store.touch(); }

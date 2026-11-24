@@ -416,7 +416,7 @@ window.BB_GL = {
 
 };
 </script>
-<script src="lib/leaflet-gl.js?v=c703d0f1"></script>
+<script src="lib/leaflet-gl.js?v=58ea9abc"></script>
 <script>/* si el mapa 3D no arranca (red lenta o bloqueada), pasar a la versión plana */
 setTimeout(function(){try{if(!map._loaded&&navigator.onLine!==false)location.replace("2d.html"+location.search+location.hash)}catch(e){}},30000);</script>
 <script src="routes.js?v=d4e93c8c"></script>
@@ -555,7 +555,7 @@ function draw(code){
   const g=GEO[code];if(!g)return;
   const grp=L.layerGroup(),c=COL[code]||"#0f766e";
   g.forEach((d,j)=>{
-    (NETPL[code]=NETPL[code]||[]).push(L.polyline(d.line,{color:c,weight:3,opacity:.6,dashArray:j?"6 6":null,smoothFactor:1.5,interactive:false,arrows:false}).addTo(grp));
+    (NETPL[code]=NETPL[code]||[]).push(L.polyline(d.line,{color:c,weight:3,opacity:.6,dashArray:j?"6 6":null,smoothFactor:1.5,interactive:false,arrows:false,label:j?null:code}).addTo(grp));
     d.stops.forEach(s=>{if(s.ll&&!s.bad)L.circleMarker(s.ll,{radius:5,color:"#fff",weight:1.5,fillColor:c,fillOpacity:1,stop:1}).addTo(stopLayer).on("click",e=>{L.DomEvent.stop(e);openStopCard(s.ll,s.name)})});
   });
   layers[code]=grp;grp.addTo(map);
