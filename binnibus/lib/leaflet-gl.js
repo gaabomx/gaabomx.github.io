@@ -46,6 +46,22 @@
       g.addLayer({ id: "lf-stop", type: "symbol", source: "lf-stops",
         layout: { "icon-image": ["get", "img"], "icon-size": ["interpolate", ["linear"], ["zoom"], 12, .55, 15, .8, 18, 1.05],
           "icon-allow-overlap": true, "icon-ignore-placement": true, "symbol-sort-key": ["get", "z"], "icon-pitch-alignment": "viewport" } });
+      // flechitas: dirección del recorrido en todas las líneas, con un flujo animado encima
+      const A = 2, W = 20 * A, cv = document.createElement("canvas"); cv.width = cv.height = W; const x = cv.getContext("2d");
+      x.lineCap = "round"; x.lineJoin = "round";
+      x.strokeStyle = "rgba(20,16,12,.55)"; x.lineWidth = 6 * A; x.beginPath(); x.moveTo(7 * A, 4 * A); x.lineTo(14 * A, 10 * A); x.lineTo(7 * A, 16 * A); x.stroke();
+      x.strokeStyle = "#ffffff"; x.lineWidth = 3.2 * A; x.beginPath(); x.moveTo(7 * A, 4 * A); x.lineTo(14 * A, 10 * A); x.lineTo(7 * A, 16 * A); x.stroke();
+      try { g.addImage("lf-chev", x.getImageData(0, 0, W, W), { pixelRatio: A }); } catch (e) {}
+      g.addLayer({ id: "lf-flow", type: "line", source: "lf-lines", minzoom: 12.5, filter: ["==", ["get", "arrow"], 1],
+        layout: { "line-cap": "butt", "line-join": "round" },
+        paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 13, 1.2, 17, 2.4], "line-opacity": .8, "line-dasharray": [0, 4, 3] } }, "lf-circle");
+      g.addLayer({ id: "lf-arrow", type: "symbol", source: "lf-lines", minzoom: 13, filter: ["==", ["get", "arrow"], 1],
+        layout: { "symbol-placement": "line", "symbol-spacing": ["interpolate", ["linear"], ["zoom"], 13, 90, 17, 140], "icon-image": "lf-chev",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 13, .7, 17, 1.05], "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-rotation-alignment": "map", "icon-pitch-alignment": "map" },
+        paint: { "icon-opacity": ["interpolate", ["linear"], ["zoom"], 13, .6, 15, 1] } }, "lf-circle");
+      const seq = [[0,4,3],[.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],[0,.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,.5]];
+      let fk = 0, fl = 0; const fstep = t => { if (t - fl > 75 && document.visibilityState === "visible") { fl = t; try { g.setPaintProperty("lf-flow", "line-dasharray", seq[fk = (fk + 1) % seq.length]); } catch (e) {} } requestAnimationFrame(fstep); };
+      requestAnimationFrame(fstep);
       this.ready = true; this.flush();
     }
     dashLayer(dash, w) {
@@ -240,9 +256,10 @@
     getLatLngs() { return this._lls.slice(); }
     _anchor() { const l = this._lls; return l.length ? l[Math.floor(l.length / 2)] : { lat: 0, lng: 0 }; }
     _feat() { const o = this.options, dash = o.dashArray ? String(o.dashArray) : "";
-      return { type: "Feature", id: this._id, properties: { id: this._id, c: o.color, w: o.weight, o: o.opacity, dash, z: this._z },
+      const col = String(o.color || "").toLowerCase(), arrow = (o.arrows !== false && col !== "#000" && col !== "#fff" && col !== "#ffffff" && dash !== "2 8" && (o.opacity == null || o.opacity > .3)) ? 1 : 0;
+      return { type: "Feature", id: this._id, properties: { id: this._id, c: o.color, w: o.weight, o: o.opacity, dash, z: this._z, arrow },
         geometry: { type: "LineString", coordinates: this._lls.map(toLL) } }; }
-    _upd() { const m = this._map; if (!m) return; const o = this.options; if (o.dashArray) m.store.dashLayer(String(o.dashArray), o.weight);
+    _upd() { const m = this._map; if (!m) return; const o = this.options; if (o.className === "flow") return; if (o.dashArray) m.store.dashLayer(String(o.dashArray), o.weight);
       if (this._lls.length < 2) m.store.lines.delete(this._id); else m.store.lines.set(this._id, this._feat()); m.store.touch(); }
     _del(m) { m.store.lines.delete(this._id); m.store.touch(); }
   }
