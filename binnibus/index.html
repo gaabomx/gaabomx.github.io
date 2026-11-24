@@ -324,6 +324,8 @@ window.BB_GL = {
       gl.setLayoutProperty(id, "text-font", ["Noto Sans Bold"]);
       gl.setLayoutProperty(id, "text-size", 12);
       gl.setPaintProperty(id, "text-color", "#4b3f33"); gl.setPaintProperty(id, "text-halo-width", 1.5); });
+    // las paradas de camión de OpenStreetMap se confunden con las del BinniBus: fuera
+    if (has("poi_transit")) gl.setFilter("poi_transit", ["match", ["get", "class"], ["airport", "rail"], true, false]);
     try { gl.setSky({ "sky-color": "#9cc3ec", "horizon-color": "#e8eef4", "fog-color": "#eef1f4", "sky-horizon-blend": .7, "horizon-fog-blend": .5, "fog-ground-blend": .9, "atmosphere-blend": 0 }); } catch (e) {}
     window.BB_GL.applyMode(gl);
   },
