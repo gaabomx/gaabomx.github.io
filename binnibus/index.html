@@ -21,7 +21,7 @@
 <meta property="og:image" content="https://gaabomx.github.io/binnibus/icono.png">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"BinniBus Oaxaca","alternateName":["Binni Rutas Oax","Rutas BinniBus"],"url":"https://gaabomx.github.io/binnibus/","applicationCategory":"TravelApplication","operatingSystem":"Web","inLanguage":"es-MX","description":"Planeador de rutas del BinniBus en Oaxaca de Juárez: qué ruta tomar, paradas y camiones en vivo.","offers":{"@type":"Offer","price":"0","priceCurrency":"MXN"},"author":{"@type":"Person","name":"gaabomx"}}</script>
 <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
-<link rel="stylesheet" href="lib/maplibre-gl.css">
+<link rel="stylesheet" href="lib/maplibre-gl.css?v=9ec5b480">
 <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -365,7 +365,7 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
 <script>/* sin WebGL2 (celulares viejos) -> versión plana */
 (function(){var ok=false;try{var c=document.createElement("canvas");ok=!!(window.WebGL2RenderingContext&&c.getContext("webgl2"))}catch(e){}
 if(!ok||/[?&]plano/.test(location.search))location.replace("2d.html"+location.search+location.hash)})();</script>
-<script src="lib/maplibre-gl.js"></script>
+<script src="lib/maplibre-gl.js?v=3a542956"></script>
 <script>
 /* Estilo 3D: satélite (lo agrega la página), relieve, edificios y negocios */
 window.BB_GL = {
@@ -416,11 +416,11 @@ window.BB_GL = {
 
 };
 </script>
-<script src="lib/leaflet-gl.js"></script>
+<script src="lib/leaflet-gl.js?v=ed6330b6"></script>
 <script>/* si el mapa 3D no arranca (red lenta o bloqueada), pasar a la versión plana */
 setTimeout(function(){try{if(!map._loaded&&navigator.onLine!==false)location.replace("2d.html"+location.search+location.hash)}catch(e){}},30000);</script>
-<script src="routes.js"></script>
-<script src="stops.js"></script>
+<script src="routes.js?v=d4e93c8c"></script>
+<script src="stops.js?v=373b7506"></script>
 <script>
 const COL={"RA-16":"#dc2626","RA-12":"#3f9a42","RA-14":"#d9412f","RC-02":"#e0708a","RC-03":"#a9473a","RC-08":"#b8692a"};
 const BBOX="16.95,-96.85,17.16,-96.60"; // s,w,n,e

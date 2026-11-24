@@ -52,13 +52,13 @@
       x.strokeStyle = "rgba(20,16,12,.55)"; x.lineWidth = 6 * A; x.beginPath(); x.moveTo(7 * A, 4 * A); x.lineTo(14 * A, 10 * A); x.lineTo(7 * A, 16 * A); x.stroke();
       x.strokeStyle = "#ffffff"; x.lineWidth = 3.2 * A; x.beginPath(); x.moveTo(7 * A, 4 * A); x.lineTo(14 * A, 10 * A); x.lineTo(7 * A, 16 * A); x.stroke();
       try { g.addImage("lf-chev", x.getImageData(0, 0, W, W), { pixelRatio: A }); } catch (e) {}
-      g.addLayer({ id: "lf-flow", type: "line", source: "lf-lines", minzoom: 12.5, filter: ["==", ["get", "arrow"], 1],
+      g.addLayer({ id: "lf-flow", type: "line", source: "lf-lines", minzoom: 11.5, filter: ["==", ["get", "arrow"], 1],
         layout: { "line-cap": "butt", "line-join": "round" },
-        paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 13, 1.2, 17, 2.4], "line-opacity": .8, "line-dasharray": [0, 4, 3] } }, "lf-circle");
-      g.addLayer({ id: "lf-arrow", type: "symbol", source: "lf-lines", minzoom: 13, filter: ["==", ["get", "arrow"], 1],
-        layout: { "symbol-placement": "line", "symbol-spacing": ["interpolate", ["linear"], ["zoom"], 13, 90, 17, 140], "icon-image": "lf-chev",
-          "icon-size": ["interpolate", ["linear"], ["zoom"], 13, .7, 17, 1.05], "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-rotation-alignment": "map", "icon-pitch-alignment": "map" },
-        paint: { "icon-opacity": ["interpolate", ["linear"], ["zoom"], 13, .6, 15, 1] } }, "lf-circle");
+        paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 12, 1.6, 17, 3.2], "line-opacity": .9, "line-dasharray": [0, 4, 3] } }, "lf-circle");
+      g.addLayer({ id: "lf-arrow", type: "symbol", source: "lf-lines", minzoom: 12, filter: ["==", ["get", "arrow"], 1],
+        layout: { "symbol-placement": "line", "symbol-spacing": ["interpolate", ["linear"], ["zoom"], 12, 70, 17, 120], "icon-image": "lf-chev",
+          "icon-size": ["interpolate", ["linear"], ["zoom"], 12, .75, 17, 1.2], "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-rotation-alignment": "map", "icon-pitch-alignment": "map" },
+        paint: { "icon-opacity": 1 } }, "lf-circle");
       const seq = [[0,4,3],[.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],[0,.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,.5]];
       let fk = 0, fl = 0; const fstep = t => { if (t - fl > 75 && document.visibilityState === "visible") { fl = t; try { g.setPaintProperty("lf-flow", "line-dasharray", seq[fk = (fk + 1) % seq.length]); } catch (e) {} } requestAnimationFrame(fstep); };
       requestAnimationFrame(fstep);

@@ -96,5 +96,13 @@ rep('function upCompass(){const b=map.getBearing?map.getBearing():0;const n=((b%
 rep('$("compass").classList.toggle("on",n>1&&n<359)', '$("compass").classList.toggle("on",(n>1&&n<359))')
 
 s = s.replace("<!DOCTYPE html>", "<!DOCTYPE html>\n<!-- GENERADO por tools/make-3d.py desde 2d.html. Edita 2d.html y vuelve a correr el script. -->", 1)
+# evitar que el celular use versiones viejas guardadas (caché)
+import hashlib, os
+base = os.path.dirname(os.path.abspath(dst))
+for f in ["lib/leaflet-gl.js", "lib/maplibre-gl.js", "lib/maplibre-gl.css", "routes.js", "stops.js"]:
+    fp = os.path.join(base, f)
+    if os.path.exists(fp):
+        h = hashlib.md5(open(fp, "rb").read()).hexdigest()[:8]
+        s = re.sub(r'(["\'])' + re.escape(f) + r'(\?v=[0-9a-f]+)?(["\'])', r'\g<1>' + f + '?v=' + h + r'\g<3>', s)
 open(dst, "w", encoding="utf-8").write(s)
 print("ok ->", dst)
