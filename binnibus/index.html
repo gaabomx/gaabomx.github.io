@@ -1003,9 +1003,17 @@ function setDest(c,name){
 }
 let pressT=null;
 map.on("labelclick",e=>{if(e.lbl&&GEO[e.lbl])selectLine({c:e.lbl})});
+/* tocar el mapa: acerca al punto; si cierran la burbuja sin elegir, regresa como estaba */
+let PV=null;
+function pvSave(){if(map.gl)return{c:map.gl.getCenter(),z:map.gl.getZoom(),b:map.gl.getBearing(),p:map.gl.getPitch()};const c=map.getCenter();return{c,z:map.getZoom(),b:map.getBearing?map.getBearing():0}}
+function pvBack(v){if(!v)return;if(map.gl)map.gl.flyTo({center:v.c,zoom:v.z,bearing:v.b,pitch:v.p,duration:700,essential:true});else map.flyTo([v.c.lat,v.c.lng],v.z,{duration:.6})}
 map.on("click",e=>{if(SELL){clearLine();return}destAddr="";const c=[e.latlng.lat,e.latlng.lng];
+  const v0=PV&&!PV.used?PV.v:pvSave();const me0={v:v0,used:false};PV=me0;
   L.popup().setLatLng(c).setContent(`<button id="pd" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#111;color:#fff">🏁 Ir aquí</button><br><button id="po" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#16a34a;color:#fff">📍 Salir de aquí</button><br><button id="ps" style="font:700 14px Inter;padding:8px;margin:2px;border-radius:8px;border:0;background:#b45309;color:#fff">📌 Guardar este lugar</button>`).openOn(map);
-  setTimeout(()=>{$("pd").onclick=()=>{map.closePopup();setDest(c,"Punto en el mapa")};$("po").onclick=()=>{map.closePopup();originIsMe=false;setOrigin(c,"punto elegido en el mapa")};$("ps").onclick=()=>{map.closePopup();guardarLugar(c)}},0);
+  setTimeout(()=>{$("pd").onclick=()=>{me0.used=true;map.closePopup();setDest(c,"Punto en el mapa")};$("po").onclick=()=>{me0.used=true;map.closePopup();originIsMe=false;setOrigin(c,"punto elegido en el mapa")};$("ps").onclick=()=>{me0.used=true;map.closePopup();guardarLugar(c)}},0);
+  const z=Math.max(map.getZoom(),17);if(map.gl)map.gl.flyTo({center:[c[1],c[0]],zoom:z-1,offset:[0,60],duration:800,essential:true});else map.flyTo(c,z,{duration:.7});
+  const onClose=()=>{if(!me0.used&&PV===me0){PV=null;pvBack(me0.v)}};
+  setTimeout(()=>{const pp=map._popups&&[...map._popups].pop();if(pp&&pp.on)pp.on("close",()=>setTimeout(onClose,30));else map.once&&map.once("popupclose",()=>setTimeout(onClose,30))},0);
 });
 
 /* ---------- Panel deslizable ---------- */
