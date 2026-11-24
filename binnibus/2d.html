@@ -175,7 +175,7 @@ body.rec #recbar{display:block}
 #clearbtn{border:0;border-radius:999px;background:#1d1a16;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);padding:9px 14px;font:700 14px Inter;cursor:pointer;display:none}
 body.hasdest #clearbtn{display:block}
 .avfab{position:fixed;right:12px;z-index:1000;width:44px;height:44px;border:0;border-radius:14px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none;transition:bottom .28s}
-.avfab svg{width:26px;height:26px}.avfab b{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#dc2626;color:#fff;font:800 10px/18px Inter;padding:0 4px;border:2px solid #fff;display:none}.avfab b.on{display:block}
+.avfab svg,.avfab b{pointer-events:none}.avfab svg{width:26px;height:26px}.avfab b{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#dc2626;color:#fff;font:800 10px/18px Inter;padding:0 4px;border:2px solid #fff;display:none}.avfab b.on{display:block}
 body.fleft .avfab{right:auto!important;left:12px}
 .seen{position:fixed;right:12px;white-space:nowrap;z-index:1000;border:0;border-radius:14px;padding:11px 12px;background:#facc15;color:#1d1a16;font:800 13px Inter;box-shadow:0 2px 10px rgba(0,0,0,.3);bottom:calc(58vh + 68px);transition:bottom .28s;cursor:pointer}
 .dlg{position:fixed;inset:0;z-index:2500;background:rgba(10,8,6,.45);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -1363,10 +1363,10 @@ const hace=s=>s<60?"hace un momento":s<3600?`hace ${Math.round(s/60)} min`:`hace
 var SEENMODE="vi",AVISOS=[];
 const AVT=[["bloqueo","🚧","Bloqueo","Hay un bloqueo y no puede pasar"],["base","🅿️","No están saliendo","Los camiones siguen parados en la base"],["trafico","🚗","Mucho tráfico","Va muy lento, tardará más"]];
 const AVN={bloqueo:"🚧 Bloqueo",base:"🅿️ No están saliendo de la base",trafico:"🚗 Mucho tráfico"};
-function setSeenMode(m){const b=document.querySelector(`#seenmode [data-m="${m}"]`);if(b)b.onclick()}
+var OPENING=false;function setSeenMode(m){const b=document.querySelector(`#seenmode [data-m="${m}"]`);OPENING=true;try{if(b)b.onclick()}finally{OPENING=false}}
 document.querySelectorAll("#seenmode button").forEach(b=>b.onclick=()=>{SEENMODE=b.dataset.m;document.querySelectorAll("#seenmode button").forEach(x=>x.classList.toggle("on",x===b));
   $("seenttl").textContent=SEENMODE==="av"?"⚠️ Avisar un problema":"👀 ¿Qué BinniBus viste?";
-  $("seensub").textContent=SEENMODE==="av"?"Elige la ruta. Se avisa a todos durante 1 hora. Anónimo.":"Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.";$("seendirs").innerHTML=""});
+  $("seensub").textContent=SEENMODE==="av"?"Elige la ruta. Se avisa a todos durante 1 hora. Anónimo.":"Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.";$("seendirs").innerHTML="";if(!OPENING&&$("seendlg").classList.contains("on"))openSeen()});
 // avisos de la gente: bloqueo, no salen de la base, mucho tráfico (duran 1 hora)
 const avLayer=L.layerGroup().addTo(map);
 function avisosDe(c){const m={};AVISOS.filter(a=>a.r===c&&a.s<3600).forEach(a=>{(m[a.t]=m[a.t]||[]).push(a)});return Object.entries(m).map(([t,v])=>({t,n:v.length,s:Math.min(...v.map(x=>x.s))}))}
@@ -1377,7 +1377,17 @@ function drawAvisos(){avLayer.clearLayers();try{const n=new Set(AVISOS.filter(a=
   try{renderPeek()}catch(e){}}
 async function pollAvisos(){if(document.visibilityState!=="visible")return;try{const r=await fetch(SBR+"bb_avisos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){AVISOS=await r.json();drawAvisos();if(plans&&plans.length&&typeof renderPlans==="function")try{renderPlans()}catch(e){}}}catch(e){}}
 setInterval(pollAvisos,45000);setTimeout(pollAvisos,2500);setInterval(()=>{AVISOS.forEach(x=>x.s+=60);drawAvisos()},60000);
+function avPick(k,c){
+      $("seendirs").innerHTML=`<p class="muted" style="margin:12px 0 2px">¿Qué pasa con la ${k}?</p>`+AVT.map(([t,e,n,d])=>`<button class="avbtn" data-t="${t}"><em>${e}</em><span>${n}<small>${d}</small></span></button>`).join("");
+      $("seendirs").querySelectorAll("[data-t]").forEach(x=>x.onclick=()=>{const t=x.dataset.t;let ll=c;if(c){try{ll=snapSeen(k,-1,c).ll||c}catch(e){}}else{const d=(GEO[k]||[])[0];if(d){const st=d.stops.filter(x=>x.ll&&!x.bad);ll=t==="base"?(st[0]||{}).ll||d.line[0]:d.line[Math.floor(d.line.length/2)]}}if(!ll)return;
+        sb("bb_aviso_add",{p_sesion:SES,p_ruta:k,p_tipo:t,p_lat:ll[0],p_lon:ll[1]});
+        AVISOS.unshift({r:k,t,lat:ll[0],lon:ll[1],s:0});drawAvisos();$("seendlg").classList.remove("on");
+        toast("⚠️ Gracias, ya les avisamos a los demás que usan la "+k)});
+      $("seendirs").scrollIntoView({behavior:"smooth",block:"nearest"});}
 function openSeen(mode){if(mode)setSeenMode(mode);
+  if(!me&&SEENMODE==="av"){ // para avisar un problema no hace falta la ubicación: se elige la ruta de la lista
+    const box=$("seenroutes");$("seendirs").innerHTML="";box.innerHTML=`<p class="seenh">Elige la ruta</p><div class="chips">${Object.keys(GEO).sort().map(k=>`<button class="seenchip" data-k="${k}" style="background:${COL[k]||"#0f766e"}">${k}</button>`).join("")}</div>`;
+    box.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>avPick(b.dataset.k,null));$("seendlg").classList.add("on");return}
   if(!me){toast("Activa tu ubicación para marcar dónde lo viste.");return}
   const c=[me.getLatLng().lat,me.getLatLng().lng];
   const near=Object.keys(GEO).map(k=>({k,d:Math.min(...GEO[k].map(d=>Math.min(...d.line.filter((p,i)=>i%2===0).map(p=>D(c,p)))))})).sort((a,b)=>a.d-b.d);
@@ -1385,13 +1395,7 @@ function openSeen(mode){if(mode)setSeenMode(mode);
   const cerca=near.filter(x=>x.d<=400),lejos=near.filter(x=>x.d>400);
   const mk=({k,d},far)=>{const b=document.createElement("button");b.innerHTML=`${k}<small>${far?"lejos · ":""}${d<1000?Math.round(d/10)*10+" m":(d/1000).toFixed(1)+" km"}</small>`;b.className="seenchip"+(far?" far":"");b.style.background=far?"#e7e1d6":(COL[k]||"#0f766e");b.onclick=()=>pick(k,d,far);return b};
   const pick=(k,d,far)=>{
-    if(SEENMODE==="av"){ // avisar un problema con esta ruta
-      $("seendirs").innerHTML=`<p class="muted" style="margin:12px 0 2px">¿Qué pasa con la ${k}?</p>`+AVT.map(([t,e,n,d])=>`<button class="avbtn" data-t="${t}"><em>${e}</em><span>${n}<small>${d}</small></span></button>`).join("");
-      $("seendirs").querySelectorAll("[data-t]").forEach(x=>x.onclick=()=>{const t=x.dataset.t;let ll=c;try{ll=snapSeen(k,-1,c).ll||c}catch(e){}
-        sb("bb_aviso_add",{p_sesion:SES,p_ruta:k,p_tipo:t,p_lat:ll[0],p_lon:ll[1]});
-        AVISOS.unshift({r:k,t,lat:ll[0],lon:ll[1],s:0});drawAvisos();$("seendlg").classList.remove("on");
-        toast("⚠️ Gracias, ya les avisamos a los demás que usan la "+k)});
-      $("seendirs").scrollIntoView({behavior:"smooth",block:"nearest"});return}
+    if(SEENMODE==="av"){avPick(k,c);return}
     $("seendirs").innerHTML=(far?`<p class="warnfar">⚠️ La ${k} pasa a ${d<1000?Math.round(d)+" m":(d/1000).toFixed(1)+" km"} de ti. ¿Seguro que es esa?</p>`:"")+`<p class="muted" style="margin:10px 0 4px">¿Qué decía su letrero?</p>`+GEO[k].map((x,i)=>`<button class="mbtn" data-i="${i}" style="width:100%;margin-top:6px">${k} → ${esc(x.to)}</button>`).join("")+`<button class="mbtn" data-i="-1" style="width:100%;margin-top:6px">No me fijé</button>`;
     $("seendirs").querySelectorAll("[data-i]").forEach(x=>x.onclick=()=>{const di=+x.dataset.i,to=di>=0?GEO[k][di].to:"";
       const sp=snapSeen(k,di,c);
