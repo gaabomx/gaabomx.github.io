@@ -132,6 +132,8 @@
     addLayer(l) { l.addTo(this); return this; }
     removeLayer(l) { if (l && l._map === this) l.remove(); return this; }
     invalidateSize() { this.gl.resize(); return this; }
+    refreshRasters() { const f = window.BB_GL && window.BB_GL.rasterVisible; if (!f) return this;
+      this._layers.forEach(l => { if (l._sid && l.url && this.gl.getLayer(l._sid)) this.gl.setLayoutProperty(l._sid, "visibility", f(l.url) ? "visible" : "none"); }); return this; }
   }
 
   /* ---------- Capas ---------- */
@@ -266,7 +268,8 @@
       const g = m.gl; if (g.getSource(this._sid)) return;
       g.addSource(this._sid, { type: "raster", tiles: [this.url.replace("{s}", "a")], tileSize: 256, maxzoom: this.options.maxNativeZoom || this.options.maxZoom || 19 });
       const below = (window.BB_GL && window.BB_GL.tilesBelow && g.getLayer(window.BB_GL.tilesBelow)) ? window.BB_GL.tilesBelow : "lf-fill";
-      g.addLayer({ id: this._sid, type: "raster", source: this._sid, paint: { "raster-opacity": this.options.opacity != null ? this.options.opacity : 1, "raster-fade-duration": 200 } }, below);
+      const V = window.BB_GL && window.BB_GL.rasterVisible ? window.BB_GL.rasterVisible(this.url) : true;
+      g.addLayer({ id: this._sid, type: "raster", source: this._sid, layout: { visibility: V ? "visible" : "none" }, paint: { "raster-opacity": this.options.opacity != null ? this.options.opacity : 1, "raster-fade-duration": 200 } }, below);
       const done = () => { this.fire("load"); };
       g.once("idle", done);
     }); }
