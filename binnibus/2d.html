@@ -334,7 +334,6 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
     <section class="msec" style="--d:1"><h3>⭐ Mis lugares</h3><div id="mmis"></div></section>
     <section class="msec" style="--d:2"><details class="mdet"><summary><h3>Rutas en el mapa</h3><span class="chev">▾</span></summary><p class="muted">Toca una ruta para mostrarla u ocultarla.</p><div class="chips" id="chips"></div>
       <div style="display:flex;gap:8px;margin-top:8px"><button class="mbtn" id="allon">Mostrar todas</button><button class="mbtn" id="alloff">Ocultar todas</button></div></details></section>
-    <section class="msec" style="--d:3"><details class="mdet"><summary><h3>Las 35 rutas</h3><span class="chev">▾</span></summary><div id="all"></div></details></section>
     <section class="msec" style="--d:4"><h3>Tarifas y horario</h3><p class="muted">$8 con tarjeta · $10 en efectivo · $4 estudiantes y adultos mayores · Personas con discapacidad: gratis. Horario 6:00–22:00.</p>
       <p class="muted">Recorridos y paradas de OpenStreetMap (© colaboradores de OpenStreetMap). Los tiempos son aproximados; confirma con el chofer si algo no cuadra.</p></section>
   </div>
@@ -1379,7 +1378,7 @@ try{if(!localStorage.getItem("bb-intro")){localStorage.setItem("bb-intro","1");s
   if(U.get("debug"))debugReport();
   if(U.get("bench")){origin=[17.0632,-96.7517];dest=[17.0478,-96.7139];let t=performance.now();plan(1000,900,true);const a=performance.now()-t;t=performance.now();buildStopIdx();const b2=performance.now()-t;$("panel").insertAdjacentHTML("afterbegin",`<p id="bench">BENCH plan ${a.toFixed(0)}ms stops ${b2.toFixed(0)}ms opciones ${plans.length}</p>`)}
 })();
-function renderAll(){$("all").innerHTML=R.map(r=>`<div class="rl"><b>${r[0]}</b> ${r[1]} · ${r[3]}${GEO[r[0]]?" · <b style='color:#0f766e'>en el mapa</b>":" · <i>sin trazo</i>"}<br><a href="${IMG+r[4]}">Mapa oficial</a></div>`).join("")}
+function renderAll(){if(!$("all"))return;$("all").innerHTML=R.map(r=>`<div class="rl"><b>${r[0]}</b> ${r[1]} · ${r[3]}${GEO[r[0]]?" · <b style='color:#0f766e'>en el mapa</b>":" · <i>sin trazo</i>"}<br><a href="${IMG+r[4]}">Mapa oficial</a></div>`).join("")}
 </script>
 <script>/* atajos y "Desde": 10 s al entrar, luego se esconden; vuelven al tocar ¿A dónde vas? */
 (function(){var x=document.getElementById("extras"),q=document.getElementById("q"),t=null;if(!x)return;
