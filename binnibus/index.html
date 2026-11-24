@@ -263,6 +263,11 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
 .seenchip{display:flex;flex-direction:column;align-items:center;line-height:1.1;padding:6px 9px!important}
 .seenchip small{font:600 10px Inter;opacity:.9;margin-top:2px}
 .seenchip.far{color:#6b6358!important}
+.seg{display:flex;background:#efe9df;border-radius:11px;padding:3px;margin:8px 0 4px}.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px;font:700 13px Inter;color:#6b6358}.seg button.on{background:#fff;color:#1d1a16;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.avbtn{display:flex;align-items:center;gap:10px;width:100%;margin-top:7px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font:700 14px Inter;color:var(--ink)}.avbtn small{display:block;font:500 12px Inter;color:#6b6358}.avbtn em{font-style:normal;font-size:22px}
+.avmk{width:max-content;transform:translate(-50%,-150%);display:flex;align-items:center;gap:3px;background:#ea580c;color:#fff;border:2px solid #fff;border-radius:999px;padding:2px 7px 2px 4px;font:800 10px Inter;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.zfar .avmk b{display:none}.zfar .avmk{padding:2px 4px}
+.avwarn{margin-top:6px;background:#fff7ed;color:#9a3412;border-radius:9px;padding:6px 9px;font:600 12px Inter}
 .warnfar{background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 10px;font-size:13px;margin:10px 0 0}
 #stopban{position:fixed;left:10px;right:10px;top:max(10px,env(safe-area-inset-top));z-index:2200;display:flex;gap:10px;align-items:center;background:#1d1a16;color:#fff;border-radius:16px;padding:8px 12px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:13px;cursor:pointer;transform:perspective(700px) rotateX(-90deg);transform-origin:50% 50%;opacity:0;pointer-events:none;transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .2s;backface-visibility:hidden}
 #stopban.on{transform:perspective(700px) rotateX(0);opacity:1;pointer-events:auto}
@@ -381,7 +386,7 @@ window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.cl
   <input id="recto2" class="recsel" placeholder="Escribe hacia dónde va" style="display:none;margin-top:6px">
   <button class="mbtn" id="recgo" style="width:100%;margin-top:12px;background:#b91c1c;color:#fff;border:0">🔴 Empezar a grabar</button></div></div>
 <div id="recbar"><div class="rbt"><i></i><b id="rect">Grabando</b><small id="recs"></small></div><div class="rbb"><button id="recstop">🚏 Parada</button><button id="recend">⏹ Terminar</button></div></div>
-<div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b>👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><p class="muted" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div id="seenroutes"></div><div id="seendirs"></div></div></div>
+<div class="dlg" id="seendlg"><div class="dlgbox"><div class="head"><b id="seenttl">👀 ¿Qué BinniBus viste?</b><button class="mclose" id="seenx">✕</button></div><div class="seg" id="seenmode"><button data-m="vi" class="on">👀 Lo vi</button><button data-m="av">⚠️ Hay un problema</button></div><p class="muted" id="seensub" style="margin:4px 0 8px">Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.</p><div id="seenroutes"></div><div id="seendirs"></div></div></div>
 <div class="alert" id="alert"></div>
 <div class="mscrim" id="mscrim"></div>
 <aside class="menu" id="menu" aria-hidden="true">
@@ -598,7 +603,7 @@ function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.set
   const r=(window.R||[]).find(x=>x[0]===h.c)||[],dirs=(GEO[h.c]||[]).map(d=>d.to);let el=$("linecard");
   if(!el){el=document.createElement("div");el.id="linecard";document.body.appendChild(el)}
   el.innerHTML=`<div class="lc-h"><span class="badge" style="background:${COL[h.c]||"#0f766e"}">${h.c}</span><b>${esc(r[1]||"")}</b>${r[2]?`<span class="muted">· ${esc(r[2])}</span>`:""}<button id="lcx" aria-label="Cerrar">✕</button></div>
-    <div class="lc-r">${esc(r[3]||"")}</div><div class="lc-d">${dirs.map((t,i)=>`<button class="lc-go" data-d="${i}">Ver recorrido → ${esc(t)}</button>`).join("")}</div>`;
+    <div class="lc-r">${esc(r[3]||"")}</div>${avisoTxt([h.c])}<div class="lc-d">${dirs.map((t,i)=>`<button class="lc-go" data-d="${i}">Ver recorrido → ${esc(t)}</button>`).join("")}</div>`;
   el.classList.remove("on");void el.offsetWidth;el.classList.add("on");$("lcx").onclick=e=>{e.stopPropagation();clearLine()};
   el.querySelectorAll(".lc-go").forEach(b=>b.onclick=e=>{e.stopPropagation();const d=GEO[h.c][+b.dataset.d];
     const st=d.stops.filter(x=>x.ll&&!x.bad),last=st[st.length-1]||{ll:d.line[d.line.length-1],name:d.to};
@@ -703,7 +708,7 @@ function renderPlans(){
     const L0=p.legs[0],L1=p.legs[p.legs.length-1];
     const walkT=Math.round(wmin(p.walk[0])+wmin(p.walk[1])+(p.tw?wmin(p.tw):0));
     h+=`<div class="opt${i===0&&!walkBest?" on":""}" data-i="${i}"><div class="head"><div>${p.legs.map(l=>badge(l.c)).join("→ ")}</div><div class="muted">${i===0&&!walkBest?"⭐ Mejor · ":""}~${Math.round(p.t)} min · llegas ${hora(p.t)}</div></div>
-    <div class="kind">${p.legs.length>1?'<span class="tag tr">🔁 1 transbordo</span>':'<span class="tag dr">✅ Directa</span>'}<span class="muted">🚶 ${fmt((p.walk[0]+p.walk[1]+(p.tw||0))*1.25)} a pie</span></div>
+    <div class="kind">${p.legs.length>1?'<span class="tag tr">🔁 1 transbordo</span>':'<span class="tag dr">✅ Directa</span>'}<span class="muted">🚶 ${fmt((p.walk[0]+p.walk[1]+(p.tw||0))*1.25)} a pie</span></div>${avisoTxt(p.legs.map(l=>l.c))}
     <div class="liveeta" data-eta="${i}"></div>
     <ul class="steps">
       <li class="w">Camina <span data-w="${i}-0">${fmt(p.walk[0]*1.25)}</span> a la parada <b>${L0.b.s.name}</b></li>
@@ -1413,6 +1418,22 @@ if(YO){$("recsec").style.display="";recPendUI();try{const x=JSON.parse(localStor
 /* ---------- Vi un BinniBus ---------- */
 let SEEN=[];const seenLayer=L.layerGroup().addTo(map);
 const hace=s=>s<60?"hace un momento":s<3600?`hace ${Math.round(s/60)} min`:`hace ${Math.round(s/3600)} h`;
+var SEENMODE="vi",AVISOS=[];
+const AVT=[["bloqueo","🚧","Bloqueo","Hay un bloqueo y no puede pasar"],["base","🅿️","No están saliendo","Los camiones siguen parados en la base"],["trafico","🚗","Mucho tráfico","Va muy lento, tardará más"]];
+const AVN={bloqueo:"🚧 Bloqueo",base:"🅿️ No están saliendo de la base",trafico:"🚗 Mucho tráfico"};
+document.querySelectorAll("#seenmode button").forEach(b=>b.onclick=()=>{SEENMODE=b.dataset.m;document.querySelectorAll("#seenmode button").forEach(x=>x.classList.toggle("on",x===b));
+  $("seenttl").textContent=SEENMODE==="av"?"⚠️ Avisar un problema":"👀 ¿Qué BinniBus viste?";
+  $("seensub").textContent=SEENMODE==="av"?"Elige la ruta. Se avisa a todos durante 1 hora. Anónimo.":"Se marca en tu ubicación para que todos sepan por dónde va. Anónimo.";$("seendirs").innerHTML=""});
+// avisos de la gente: bloqueo, no salen de la base, mucho tráfico (duran 1 hora)
+const avLayer=L.layerGroup().addTo(map);
+function avisosDe(c){const m={};AVISOS.filter(a=>a.r===c&&a.s<3600).forEach(a=>{(m[a.t]=m[a.t]||[]).push(a)});return Object.entries(m).map(([t,v])=>({t,n:v.length,s:Math.min(...v.map(x=>x.s))}))}
+function avisoTxt(codes){const out=[];[...new Set(codes)].forEach(c=>avisosDe(c).forEach(a=>out.push(`⚠️ ${c}: ${AVN[a.t]} · ${hace(a.s)}${a.n>1?` · ${a.n} personas`:""}`)));return out.length?`<div class="avwarn">${out.join("<br>")}</div>`:""}
+function drawAvisos(){avLayer.clearLayers();const gs=[];AVISOS.filter(a=>a.s<3600).forEach(a=>{const ll=[a.lat,a.lon];const g=gs.find(g=>g.r===a.r&&g.t===a.t&&D(g.ll,ll)<400);if(g)g.n++;else gs.push({r:a.r,t:a.t,ll,s:a.s,n:1})});
+  gs.forEach(g=>L.marker(g.ll,{icon:L.divIcon({className:"",iconSize:[0,0],iconAnchor:[0,0],html:`<div class="avmk">${AVN[g.t].split(" ")[0]}<b>${g.r}</b></div>`}),zIndexOffset:2100}).addTo(avLayer)
+    .bindPopup(`<b>${AVN[g.t]}</b><br>Ruta ${g.r} · ${hace(g.s)}${g.n>1?`<br>${g.n} personas lo reportaron`:""}<br><span style="color:#6b6358">Reporte de usuarios</span>`));
+  try{renderPeek()}catch(e){}}
+async function pollAvisos(){if(document.visibilityState!=="visible")return;try{const r=await fetch(SBR+"bb_avisos_recientes",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:"{}"});if(r.ok){AVISOS=await r.json();drawAvisos();if(plans&&plans.length&&typeof renderPlans==="function")try{renderPlans()}catch(e){}}}catch(e){}}
+setInterval(pollAvisos,45000);setTimeout(pollAvisos,2500);setInterval(()=>{AVISOS.forEach(x=>x.s+=60);drawAvisos()},60000);
 function openSeen(){
   if(!me){toast("Activa tu ubicación para marcar dónde lo viste.");return}
   const c=[me.getLatLng().lat,me.getLatLng().lng];
@@ -1421,6 +1442,13 @@ function openSeen(){
   const cerca=near.filter(x=>x.d<=400),lejos=near.filter(x=>x.d>400);
   const mk=({k,d},far)=>{const b=document.createElement("button");b.innerHTML=`${k}<small>${far?"lejos · ":""}${d<1000?Math.round(d/10)*10+" m":(d/1000).toFixed(1)+" km"}</small>`;b.className="seenchip"+(far?" far":"");b.style.background=far?"#e7e1d6":(COL[k]||"#0f766e");b.onclick=()=>pick(k,d,far);return b};
   const pick=(k,d,far)=>{
+    if(SEENMODE==="av"){ // avisar un problema con esta ruta
+      $("seendirs").innerHTML=`<p class="muted" style="margin:12px 0 2px">¿Qué pasa con la ${k}?</p>`+AVT.map(([t,e,n,d])=>`<button class="avbtn" data-t="${t}"><em>${e}</em><span>${n}<small>${d}</small></span></button>`).join("");
+      $("seendirs").querySelectorAll("[data-t]").forEach(x=>x.onclick=()=>{const t=x.dataset.t;let ll=c;try{ll=snapSeen(k,-1,c).ll||c}catch(e){}
+        sb("bb_aviso_add",{p_sesion:SES,p_ruta:k,p_tipo:t,p_lat:ll[0],p_lon:ll[1]});
+        AVISOS.unshift({r:k,t,lat:ll[0],lon:ll[1],s:0});drawAvisos();$("seendlg").classList.remove("on");
+        toast("⚠️ Gracias, ya les avisamos a los demás que usan la "+k)});
+      $("seendirs").scrollIntoView({behavior:"smooth",block:"nearest"});return}
     $("seendirs").innerHTML=(far?`<p class="warnfar">⚠️ La ${k} pasa a ${d<1000?Math.round(d)+" m":(d/1000).toFixed(1)+" km"} de ti. ¿Seguro que es esa?</p>`:"")+`<p class="muted" style="margin:10px 0 4px">¿Qué decía su letrero?</p>`+GEO[k].map((x,i)=>`<button class="mbtn" data-i="${i}" style="width:100%;margin-top:6px">${k} → ${esc(x.to)}</button>`).join("")+`<button class="mbtn" data-i="-1" style="width:100%;margin-top:6px">No me fijé</button>`;
     $("seendirs").querySelectorAll("[data-i]").forEach(x=>x.onclick=()=>{const di=+x.dataset.i,to=di>=0?GEO[k][di].to:"";
       const sp=snapSeen(k,di,c);
