@@ -409,7 +409,6 @@ const wmin=m=>m*1.25/WALK; // la calle real es ~25% más larga que la línea rec
 function rideM(dir,b,a){return Math.max(0,dir.cum[a.s.i]-dir.cum[b.s.i])}
 function plan(W0=1000,W1=900,now){
   if(!now&&W0===1000){$("panel").innerHTML=`<h2>${esc(destName||"")}</h2><p class="muted">Buscando las mejores rutas…</p><div class="prog"><i style="width:70%"></i></div>`;setSheet(false);return setTimeout(()=>plan(W0,W1,true),30)}
-  if(trip&&W0===1000)cancelTrip();
   plans=[];
   const codes=Object.keys(GEO);
   for(const c of codes) for(const [dk,dir] of legsFor(c)){
@@ -487,7 +486,7 @@ function renderPlans(){
   plans.forEach((p,i)=>{if(i===0)return;walkRoute(origin,p.legs[0].b.s.ll).then(w=>{if(w)document.querySelectorAll(`[data-w="${i}-0"]`).forEach(e=>e.textContent=fmt(w.m))});walkRoute(p.legs[p.legs.length-1].a.s.ll,dest).then(w=>{if(!w)return;document.querySelectorAll(`[data-w="${i}-1"]`).forEach(e=>e.textContent=fmt(w.m));document.querySelectorAll(`[data-wd="${i}"] div`).forEach(d=>d.outerHTML=stepsHTML(w)||'<div class="muted">Camino directo, cruza con cuidado.</div>')})});
   if(plans[0])showPlan(plans[0]);else{drawId++;tripLayer.clearLayers();showNetwork();drawEnds();walkLine(origin,dest);map.fitBounds(L.latLngBounds([origin,dest]),{padding:[80,80]})}
 }
-function bindGo(){document.querySelectorAll(".go[data-go]").forEach(b=>b.onclick=e=>{e.stopPropagation();trip?cancelTrip():startTrip(plans[b.dataset.go])})}
+function bindGo(){document.querySelectorAll(".go[data-go]").forEach(b=>b.onclick=e=>{e.stopPropagation();const p=plans[b.dataset.go];if(trip===p){cancelTrip();return}if(trip){if(!confirm("¿Cambiar a este viaje? Se termina el viaje que llevas."))return;cancelTrip()}startTrip(p)})}
 function drawEnds(){
   L.circleMarker(dest,{radius:9,color:"#fff",weight:3,fillColor:"#111",fillOpacity:1}).addTo(tripLayer).bindTooltip("🏁 "+destName,{permanent:true,direction:"top",className:"lbl"});
 }
@@ -633,6 +632,7 @@ $("me").onclick=()=>{if(!me)return;setFollow(true);map.flyTo(me.getLatLng(),Math
 map.on("dragstart",()=>setFollow(false));
 setFollow(true);
 
+const TDEST=()=>(trip&&trip.dest&&trip.dest.length?trip.dest:dest);
 /* ---------- Datos en vivo del viaje ---------- */
 const nat=(e,d)=>{try{window.bbNative&&window.bbNative(e,d||{})}catch(x){}};
 setInterval(()=>{if(trip&&me&&document.visibilityState==="visible")liveRender([me.getLatLng().lat,me.getLatLng().lng])},2000);
@@ -654,9 +654,9 @@ function liveCalc(c){
   else if(TS.onBus&&(D(c,l.a.s.ll)<60||pr.i>=l.a.s.i)&&TS.leg===p.legs.length-1){TS.onBus=false;TS.done=true;stopShare(true)}
   let m=0,min=0,step="";
   const busV=TS.v&&TS.onBus?Math.max(120,Math.min(600,TS.v)):BUS;
-  if(TS.done){const w=D(c,dest)*1.25;m=w;min=w/WALK;step=`🚶 Camina a tu destino`;
-    const la=p.legs[p.legs.length-1].a.s.ll,wr=WC[la.map(x=>x.toFixed(5))+";"+dest.map(x=>x.toFixed(5))];
-    if(wr&&wr.steps&&wr.steps.length){let ni=wr.steps.findIndex((s2,i)=>i>0&&D(c,s2.ll)>15&&wr.steps.slice(i).some(()=>true)&&D(c,s2.ll)<D(c,dest)+30);
+  if(TS.done){const w=D(c,TDEST())*1.25;m=w;min=w/WALK;step=`🚶 Camina a tu destino`;
+    const la=p.legs[p.legs.length-1].a.s.ll,wr=WC[la.map(x=>x.toFixed(5))+";"+TDEST().map(x=>x.toFixed(5))];
+    if(wr&&wr.steps&&wr.steps.length){let ni=wr.steps.findIndex((s2,i)=>i>0&&D(c,s2.ll)>15&&wr.steps.slice(i).some(()=>true)&&D(c,s2.ll)<D(c,TDEST())+30);
       // siguiente maniobra: la más cercana que aún esté adelante
       let best=-1,bd=1e9;wr.steps.forEach((s2,i)=>{const d=D(c,s2.ll);if(d<bd){bd=d;best=i}});
       const nx=bd<25?wr.steps[best+1]:wr.steps[best];
@@ -669,14 +669,14 @@ function liveCalc(c){
       const left=L.dir.stops.filter(s=>s.i!=null&&!s.bad&&s.i>q.i&&s.i<=L.a.s.i).length;
       step=`🚌 En la <b>${L.c}</b> · faltan <b>${left}</b> ${left===1?"parada":"paradas"} para <b>${esc(L.a.s.name)}</b>`}
     for(let k=TS.leg+1;k<p.legs.length;k++){const K=p.legs[k];const tw=D(p.legs[k-1].a.s.ll,K.b.s.ll)*1.25;m+=tw+K.rm;min+=tw/WALK+WAIT+K.rm/BUS}
-    const fw=D(p.legs[p.legs.length-1].a.s.ll,dest)*1.25;m+=fw;min+=fw/WALK;
+    const fw=D(p.legs[p.legs.length-1].a.s.ll,TDEST())*1.25;m+=fw;min+=fw/WALK;
   }
   return {m,min:Math.max(1,Math.round(min)),step};
 }
 function liveRender(c){
   const bar=$("tripbar");if(!bar||!trip)return;
   const r=liveCalc(c);
-  {const la=trip.legs[trip.legs.length-1].a.s;const fw=D(la.ll,dest)*1.25/WALK;nat("eta",{min:r.min,alight:Math.max(0,r.min-fw),stop:la.name,eta:hora(r.min)})}
+  {const la=trip.legs[trip.legs.length-1].a.s;const fw=D(la.ll,TDEST())*1.25/WALK;nat("eta",{min:r.min,alight:Math.max(0,r.min-fw),stop:la.name,eta:hora(r.min)})}
   const live=bar.querySelector(".live");
   if(!live.querySelector(".lv"))live.innerHTML=`<div class="lv"><div><b data-k="m"></b><span>faltan</span></div><div><b data-k="t"></b><span>restantes</span></div><div><b data-k="h"></b><span>llegada</span></div></div><div class="muted lvstep" style="margin-top:6px"></div><div class="lvupd"><i></i>en vivo</div>`;
   const setv=(k,v)=>{const e=live.querySelector(`[data-k="${k}"]`);if(e.textContent!==v){e.textContent=v;e.classList.remove("blink");void e.offsetWidth;e.classList.add("blink")}};
@@ -699,6 +699,7 @@ function buzz(){ // vibración: Android, iPhone (iOS 18+, truco del switch) y so
   try{if(actx){const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;g.gain.setValueAtTime(.18,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.25);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+.26)}}catch(e){}
 }
 function startTrip(p){
+  p.dest=(dest||[]).slice();
   passed={};keepAwake(true);if(navigator.wakeLock&&!window.Capacitor)toast("🔆 La pantalla se queda encendida durante el viaje");try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume()}catch(e){}
   trip=p;warned={};TS=null;nat("start",{stop:p.legs[p.legs.length-1].a.s.name,route:p.legs.map(l=>l.c).join(" → ")});
   tripBar();
@@ -708,6 +709,7 @@ function startTrip(p){
   $("peek").textContent=`🟢 Viaje en curso · Bájate en ${p.legs[p.legs.length-1].a.s.name} ⌃`;
   if(me)liveRender([me.getLatLng().lat,me.getLatLng().lng]);
 }
+new MutationObserver(()=>{if(trip&&!$("tripbar")){tripBar();shareUI&&shareUI()}}).observe($("panel"),{childList:true});
 function cancelTrip(){
   nat("end");stopShare(true);keepAwake(false);
   trip=null;warned={};$("alert").style.display="none";tripBar();
@@ -726,7 +728,7 @@ function checkTrip(c,sp){
       setTimeout(()=>a.style.display="none",9000)}});
   trip&&trip.legs.forEach((l,j)=>{const st=l.dir.stops;for(let k=l.b.k+1;k<l.a.k;k++){const x=st[k];if(!x.ll||x.bad||passed[j+"_"+k])continue;
     if(D(c,x.ll)<45){for(let q=l.b.k+1;q<=k;q++)passed[j+"_"+q]=1;const f=l.a.k-k;buzz();toast(`🚏 ${x.name} · faltan ${f} parada${f>1?"s":""}`);nat("stop",{name:x.name,routes:`faltan ${f} parada${f>1?"s":""}`});break}}});
-  if(trip&&D(c,dest)<60)arrived();
+  if(trip&&D(c,TDEST())<60)arrived();
 }
 $("alert").onclick=()=>$("alert").style.display="none";
 
@@ -932,7 +934,7 @@ function pingShare(c,sp){
   // si se aleja de la ruta mucho tiempo (se bajó), deja de compartir solo
   const dirs=(GEO[SHARE.code]||[]).filter(d=>d.to===SHARE.to);
   const off=dirs.length?Math.min(...dirs[0].line.filter((p,i)=>i%2===0).map(p=>D(c,p))):0;
-  if(off>250){SHARE.off=SHARE.off||Date.now();if(Date.now()-SHARE.off>90000){stopShare(true);toast("Parece que ya te bajaste: dejé de compartir el camión.");return}}else SHARE.off=0;
+  if(off>250){SHARE.off=SHARE.off||Date.now();if(Date.now()-SHARE.off>180000){stopShare(true);toast("Parece que ya te bajaste: dejé de compartir el camión.");return}}else SHARE.off=0;
   if(Date.now()-SHARE.since>3*3600e3){stopShare(true);return}
   if(Date.now()-lastPing<5000)return;lastPing=Date.now();
   sb("bb_bus_ping",{p_sesion:SES,p_ruta:SHARE.code,p_destino:SHARE.to,p_lat:c[0],p_lon:c[1],p_vel:sp!=null&&sp>=0?Math.round(sp*3.6):null,p_activo:true});
@@ -975,7 +977,6 @@ setInterval(pollLive,8000);setTimeout(pollLive,1500);document.addEventListener("
 
 /* ---------- Limpiar todo ---------- */
 function clearAll(){
-  if(trip)cancelTrip();
   dest=null;destName="";destAddr="";plans=[];pending=false;tripLayer.clearLayers();map.closePopup();drawId++;RT=null;rtId++;rtLayer.clearLayers();rtHid=false;showNetwork();
   $("q").value="";$("sugg").style.display="none";document.body.classList.remove("hasdest");
   $("panel").innerHTML=`<h2 class="h2logo"><img src="logo.png" alt="">¿A dónde vas?</h2><p class="muted">Busca un lugar arriba o toca el mapa.</p><button class="nearbtn" id="nearbtn" onclick="toggleNear()">🚏 ¿Quieres ver las rutas que están próximas a venir? <span class="chev">▾</span></button><div id="stopsec"></div>`;SC=null;
