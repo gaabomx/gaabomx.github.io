@@ -219,14 +219,43 @@ body.fleft .fab{right:auto!important;left:12px}body.fleft .seen{right:auto!impor
 </style>
 </head>
 <body>
-<div id="splash" style="position:fixed;inset:0;z-index:5000;background:#f6f2ea;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font:600 16px system-ui,sans-serif;color:#1d1a16;transition:opacity .35s">
-  <img src="logo.png" alt="" width="84" height="84" style="border-radius:20px">
-  <div style="font:800 22px system-ui,sans-serif">Binni Rutas</div>
-  <div style="color:#6b6358">Cargando mapa…</div>
-  <div style="width:140px;height:4px;border-radius:2px;background:#e4dccf;overflow:hidden"><i style="display:block;height:100%;width:40%;background:#0f766e;border-radius:2px;animation:spl 1.1s ease-in-out infinite"></i></div>
-  <style>@keyframes spl{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}</style>
+<div id="splash">
+  <style>
+  #splash{position:fixed;left:0;right:0;top:0;bottom:-200px;padding-bottom:200px;z-index:5000;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(120% 70% at 50% 42%,#3a1a06 0%,#140a04 45%,#050302 100%);color:#fff;font-family:system-ui,-apple-system,sans-serif;overflow:hidden;transition:opacity .5s,transform .5s}
+  #splash.out{opacity:0;transform:scale(1.06)}
+  #splash .glow{position:absolute;width:340px;height:340px;border-radius:50%;top:calc(42% - 170px);left:calc(50% - 170px);
+    background:radial-gradient(circle,rgba(249,115,22,.45),rgba(249,115,22,0) 65%);animation:spGlow 2.4s ease-in-out infinite}
+  #splash .logo{position:relative;height:118px;width:auto;object-fit:contain;filter:drop-shadow(0 10px 24px rgba(249,115,22,.45));
+    animation:spPop .8s cubic-bezier(.2,1.5,.4,1) both,spFloat 2.6s ease-in-out .8s infinite}
+  #splash h1{position:relative;margin:18px 0 0;font:900 30px/1 system-ui,-apple-system,sans-serif;letter-spacing:-.5px;animation:spUp .6s .25s both}
+  #splash h1 b{background:linear-gradient(90deg,#f97316,#fb923c,#e11d48);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #splash .sub{position:relative;margin-top:8px;font:600 13px system-ui;letter-spacing:3px;color:#fdba74;opacity:.85;animation:spUp .6s .4s both}
+  #splash .road{position:relative;width:230px;height:40px;margin-top:34px;animation:spUp .6s .55s both}
+  #splash .road:before{content:"";position:absolute;left:0;right:0;bottom:6px;height:4px;border-radius:2px;background:#2a1a10}
+  #splash .road:after{content:"";position:absolute;left:0;right:0;bottom:7px;height:2px;
+    background:repeating-linear-gradient(90deg,#f97316 0 10px,transparent 10px 20px);animation:spDash .6s linear infinite;opacity:.8}
+  #splash .spbus{position:absolute;bottom:6px;left:0;line-height:0;filter:drop-shadow(0 0 8px rgba(249,115,22,.6));animation:spBus 2.2s cubic-bezier(.45,.05,.55,.95) infinite}
+  #splash .spbus i{display:inline-block;animation:spBump .3s ease-in-out infinite alternate}
+  #splash .stop{position:absolute;bottom:3px;width:10px;height:10px;border-radius:50%;background:#f97316;box-shadow:0 0 0 3px #140a04,0 0 10px #f97316}
+  #splash .txt{position:relative;margin-top:14px;font:600 13px system-ui;color:#a8a29e;animation:spUp .6s .7s both}
+  @keyframes spPop{0%{transform:scale(.3) rotate(-12deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes spFloat{0%,100%{translate:0 0}50%{translate:0 -6px}}
+  @keyframes spGlow{0%,100%{transform:scale(.9);opacity:.7}50%{transform:scale(1.1);opacity:1}}
+  @keyframes spUp{0%{transform:translateY(14px);opacity:0}100%{transform:none;opacity:1}}
+  @keyframes spBus{0%{left:-12%}100%{left:88%}}
+  @keyframes spBump{0%{translate:0 0}100%{translate:0 -2px}}
+  @keyframes spDash{to{background-position:-20px 0}}
+  @media (prefers-reduced-motion:reduce){#splash *{animation:none!important}}
+  </style>
+  <div class="glow"></div>
+  <img class="logo" src="logo.png" alt="">
+  <h1>Binni <b>Rutas</b></h1>
+  <div class="sub">OAXACA</div>
+  <div class="road"><span class="stop" style="left:30%"></span><span class="stop" style="left:62%"></span><span class="stop" style="right:0"></span><span class="spbus"><i><svg width="46" height="26" viewBox="0 0 46 26"><rect x="1" y="2" width="42" height="18" rx="5" fill="#f97316"/><rect x="5" y="5" width="8" height="7" rx="1.5" fill="#fff7ed"/><rect x="15" y="5" width="8" height="7" rx="1.5" fill="#fff7ed"/><rect x="25" y="5" width="8" height="7" rx="1.5" fill="#fff7ed"/><rect x="35" y="5" width="6" height="11" rx="1.5" fill="#fff7ed"/><rect x="1" y="14" width="42" height="2" fill="#c2410c"/><circle cx="11" cy="21" r="4" fill="#1c1917" stroke="#fdba74" stroke-width="1.5"/><circle cx="33" cy="21" r="4" fill="#1c1917" stroke="#fdba74" stroke-width="1.5"/><rect x="43" y="11" width="2" height="3" fill="#fde68a"/></svg></i></span></div>
+  <div class="txt" id="spltxt">Cargando el mapa…</div>
 </div>
-<script>window.hideSplash=function(){var e=document.getElementById("splash");if(!e)return;e.style.opacity="0";setTimeout(function(){e.remove()},400)};setTimeout(hideSplash,9000)</script>
+<script>window.hideSplash=function(){var e=document.getElementById("splash");if(!e||e.classList.contains("out"))return;var w=Date.now()-(window.__spl0||0),d=Math.max(0,1400-w);setTimeout(function(){e.classList.add("out");setTimeout(function(){e.remove()},520)},d)};window.__spl0=Date.now();setTimeout(function(){var t=document.getElementById("spltxt");if(t)t.textContent="Buscando las rutas del Binni…"},1600);setTimeout(hideSplash,9000)</script>
 <div id="map"></div>
 
 <div class="top" id="top">
