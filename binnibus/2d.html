@@ -635,13 +635,29 @@ function plan(W0=1000,W1=900,now){
   renderPlans();
 }
 function badge(c){return `<span class="badge" style="background:${COL[c]||"#0f766e"}">${c}</span>`}
+// consejo del card "Caminando": cambia según distancia, hora, avisos y qué tanto gana o pierde contra el camión
+function walkTip(wd,wt,best){const p=plans[0],h=new Date().getHours(),noche=h>=21||h<6,pasos=Math.round(wd/0.72/50)*50;
+  const t=x=>`<div class="muted" style="margin-top:4px">${x}</div>`;
+  if(!p)return wd<2500?t(`Son unos ${pasos.toLocaleString("es-MX")} pasos.${noche?" Es de noche: ve por calles iluminadas.":""}`):"";
+  const dif=Math.round(p.t-wt),bus=p.legs.map(l=>l.c).join(" + "),pago=p.legs.length*8;
+  if(!horarioOk())return t(`🌙 El BinniBus ya no está pasando a esta hora. Caminando son ${wt} min.`);
+  if(best){
+    if(p.dl&&dif>=0)return t(`⚠️ Con lo que reportaron en la ${bus}, caminando llegas ${dif>1?dif+" min antes":"igual"} y te ahorras $${pago}.`);
+    if(wd<600)return t(`Está cerquita: unos ${pasos.toLocaleString("es-MX")} pasos. No vale la pena esperar el camión.`);
+    if(dif>=5)return t(`Caminando llegas ${dif} min antes que en la ${bus} (contando la espera) y te ahorras $${pago}.`);
+    if(dif>=0)return t(`Llegas casi igual que en la ${bus}. Caminando te ahorras $${pago}${noche?"; de noche mejor el camión":""}.`);
+    return t(`El camión solo te gana ${-dif} min. Caminando te ahorras $${pago}.`)}
+  const gana=Math.round(wt-p.t);
+  if(wd>2500)return t(`Es lejos para caminar: en la ${bus} llegas ${gana} min antes y sin cansarte.`);
+  if(gana<=6)return t(`En la ${bus} llegas solo ${gana} min antes. Si no quieres esperar, caminando también llegas.`);
+  return t(`En la ${bus} llegas ${gana} min antes.`)}
 function renderPlans(){
   const P=$("panel");
   const dd=origin&&dest?D(origin,dest):0;
   const wd=dd*1.25,wt=Math.round(wd/WALK);
   const walkBest=!plans.length||wt<=plans[0].t+3;
   let h=`<h2>${destName}</h2><div class="muted">${destAddr||""}</div>
-  <div class="opt walk" style="cursor:default${walkBest?";border:2px solid var(--ink)":""}"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${walkBest?"⭐ Mejor · ":""}<span id="wd">${fmt(wd)} · ${wt} min</span> · llegas ${hora(wt)}</div></div>${walkBest&&plans.length?'<div class="muted" style="margin-top:4px">Caminando llegas igual o más rápido que en camión.</div>':""}</div>`;
+  <div class="opt walk" style="cursor:default${walkBest?";border:2px solid var(--ink)":""}"><div class="head"><div><b>🚶 Caminando</b></div><div class="muted">${walkBest?"⭐ Mejor · ":""}<span id="wd">${fmt(wd)} · ${wt} min</span> · llegas ${hora(wt)}</div></div>${walkTip(wd,wt,walkBest)}</div>`;
   if(!plans.length){
     h+=`<p>No encontré un BinniBus que te deje razonablemente cerca de aquí. Puede que no haya ruta por esa zona.</p>`;
   }
