@@ -531,7 +531,13 @@ function lineAt(e){if(netHidden)return null;const p=map.latLngToContainerPoint([
     for(let i=0;i<L0.length;i+=2){const q=map.latLngToContainerPoint(L0[i]);if(a){const dx=q.x-a.x,dy=q.y-a.y,l2=dx*dx+dy*dy||1;let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/l2;t=Math.max(0,Math.min(1,t));
       const dd=Math.hypot(a.x+t*dx-p.x,a.y+t*dy-p.y);if(dd<bd){bd=dd;best={c,to:d.to}}}a=q}}}
   return best}
-function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle(c===h.c?{opacity:1,weight:6}:{opacity:.12,weight:3}));
+const selLayer=L.layerGroup();
+function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle(c===h.c?{opacity:0}:{opacity:.08,weight:3}));
+  selLayer.clearLayers();const col=COL[h.c]||"#0f766e";
+  (GEO[h.c]||[]).forEach(d=>{L.polyline(d.line,{color:"#000",weight:16,opacity:.25,interactive:false}).addTo(selLayer);
+    L.polyline(d.line,{color:"#fff",weight:13,opacity:1,interactive:false}).addTo(selLayer);
+    L.polyline(d.line,{color:col,weight:9,opacity:1,interactive:false}).addTo(selLayer)});
+  selLayer.addTo(map);
   const r=(window.R||[]).find(x=>x[0]===h.c)||[],dirs=(GEO[h.c]||[]).map(d=>d.to);let el=$("linecard");
   if(!el){el=document.createElement("div");el.id="linecard";document.body.appendChild(el)}
   el.innerHTML=`<div class="lc-h"><span class="badge" style="background:${COL[h.c]||"#0f766e"}">${h.c}</span><b>${esc(r[1]||"")}</b>${r[2]?`<span class="muted">· ${esc(r[2])}</span>`:""}<button id="lcx" aria-label="Cerrar">✕</button></div>
@@ -543,7 +549,7 @@ function selectLine(h){SELL=h.c;for(const c in NETPL)NETPL[c].forEach(pl=>pl.set
 function goRoute(code,to){const d=(GEO[code]||[]).find(x=>x.to===to);if(!d)return;const st=d.stops.filter(x=>x.ll&&!x.bad),last=st[st.length-1]||{ll:d.line[d.line.length-1]};
   if(SC){SC=null;clearRouteView();const el=$("stopsec");if(el){el.classList.remove("on");el.innerHTML=""}}
   ONLY={c:code,to};ONLYK=true;try{setDest(last.ll,`${to} (${code})`)}finally{ONLYK=false}}
-function clearLine(){if(!SELL)return;SELL=null;for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle({opacity:.6,weight:3}));const el=$("linecard");if(el)el.classList.remove("on")}
+function clearLine(){if(!SELL)return;SELL=null;selLayer.clearLayers();map.removeLayer(selLayer);for(const c in NETPL)NETPL[c].forEach(pl=>pl.setStyle({opacity:.6,weight:3}));const el=$("linecard");if(el)el.classList.remove("on")}
 function draw(code){
   const g=GEO[code];if(!g)return;
   const grp=L.layerGroup(),c=COL[code]||"#0f766e";
