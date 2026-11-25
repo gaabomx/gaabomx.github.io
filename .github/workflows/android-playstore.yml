@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - "binni-app/**"
+      - "binnibus/**"
       - ".github/workflows/android-playstore.yml"
 
 permissions:
