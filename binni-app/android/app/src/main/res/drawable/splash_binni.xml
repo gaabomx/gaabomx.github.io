@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pantalla de arranque (Android 7 a 11): fondo oscuro con el logo al centro -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/binni_fondo" />
+    <item android:gravity="center" android:width="200dp" android:height="200dp"
+        android:drawable="@mipmap/ic_launcher_foreground" />
+</layer-list>
