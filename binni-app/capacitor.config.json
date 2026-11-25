@@ -19,6 +19,6 @@
       "@capacitor/status-bar"
     ],
     "adjustMarginsForEdgeToEdge": "force",
-    "backgroundColor": "#0f766e"
+    "backgroundColor": "#0c0703"
   }
 }
