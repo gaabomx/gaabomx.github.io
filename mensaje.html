@@ -219,7 +219,7 @@ document.getElementById("forma").addEventListener("submit", async (e) => {
   }
 });
 // mensajes de prueba o sin sentido ("test", "prueba", "gbg", "aaaa")
-const EQUIPO_BLOQUEADO = (/Linux/.test(navigator.userAgent) && !/Android|CrOS/.test(navigator.userAgent)) || /Windows/.test(navigator.userAgent);
+const EQUIPO_BLOQUEADO = /Linux/.test(navigator.userAgent) && !/Android|CrOS/.test(navigator.userAgent);
 function pareceBasura(t) {
   if (EQUIPO_BLOQUEADO) return true;
   const n = t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), l = n.replace(/[^a-z]/g, "");
