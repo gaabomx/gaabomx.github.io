@@ -8,6 +8,17 @@
     "limitsNavigationsToAppBoundDomains": false
   },
   "plugins": {
-    "LocalNotifications": { "iconColor": "#0f766e" }
+    "LocalNotifications": {
+      "iconColor": "#0f766e"
+    }
+  },
+  "android": {
+    "includePlugins": [
+      "@capacitor/haptics",
+      "@capacitor/local-notifications",
+      "@capacitor/status-bar"
+    ],
+    "adjustMarginsForEdgeToEdge": "force",
+    "backgroundColor": "#0f766e"
   }
 }

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Binni Rutas</string>
+    <string name="title_activity_main">Binni Rutas Oax</string>
+    <string name="package_name">mx.gaabomx.binnirutas</string>
+    <string name="custom_url_scheme">mx.gaabomx.binnirutas</string>
+</resources>
