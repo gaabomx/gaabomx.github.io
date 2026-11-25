@@ -1,4 +1,4 @@
-// Funciones nativas de la app (solo se activan dentro de la app de iPhone).
+// Funciones nativas de la app (solo se activan dentro de la app de iPhone y Android).
 (function () {
   const C = window.Capacitor;
   if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
@@ -10,7 +10,9 @@
   const ID_BAJADA = 1001, ID_LLEGADA = 1002, ID_AVISO = 1003;
   let permiso = false, ultimoAviso = 0;
 
-  try { SB && SB.setOverlaysWebView({ overlay: true }); SB && SB.setStyle({ style: "DARK" }); } catch (e) {}
+  // Barra de estado: solo en iPhone. En Android la maneja MainActivity (borde a borde),
+  // así no se usan funciones que Android 15 ya marcó como obsoletas.
+  if (C.getPlatform && C.getPlatform() === "ios") { try { SB && SB.setOverlaysWebView({ overlay: true }); SB && SB.setStyle({ style: "DARK" }); } catch (e) {} }
 
   async function pedirPermiso() {
     if (permiso || !LN) return permiso;

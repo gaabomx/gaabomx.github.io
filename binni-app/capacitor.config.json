@@ -15,8 +15,7 @@
   "android": {
     "includePlugins": [
       "@capacitor/haptics",
-      "@capacitor/local-notifications",
-      "@capacitor/status-bar"
+      "@capacitor/local-notifications"
     ],
     "adjustMarginsForEdgeToEdge": "force",
     "backgroundColor": "#0c0703"
